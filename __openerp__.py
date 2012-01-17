@@ -6,7 +6,10 @@
 	"website": "http://www.willowit.com.au/",
 	"depends": ["base"],
 	"category": "Reporting subsystems",
-	"data": [],
+	"data": [
+		"data/report_xml_view.xml",
+		#"data/ir.model.access.csv"
+	],
 	"installable": True,
 	"active": False
 }
