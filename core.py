@@ -8,16 +8,6 @@ import pooler
 import report
 from osv import osv, fields
 
-class PentahoReport(object):
-	def __init__(self, file_name = "", path_prefix = ""):
-		self._report_path = file_name
-		self._path_prefix = path_prefix.strip()
-		if self._path_prefix and self._path_prefix[-1] != '/':
-			self._path_prefix += '/'
-
-	def get_report_store_directory(self):
-		return os.path.join(os.path.abspath(os.path.dirname(__file__)), '..', 'report', '')
-
 class Report(object):
 	def __init__(self, name, cr, uid, ids, data, context):
 		self.name = name
@@ -29,7 +19,6 @@ class Report(object):
 		self.context = context or {}
 		self.pool = pooler.get_pool(self.cr.dbname)
 		self.report_path = None
-		self.report = None
 		self.temporary_files = []
 		self.output_format = "pdf"
 		self.path = os.path.abspath(os.path.dirname(__file__))
@@ -37,15 +26,17 @@ class Report(object):
 	def execute(self):
 		#CHNG: Don't use OpenERP's netsvc logger
 		logger = logging.getLogger()
+		self.logger = logger
 
 		ids = self.pool.get("ir.actions.report.xml").search(self.cr, self.uid, [("report_name", "=", self.name[7:]), ("report_rml", "ilike", ".prpt")], context = self.context)
 		data = self.pool.get("ir.actions.report.xml").read(self.cr, self.uid, ids[0], ["report_rml", "pentaho_report_output"])
 		self.report_path = data["report_rml"]
 		self.report_path = os.path.join(self.get_addons_path(), self.report_path)
 
+		logger.debug("self.ids: %s" % self.ids)
+		logger.debug("self.data: %s" % self.data)
+		logger.debug("self.context: %s" % self.context)
 		logger.info("Requested report: '%s'" % self.report_path)
-
-		self.report = PentahoReport(self.report_path)
 
 		fd, output_file_name = tempfile.mkstemp()
 		os.close(fd)
@@ -60,8 +51,7 @@ class Report(object):
 
 		for temp_file in self.temporary_files:
 			try:
-				pass
-				#os.unlink(temp_file)
+				os.unlink(temp_file)
 			except os.error, e:
 				logger.warn("Couldn't remove file '%s'." % temp_file)
 		self.temporary_files = []
@@ -76,7 +66,9 @@ class Report(object):
 
 		user_model = self.pool.get("res.users")
 		current_user = user_model.browse(self.cr, self.uid, self.uid)
-		command = [os.path.join(self.path, "run_report.sh"), self.report_path, output_file, "OEHost=localhost", "OEPort=8069", "OEDB=%s" % self.cr.dbname, "OEUser=%s" % current_user.login, "OEPass=%s" % current_user.password]
+		command = [os.path.join(self.path, "run_report.sh"), self.report_path, output_file, "OEHost=localhost", "OEPort=8069", "OEDB=%s" % self.cr.dbname, "OEUser=%s" % current_user.login, "OEPass=%s" % current_user.password, "ids=%s" % ",".join(map(str, self.ids))]
+		
+		self.logger.debug("Calling command: %s" % " ".join(command))
 		subprocess.call(command)
 
 class PentahoReportOpenERPInterface(report.interface.report_int):
@@ -87,14 +79,13 @@ class PentahoReportOpenERPInterface(report.interface.report_int):
 		super(PentahoReportOpenERPInterface, self).__init__(name)
 		self.model = model
 		self.parser = parser
-	
+
 	def create(self, cr, uid, ids, data, context):
 		name = self.name
 
 		report_instance = Report(name, cr, uid, ids, data, context)
 
 		return report_instance.execute()
-
 
 def register_pentaho_report(report_name, model_name):
 	name = "report.%s" % report_name
