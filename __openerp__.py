@@ -8,7 +8,7 @@
 	"category": "Reporting subsystems",
 	"data": [
 		"data/report_xml_view.xml",
-		#"data/ir.model.access.csv"
+		"data/ir.model.access.csv"
 	],
 	"installable": True,
 	"active": False
