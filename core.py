@@ -1,7 +1,9 @@
+import io
 import os
 import logging
-import tempfile
 import subprocess
+import xmlrpclib
+import base64
 
 import netsvc
 import pooler
@@ -19,57 +21,47 @@ class Report(object):
 		self.context = context or {}
 		self.pool = pooler.get_pool(self.cr.dbname)
 		self.report_path = None
-		self.temporary_files = []
 		self.output_format = "pdf"
-		self.path = os.path.abspath(os.path.dirname(__file__))
 
 	def execute(self):
-		#CHNG: Don't use OpenERP's netsvc logger
-		logger = logging.getLogger()
-		self.logger = logger
+		self.logger = logging.getLogger()
 
 		ids = self.pool.get("ir.actions.report.xml").search(self.cr, self.uid, [("report_name", "=", self.name[7:]), ("report_rml", "ilike", ".prpt")], context = self.context)
 		data = self.pool.get("ir.actions.report.xml").read(self.cr, self.uid, ids[0], ["report_rml", "pentaho_report_output"])
 		self.report_path = data["report_rml"]
 		self.report_path = os.path.join(self.get_addons_path(), self.report_path)
 
-		logger.debug("self.ids: %s" % self.ids)
-		logger.debug("self.data: %s" % self.data)
-		logger.debug("self.context: %s" % self.context)
-		logger.info("Requested report: '%s'" % self.report_path)
+		self.logger.debug("self.ids: %s" % self.ids)
+		self.logger.debug("self.data: %s" % self.data)
+		self.logger.debug("self.context: %s" % self.context)
+		self.logger.info("Requested report: '%s'" % self.report_path)
 
-		fd, output_file_name = tempfile.mkstemp()
-		os.close(fd)
-		self.temporary_files.append(output_file_name)
-
-		logger.info("Temporary output file: '%s'" % output_file_name)
-
-		self.execute_report(output_file_name)
-
-		with open(output_file_name, "rb") as output_report_file:
-			output_report_data = output_report_file.read()
-
-		for temp_file in self.temporary_files:
-			try:
-				os.unlink(temp_file)
-			except os.error, e:
-				logger.warn("Couldn't remove file '%s'." % temp_file)
-		self.temporary_files = []
+		output_report_data = base64.decodestring(self.execute_report())
 
 		return (output_report_data, self.output_format)
 	
 	def get_addons_path(self):
 		return os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
 
-	def execute_report(self, output_file):
+	def execute_report(self):
 		locale = self.context.get("lang", "en_US")
 
 		user_model = self.pool.get("res.users")
 		current_user = user_model.browse(self.cr, self.uid, self.uid)
-		command = [os.path.join(self.path, "run_report.sh"), self.report_path, output_file, "OEHost=localhost", "OEPort=8069", "OEDB=%s" % self.cr.dbname, "OEUser=%s" % current_user.login, "OEPass=%s" % current_user.password, "ids=%s" % ",".join(map(str, self.ids))]
-		
-		self.logger.debug("Calling command: %s" % " ".join(command))
-		subprocess.call(command)
+
+		encoded_pdf_string = ""
+		with open(self.report_path, "rb") as prpt_file:
+			encoded_prpt_file = io.BytesIO()
+			base64.encode(prpt_file, encoded_prpt_file)
+
+			#TODO: Make this configurable from inside the UI
+			proxy = xmlrpclib.ServerProxy("http://localhost:8090")
+			proxy_argument = {"PRPTFile": encoded_prpt_file.getvalue(), "OEHost": "localhost", "OEPort": "8069", "OEDB": self.cr.dbname, "OEUser": current_user.login, "OEPass": current_user.password, "ids": self.ids}
+			self.logger.debug("Calling proxy with arg: %s" % proxy_argument)
+			encoded_pdf_string = proxy.report.execute(proxy_argument)
+			self.logger.debug("Report server returned: %s" % encoded_pdf_string)
+			
+		return encoded_pdf_string
 
 class PentahoReportOpenERPInterface(report.interface.report_int):
 	def __init__(self, name, model, parser = None):
