@@ -1,31 +1,16 @@
-import org.apache.xmlrpc.server.XmlRpcServer;
-import org.apache.xmlrpc.webserver.WebServer;
-import org.apache.xmlrpc.*;
-import org.apache.xmlrpc.server.PropertyHandlerMapping;
-import org.apache.commons.codec.binary.Base64;
-
-import java.text.NumberFormat;
-import java.lang.Object;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.ResourceBundle;
-import java.util.Hashtable;
-import java.io.ByteArrayInputStream;
-import java.io.*;
-import java.sql.*;
-import java.lang.Class;
-import java.math.BigDecimal;
-import java.io.InputStream;
-import java.util.Locale;
-
-import java.io.File;
-import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.ByteArrayInputStream;
+
+import org.apache.xmlrpc.server.XmlRpcServer;
+import org.apache.xmlrpc.server.PropertyHandlerMapping;
+import org.apache.xmlrpc.webserver.WebServer;
+import org.apache.commons.codec.binary.Base64;
 
 import org.pentaho.reporting.engine.classic.core.AbstractReportDefinition;
 import org.pentaho.reporting.engine.classic.core.ClassicEngineBoot;
@@ -42,7 +27,6 @@ import org.pentaho.reporting.libraries.resourceloader.Resource;
 import org.pentaho.reporting.libraries.resourceloader.ResourceManager;
 
 import com.debortoliwines.openerp.reporting.di.OpenERPFilterInfo;
-
 
 public class KludgyReportServer { 
 	//One common manager instance to be initialised on startup
