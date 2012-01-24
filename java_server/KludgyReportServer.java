@@ -2,15 +2,15 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.ArrayList;
 import java.util.Enumeration;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 
 import org.apache.xmlrpc.server.XmlRpcServer;
 import org.apache.xmlrpc.server.PropertyHandlerMapping;
 import org.apache.xmlrpc.webserver.WebServer;
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import org.pentaho.reporting.engine.classic.core.AbstractReportDefinition;
 import org.pentaho.reporting.engine.classic.core.ClassicEngineBoot;
@@ -18,7 +18,14 @@ import org.pentaho.reporting.engine.classic.core.CompoundDataFactory;
 import org.pentaho.reporting.engine.classic.core.Element;
 import org.pentaho.reporting.engine.classic.core.MasterReport;
 import org.pentaho.reporting.engine.classic.core.Section;
+
+import org.pentaho.reporting.engine.classic.core.modules.output.table.csv.CSVReportUtil;
+import org.pentaho.reporting.engine.classic.core.modules.output.table.rtf.RTFReportUtil;
+import org.pentaho.reporting.engine.classic.core.modules.output.table.html.HtmlReportUtil;
+import org.pentaho.reporting.engine.classic.core.modules.output.table.xls.ExcelReportUtil;
 import org.pentaho.reporting.engine.classic.core.modules.output.pageable.pdf.PdfReportUtil;
+import org.pentaho.reporting.engine.classic.core.modules.output.pageable.plaintext.PlainTextReportUtil;
+
 import org.pentaho.reporting.engine.classic.core.util.ReportParameterValues;
 import org.pentaho.reporting.engine.classic.extensions.datasources.openerp.OpenERPDataFactory;
 import org.pentaho.reporting.libraries.fonts.LibFontBoot;
@@ -28,7 +35,9 @@ import org.pentaho.reporting.libraries.resourceloader.ResourceManager;
 
 import com.debortoliwines.openerp.reporting.di.OpenERPFilterInfo;
 
-public class KludgyReportServer { 
+public class KludgyReportServer {
+	private static Log logger = LogFactory.getLog(KludgyReportServer.class);
+
 	//One common manager instance to be initialised on startup
 	private static ResourceManager manager;
 
@@ -38,9 +47,9 @@ public class KludgyReportServer {
 	private String openerp_db = null;
 	private String openerp_login = null;
 	private String openerp_password = null;
+	private String output_type = "pdf";
 	private Object parameter_ids = null;
 	private HashMap<String, Object> parameters = new HashMap<String, Object>();
-
 	private String encoded_prpt_file = null;
 
 	public String execute(Hashtable args) throws Exception {
@@ -48,63 +57,66 @@ public class KludgyReportServer {
 			for(Enumeration argnames = args.keys(); argnames.hasMoreElements();) {
 				String argname = (String) argnames.nextElement();
 				Object argval = args.get(argname); 
-				System.out.println(argname + ": " + argval);
-				if (argname.equals("OEHost"))
+				logger.debug(argname + ": " + argval);
+				if (argname.equals("_openerp_host"))
 					openerp_host = (String) argval;
-				else if (argname.equals("OEPort"))
+				else if (argname.equals("_openerp_port"))
 					openerp_port = (String) argval;
-				else if (argname.equals("OEDB"))
+				else if (argname.equals("_openerp_db"))
 					openerp_db = (String) argval;
-				else if (argname.equals("OEUser"))
+				else if (argname.equals("_openerp_login"))
 					openerp_login = (String) argval;
-				else if (argname.equals("OEPass"))
+				else if (argname.equals("_openerp_password"))
 					openerp_password = (String) argval;
-				else if (argname.equals("PRPTFile"))
+				else if (argname.equals("_prpt_file_content"))
 					encoded_prpt_file = (String) argval;
+				else if (argname.equals("_output_type"))
+					output_type = (String) argval;
 				else if (argname.equals("ids"))
 					parameter_ids = argval;
 				else parameters.put(argname, argval);
 			}
 
-			//Decode passed prpt file and write it out to a temp file
-			File temp_prpt = File.createTempFile("tmp_prpt", Long.toString(System.nanoTime()));
-			FileOutputStream temp_prpt_stream = new FileOutputStream(temp_prpt);
+			//Decode passed prpt file
+			ByteArrayOutputStream temp_prpt_stream = new ByteArrayOutputStream();
 			temp_prpt_stream.write(Base64.decodeBase64(encoded_prpt_file));
-			temp_prpt_stream.close();
 
-			//Load the report from file and then delete the temporary file.
-			Resource res = manager.createDirectly("file:" + temp_prpt.getAbsolutePath(), MasterReport.class);
+			//Load the report (we may be overriding Pentaho's caching mechanisms by doing this
+			Resource res = manager.createDirectly(temp_prpt_stream.toByteArray(), MasterReport.class);
 			MasterReport report = (MasterReport) res.getResource();
-			temp_prpt.delete();
 
 			//Fix up data sources specified by parameters passed in
 			fixConfiguration(report);
 
-			//Pass through parameters
+			//Pass through other parameters
 			ReportParameterValues values = report.getParameterValues();
 			for(String parameter_name : parameters.keySet()) {
 				Object parameter_value = parameters.get(parameter_name);
 				values.put(parameter_name, parameter_value);
 			}
 
-			//Create the PDF
-			File temp_pdf = File.createTempFile("tmp_pdf", Long.toString(System.nanoTime()));
-			PdfReportUtil.createPDF(report, temp_pdf.getAbsolutePath());
+			//Create the report output stream
+			ByteArrayOutputStream report_bin_out = new ByteArrayOutputStream();
+			if(output_type.equals("pdf"))
+				PdfReportUtil.createPDF(report, report_bin_out);
+			else if(output_type.equals("xls"))
+				ExcelReportUtil.createXLS(report, report_bin_out);
+			else if(output_type.equals("csv"))
+				CSVReportUtil.createCSV(report, report_bin_out, null);
+			else if(output_type.equals("rtf"))
+				RTFReportUtil.createRTF(report, report_bin_out);
+			else if(output_type.equals("html"))
+				HtmlReportUtil.createStreamHTML(report, report_bin_out);
+			else if(output_type.equals("txt"))
+				PlainTextReportUtil.createPlainText(report, report_bin_out);
 
-			//Read in the contents of the generated PDF file and encode it to base64
-			byte pdf_binary[] = new byte[(int) temp_pdf.length()];
-			FileInputStream temp_pdf_stream = new FileInputStream(temp_pdf);
-			temp_pdf_stream.read(pdf_binary);
-			temp_pdf_stream.close();
-			temp_pdf.delete();
-
-			//Return the base64 encoded PDF
-			String encoded_pdf_string = Base64.encodeBase64String(pdf_binary);
-			System.out.println("Returning:\n" + encoded_pdf_string);
-			return encoded_pdf_string;
+			//Return the base64 encoded output
+			String encoded_output_string = Base64.encodeBase64String(report_bin_out.toByteArray());
+			logger.debug("Returning:\n" + encoded_output_string);
+			return encoded_output_string;
 		} catch(Exception exception) {
-			System.out.println(exception.getMessage());
-			exception.printStackTrace();
+			logger.error(exception.getMessage());
+			logger.error(ExceptionUtils.getStackTrace(exception));
 			throw exception;
 		}
 	}
@@ -132,9 +144,9 @@ public class KludgyReportServer {
 			if(args.length > 0)
 				port = java.lang.Integer.parseInt(args[0]);
 
-			java.net.InetAddress server_spec = java.net.Inet4Address.getByName("localhost");
+			java.net.InetAddress server_spec = java.net.Inet4Address.getByName("0.0.0.0");
 
-			System.out.println("KludgyReportServer: Attempting to start XML-RPC Server at " + server_spec.toString() + ":" + port + "...");
+			logger.info("Attempting to start XML-RPC server at " + server_spec.toString() + ":" + port);
 			WebServer server = new WebServer(port, server_spec);
 			XmlRpcServer rpc_server = server.getXmlRpcServer();
 
@@ -143,10 +155,11 @@ public class KludgyReportServer {
 			rpc_server.setHandlerMapping(phm);
 
 			server.start();
-			System.out.println("KludgyReportServer: Started successfully.");
-			System.out.println("KludgyReportServer: Accepting requests (halt program to stop.)");
+			logger.info("Started successfully");
+			logger.info("Accepting requests");
 		} catch(Exception exception) {
-			System.err.println("KludgyReportServer: " + exception);
+			logger.error(exception.getMessage());
+			logger.error(ExceptionUtils.getStackTrace(exception));
 		}
 	}
 
