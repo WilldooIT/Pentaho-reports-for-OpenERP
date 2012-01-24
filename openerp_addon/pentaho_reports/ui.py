@@ -36,13 +36,16 @@ class report_xml(osv.osv):
 	_name = "ir.actions.report.xml"
 	_inherit = "ir.actions.report.xml"
 	_columns = {
-		"pentaho_report_output": fields.selection([("pdf", "PDF")], "Output format"),
+		"pentaho_report_output_type": fields.selection([
+			("pdf", "PDF"), ("html", "HTML"), ("csv", "CSV"),
+			("xls", "Excel"), ("rtf", "RTF"), ("txt", "Plain text")
+		], "Output format"),
 		"pentaho_report_file_ids": fields.one2many("ir.actions.report.xml.file", "report_id", "Files", help = ""),
 		"pentaho_report_model_id": fields.many2one("ir.model", "Model", help = ""),
-		"is_pentaho_report": fields.boolean("Is this is Pentaho report?", help = "")
+		"is_pentaho_report": fields.boolean("Is this a Pentaho report?", help = "")
 	}
 	_defaults = {
-		"pentaho_report_output": lambda self, cr, uid, context: context and context.get("is_pentaho_report") and "pdf" or False
+		"pentaho_report_output_type": lambda self, cr, uid, context: context and context.get("is_pentaho_report") and "pdf" or False
 	}
 
 	def create(self, cr, uid, vals, context = None):
@@ -54,7 +57,7 @@ class report_xml(osv.osv):
 		return super(report_xml, self).create(cr, uid, vals, context)
 	
 	def write(self, cr, uid, ids, vals, context = None):
-		if context and context.get("is_jasper_report"):
+		if context and context.get("is_pentaho_report"):
 			if "pentaho_report_model_id" in vals:
 				vals["model"] = self.pool.get("ir.model").browse(cr, uid, vals["pentaho_report_model_id"], context).model
 			vals["type"] = "ir.actions.report.xml"

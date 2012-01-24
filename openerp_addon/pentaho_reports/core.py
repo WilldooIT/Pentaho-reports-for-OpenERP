@@ -27,8 +27,9 @@ class Report(object):
 		self.logger = logging.getLogger()
 
 		ids = self.pool.get("ir.actions.report.xml").search(self.cr, self.uid, [("report_name", "=", self.name[7:]), ("report_rml", "ilike", ".prpt")], context = self.context)
-		data = self.pool.get("ir.actions.report.xml").read(self.cr, self.uid, ids[0], ["report_rml", "pentaho_report_output"])
+		data = self.pool.get("ir.actions.report.xml").read(self.cr, self.uid, ids[0], ["report_rml", "pentaho_report_output_type"])
 		self.report_path = data["report_rml"]
+		self.output_format = data["pentaho_report_output_type"] or "pdf"
 		self.report_path = os.path.join(self.get_addons_path(), self.report_path)
 
 		self.logger.debug("self.ids: %s" % self.ids)
@@ -44,8 +45,6 @@ class Report(object):
 		return os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
 
 	def execute_report(self):
-		locale = self.context.get("lang", "en_US")
-
 		user_model = self.pool.get("res.users")
 		current_user = user_model.browse(self.cr, self.uid, self.uid)
 
@@ -56,7 +55,14 @@ class Report(object):
 
 			#TODO: Make this configurable from inside the UI
 			proxy = xmlrpclib.ServerProxy("http://localhost:8090")
-			proxy_argument = {"PRPTFile": encoded_prpt_file.getvalue(), "OEHost": "localhost", "OEPort": "8069", "OEDB": self.cr.dbname, "OEUser": current_user.login, "OEPass": current_user.password, "ids": self.ids}
+			proxy_argument = {
+				"_prpt_file_content": encoded_prpt_file.getvalue(),
+				"_output_type": self.output_format,
+				"_openerp_host": "localhost", "_openerp_port": "8069",
+				"_openerp_db": self.cr.dbname,
+				"_openerp_login": current_user.login, "_openerp_password": current_user.password,
+				"ids": self.ids
+			}
 			self.logger.debug("Calling proxy with arg: %s" % proxy_argument)
 			encoded_pdf_string = proxy.report.execute(proxy_argument)
 			self.logger.debug("Report server returned: %s" % encoded_pdf_string)
