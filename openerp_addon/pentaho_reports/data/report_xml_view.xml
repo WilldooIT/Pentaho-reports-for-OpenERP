@@ -8,7 +8,7 @@
 			<field name="inherit_id" ref="base.act_report_xml_view"/>
 			<field name="arch" type="xml">
 				<field name="report_name" position="after">
-					<field name="pentaho_report_output"/>
+					<field name="pentaho_report_output_type"/>
 					<button string="Update from attachments" name="update" type="object" colspan="2"/>
 				</field>
 			</field>
@@ -49,7 +49,7 @@
 			    <field name="name" select="1"/>
 			    <field name="pentaho_report_model_id" required="True" select="1"/>
 			    <field name="report_name" select="1"/>
-			    <field name="pentaho_report_output" required="True" select="1"/>
+			    <field name="pentaho_report_output_type" required="True" select="1"/>
 			    <field name="attachment"/>
 			    <field name="attachment_use"/>
 			    <separator string="Files" colspan="4"/>
@@ -70,7 +70,7 @@
 			    <field name="name"/>
 			    <field name="pentaho_report_model_id"/>
 			    <field name="report_name"/>
-			    <field name="pentaho_report_output"/>
+			    <field name="pentaho_report_output_type"/>
 			    <field name="attachment"/>
 			</tree>
 		    </field>
