@@ -5,6 +5,7 @@ import java.util.Enumeration;
 import java.io.ByteArrayOutputStream;
 
 import org.apache.xmlrpc.server.XmlRpcServer;
+import org.apache.xmlrpc.server.XmlRpcServerConfigImpl;
 import org.apache.xmlrpc.server.PropertyHandlerMapping;
 import org.apache.xmlrpc.webserver.WebServer;
 import org.apache.commons.codec.binary.Base64;
@@ -26,13 +27,17 @@ import org.pentaho.reporting.engine.classic.core.modules.output.table.xls.ExcelR
 import org.pentaho.reporting.engine.classic.core.modules.output.pageable.pdf.PdfReportUtil;
 import org.pentaho.reporting.engine.classic.core.modules.output.pageable.plaintext.PlainTextReportUtil;
 
+import org.pentaho.reporting.engine.classic.core.parameters.ReportParameterDefinition;
+import org.pentaho.reporting.engine.classic.core.parameters.ParameterDefinitionEntry;
+
 import org.pentaho.reporting.engine.classic.core.util.ReportParameterValues;
-import org.pentaho.reporting.engine.classic.extensions.datasources.openerp.OpenERPDataFactory;
+
 import org.pentaho.reporting.libraries.fonts.LibFontBoot;
 import org.pentaho.reporting.libraries.resourceloader.LibLoaderBoot;
 import org.pentaho.reporting.libraries.resourceloader.Resource;
 import org.pentaho.reporting.libraries.resourceloader.ResourceManager;
 
+import org.pentaho.reporting.engine.classic.extensions.datasources.openerp.OpenERPDataFactory;
 import com.debortoliwines.openerp.reporting.di.OpenERPFilterInfo;
 
 public class KludgyReportServer {
@@ -52,13 +57,67 @@ public class KludgyReportServer {
 	private HashMap<String, Object> parameters = new HashMap<String, Object>();
 	private String encoded_prpt_file = null;
 
+	public ArrayList<Hashtable> get_parameter_info(Hashtable args) throws Exception {
+		ArrayList<Hashtable> ret_val = new ArrayList<Hashtable>();
+
+		try {
+			encoded_prpt_file = (String) args.get("_prpt_file_content");
+
+			//Decode passed prpt file
+			ByteArrayOutputStream temp_prpt_stream = new ByteArrayOutputStream();
+			temp_prpt_stream.write(Base64.decodeBase64(encoded_prpt_file));
+
+			//Load the report (we may be overriding Pentaho's caching mechanisms by doing this
+			Resource res = manager.createDirectly(temp_prpt_stream.toByteArray(), MasterReport.class);
+			MasterReport report = (MasterReport) res.getResource();
+
+			//New stuff
+			ReportParameterDefinition param_def = report.getParameterDefinition();
+			ParameterDefinitionEntry[] param_def_entries = param_def.getParameterDefinitions();
+			for(ParameterDefinitionEntry param_def_entry : param_def_entries) {
+				Hashtable<String, Object> one_param_info = new Hashtable<String, Object>();
+				Hashtable<String, Object> zero_namespace_attributes = new Hashtable<String, Object>();
+
+				one_param_info.put("name", param_def_entry.getName());
+				one_param_info.put("value_type", param_def_entry.getValueType());
+				one_param_info.put("attributes", zero_namespace_attributes);
+
+				System.out.println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
+				System.out.println(param_def_entry.getName());
+				System.out.println(param_def_entry.getValueType());
+
+				String[] param_attr_nss = param_def_entry.getParameterAttributeNamespaces();
+				for(String param_attr_ns : param_attr_nss)
+					System.out.println("\t" + param_attr_ns);
+
+				String[] param_attr_names = param_def_entry.getParameterAttributeNames(param_attr_nss[0]);
+				for(String param_attr_name : param_attr_names) {
+					String param_attr = param_def_entry.getParameterAttribute(param_attr_nss[0], param_attr_name, null);
+					zero_namespace_attributes.put(param_attr_name, param_attr);
+					System.out.println("\t" + param_attr_name + ": " + param_attr);
+				}
+
+				//System.out.println(param_def_entry.getParameterAttribute())
+				System.out.println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
+
+				ret_val.add(one_param_info);
+			}
+
+			return ret_val;
+		} catch(Exception exception) {
+			logger.error(exception.getMessage());
+			logger.error(ExceptionUtils.getStackTrace(exception));
+			throw exception;
+		}
+	}
+
 	public String execute(Hashtable args) throws Exception {
 		try {
 			for(Enumeration argnames = args.keys(); argnames.hasMoreElements();) {
 				String argname = (String) argnames.nextElement();
 				Object argval = args.get(argname); 
 				logger.debug(argname + ": " + argval);
-				if (argname.equals("_openerp_host"))
+				if(argname.equals("_openerp_host"))
 					openerp_host = (String) argval;
 				else if (argname.equals("_openerp_port"))
 					openerp_port = (String) argval;
@@ -153,6 +212,9 @@ public class KludgyReportServer {
 			PropertyHandlerMapping phm = new PropertyHandlerMapping();
 			phm.addHandler("report", KludgyReportServer.class);
 			rpc_server.setHandlerMapping(phm);
+
+			XmlRpcServerConfigImpl server_config = (XmlRpcServerConfigImpl) rpc_server.getConfig();
+			server_config.setEnabledForExtensions(true);
 
 			server.start();
 			logger.info("Started successfully");

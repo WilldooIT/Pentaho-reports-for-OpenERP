@@ -64,6 +64,7 @@ class Report(object):
 				"ids": self.ids
 			}
 			self.logger.debug("Calling proxy with arg: %s" % proxy_argument)
+			print proxy.report.get_parameter_info(proxy_argument)
 			encoded_pdf_string = proxy.report.execute(proxy_argument)
 			self.logger.debug("Report server returned: %s" % encoded_pdf_string)
 			
