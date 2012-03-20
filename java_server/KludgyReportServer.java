@@ -57,8 +57,8 @@ public class KludgyReportServer {
 	private HashMap<String, Object> parameters = new HashMap<String, Object>();
 	private String encoded_prpt_file = null;
 
-	public ArrayList<Hashtable> get_parameter_info(Hashtable args) throws Exception {
-		ArrayList<Hashtable> ret_val = new ArrayList<Hashtable>();
+	public ArrayList<HashMap> get_parameter_info(Hashtable args) throws Exception {
+		ArrayList<HashMap> ret_val = new ArrayList<HashMap>();
 
 		try {
 			encoded_prpt_file = (String) args.get("_prpt_file_content");
@@ -75,30 +75,26 @@ public class KludgyReportServer {
 			ReportParameterDefinition param_def = report.getParameterDefinition();
 			ParameterDefinitionEntry[] param_def_entries = param_def.getParameterDefinitions();
 			for(ParameterDefinitionEntry param_def_entry : param_def_entries) {
-				Hashtable<String, Object> one_param_info = new Hashtable<String, Object>();
-				Hashtable<String, Object> zero_namespace_attributes = new Hashtable<String, Object>();
+				HashMap<String, Object> one_param_info = new HashMap<String, Object>();
+				HashMap<String, Object> zero_namespace_attributes = new HashMap<String, Object>();
 
 				one_param_info.put("name", param_def_entry.getName());
-				one_param_info.put("value_type", param_def_entry.getValueType());
+				one_param_info.put("value_type", param_def_entry.getValueType().toString());
 				one_param_info.put("attributes", zero_namespace_attributes);
 
-				System.out.println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
-				System.out.println(param_def_entry.getName());
-				System.out.println(param_def_entry.getValueType());
+				logger.debug("Parameter name: " + param_def_entry.getName());
+				logger.debug("Parameter type: " + param_def_entry.getValueType());
 
 				String[] param_attr_nss = param_def_entry.getParameterAttributeNamespaces();
 				for(String param_attr_ns : param_attr_nss)
-					System.out.println("\t" + param_attr_ns);
+					logger.debug("Attribute namespace: " + param_attr_ns);
 
 				String[] param_attr_names = param_def_entry.getParameterAttributeNames(param_attr_nss[0]);
 				for(String param_attr_name : param_attr_names) {
 					String param_attr = param_def_entry.getParameterAttribute(param_attr_nss[0], param_attr_name, null);
 					zero_namespace_attributes.put(param_attr_name, param_attr);
-					System.out.println("\t" + param_attr_name + ": " + param_attr);
+					logger.debug("Attribute: " + param_attr_name + " = " + param_attr);
 				}
-
-				//System.out.println(param_def_entry.getParameterAttribute())
-				System.out.println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
 
 				ret_val.add(one_param_info);
 			}
@@ -213,8 +209,8 @@ public class KludgyReportServer {
 			phm.addHandler("report", KludgyReportServer.class);
 			rpc_server.setHandlerMapping(phm);
 
-			XmlRpcServerConfigImpl server_config = (XmlRpcServerConfigImpl) rpc_server.getConfig();
-			server_config.setEnabledForExtensions(true);
+			//XmlRpcServerConfigImpl server_config = (XmlRpcServerConfigImpl) rpc_server.getConfig();
+			//server_config.setEnabledForExtensions(true);
 
 			server.start();
 			logger.info("Started successfully");

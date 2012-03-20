@@ -63,8 +63,10 @@ class Report(object):
 				"_openerp_login": current_user.login, "_openerp_password": current_user.password,
 				"ids": self.ids
 			}
+
+			self.logger.debug("Parameters defined in the report: %s" % proxy.report.get_parameter_info(proxy_argument))
+
 			self.logger.debug("Calling proxy with arg: %s" % proxy_argument)
-			print proxy.report.get_parameter_info(proxy_argument)
 			encoded_pdf_string = proxy.report.execute(proxy_argument)
 			self.logger.debug("Report server returned: %s" % encoded_pdf_string)
 			
