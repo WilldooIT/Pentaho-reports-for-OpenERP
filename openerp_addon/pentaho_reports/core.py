@@ -17,7 +17,6 @@ class Report(object):
 		self.uid = uid
 		self.ids = ids
 		self.data = data
-		self.model = self.data["model"]
 		self.context = context or {}
 		self.pool = pooler.get_pool(self.cr.dbname)
 		self.report_path = None
@@ -73,13 +72,11 @@ class Report(object):
 		return encoded_pdf_string
 
 class PentahoReportOpenERPInterface(report.interface.report_int):
-	def __init__(self, name, model, parser = None):
+	def __init__(self, name):
 		if name in netsvc.Service._services:
 			del netsvc.Service._services[name]
 
 		super(PentahoReportOpenERPInterface, self).__init__(name)
-		self.model = model
-		self.parser = parser
 
 	def create(self, cr, uid, ids, data, context):
 		name = self.name
@@ -88,7 +85,7 @@ class PentahoReportOpenERPInterface(report.interface.report_int):
 
 		return report_instance.execute()
 
-def register_pentaho_report(report_name, model_name):
+def register_pentaho_report(report_name):
 	name = "report.%s" % report_name
 
 	if name in netsvc.Service._services:
@@ -96,7 +93,7 @@ def register_pentaho_report(report_name, model_name):
 			return
 		del netsvc.Service._services[name]
 	
-	PentahoReportOpenERPInterface(name, model_name)
+	PentahoReportOpenERPInterface(name)
 
 #Following OpenERP's (messed up) naming convention
 class ir_actions_report_xml(osv.osv):
@@ -106,7 +103,7 @@ class ir_actions_report_xml(osv.osv):
 		cr.execute("SELECT * FROM ir_act_report_xml WHERE report_rml ILIKE '%.prpt' ORDER BY id")
 		records = cr.dictfetchall()
 		for record in records:
-			register_pentaho_report(record["report_name"], record["model"])
+			register_pentaho_report(record["report_name"])
 
 		return super(ir_actions_report_xml, self).register_all(cr)
 
