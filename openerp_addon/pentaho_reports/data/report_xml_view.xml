@@ -15,89 +15,89 @@
 		</record>
 
 		<record id="act_report_pentaho_report_file_form" model="ir.ui.view">
-		    <field name="name">ir.actions.report.pentaho.report.file.form</field>
-		    <field name="model">ir.actions.report.xml.file</field>
-		    <field name="type">form</field>
-		    <field name="arch" type="xml">
+			<field name="name">ir.actions.report.pentaho.report.file.form</field>
+			<field name="model">ir.actions.report.xml.file</field>
+			<field name="type">form</field>
+			<field name="arch" type="xml">
 			<form string="Pentaho reports - report file(s)">
 				<field name="file" filename="filename" colspan="4"/>
 				<field name="filename" colspan="4"/>
 				<field name="default" colspan="4"/>
 			</form>
-		    </field>
+			</field>
 		</record>
 
 		<record id="act_report_pentaho_report_file_tree" model="ir.ui.view">
-		    <field name="name">ir.actions.report.pentaho.report.file.tree</field>
-		    <field name="model">ir.actions.report.xml.file</field>
-		    <field name="type">tree</field>
-		    <field name="arch" type="xml">
+			<field name="name">ir.actions.report.pentaho.report.file.tree</field>
+			<field name="model">ir.actions.report.xml.file</field>
+			<field name="type">tree</field>
+			<field name="arch" type="xml">
 			<tree string="Pentaho reports - report file(s)">
 				<field name="filename"/>
 				<field name="default"/>
 			</tree>
-		    </field>
+			</field>
 		</record>
 
 		<record id="act_report_pentaho_report_form" model="ir.ui.view">
-		    <field name="name">ir.actions.report.pentaho.report.form</field>
-		    <field name="model">ir.actions.report.xml</field>
-		    <field name="type">form</field>
-		    <field name="priority">20</field>
-		    <field name="arch" type="xml">
+			<field name="name">ir.actions.report.pentaho.report.form</field>
+			<field name="model">ir.actions.report.xml</field>
+			<field name="type">form</field>
+			<field name="priority">20</field>
+			<field name="arch" type="xml">
 			<form string="Pentaho reports">
-			    <field name="name" select="1"/>
-			    <field name="pentaho_report_model_id" required="True" select="1"/>
-			    <field name="report_name" select="1"/>
-			    <field name="pentaho_report_output_type" required="True" select="1"/>
-			    <field name="attachment"/>
-			    <field name="attachment_use"/>
-			    <separator string="Files" colspan="4"/>
-			    <field name="pentaho_report_file_ids" colspan="4" nolabel="1" />
-			    <separator string="Groups" colspan="4"/>
-			    <field name="groups_id" colspan="4" nolabel="1" />
+				<field name="name" select="1"/>
+				<field name="pentaho_report_model_id" required="True" select="1"/>
+				<field name="report_name" select="1"/>
+				<field name="pentaho_report_output_type" required="True" select="1"/>
+				<field name="attachment"/>
+				<field name="attachment_use"/>
+				<separator string="Files" colspan="4"/>
+				<field name="pentaho_report_file_ids" colspan="4" nolabel="1" />
+				<separator string="Groups" colspan="4"/>
+				<field name="groups_id" colspan="4" nolabel="1" />
 			</form>
-		    </field>
+			</field>
 		</record>
 
 		<record id="act_report_pentaho_report_tree" model="ir.ui.view">
-		    <field name="name">ir.actions.report.pentaho.report.tree</field>
-		    <field name="model">ir.actions.report.xml</field>
-		    <field name="type">tree</field>
-		    <field name="priority">20</field>
-		    <field name="arch" type="xml">
+			<field name="name">ir.actions.report.pentaho.report.tree</field>
+			<field name="model">ir.actions.report.xml</field>
+			<field name="type">tree</field>
+			<field name="priority">20</field>
+			<field name="arch" type="xml">
 			<tree string="Pentaho reports">
-			    <field name="name"/>
-			    <field name="pentaho_report_model_id"/>
-			    <field name="report_name"/>
-			    <field name="pentaho_report_output_type"/>
-			    <field name="attachment"/>
+				<field name="name"/>
+				<field name="pentaho_report_model_id"/>
+				<field name="report_name"/>
+				<field name="pentaho_report_output_type"/>
+				<field name="attachment"/>
 			</tree>
-		    </field>
+			</field>
 		</record>
 
 		<record id="ir_action_report_pentaho_report" model="ir.actions.act_window">
-		    <field name="name">Pentaho reports for OpenERP</field>
-		    <field name="type">ir.actions.act_window</field>
-		    <field name="res_model">ir.actions.report.xml</field>
-		    <field name="view_type">form</field>
-		    <field name="view_mode">tree,form</field>
-		    <field name="context">{'is_pentaho_report': True}</field>
-		    <field name="domain">[('is_pentaho_report', '=', True)]</field>
+			<field name="name">Pentaho reports for OpenERP</field>
+			<field name="type">ir.actions.act_window</field>
+			<field name="res_model">ir.actions.report.xml</field>
+			<field name="view_type">form</field>
+			<field name="view_mode">tree,form</field>
+			<field name="context">{'is_pentaho_report': True}</field>
+			<field name="domain">[('is_pentaho_report', '=', True)]</field>
 		</record>
 
 		<record id="ir_action_report_pentaho_report_view0" model="ir.actions.act_window.view">
-		    <field name="act_window_id" ref="ir_action_report_pentaho_report"/>
-		    <field name="view_mode">tree</field>
-		    <field name="view_id" ref="act_report_pentaho_report_tree"/>
-		    <field name="sequence">0</field>
+			<field name="act_window_id" ref="ir_action_report_pentaho_report"/>
+			<field name="view_mode">tree</field>
+			<field name="view_id" ref="act_report_pentaho_report_tree"/>
+			<field name="sequence">0</field>
 		</record>
 
 		<record id="ir_action_report_pentaho_report_view1" model="ir.actions.act_window.view">
-		    <field name="act_window_id" ref="ir_action_report_pentaho_report"/>
-		    <field name="view_mode">form</field>
-		    <field name="view_id" ref="act_report_pentaho_report_form"/>
-		    <field name="sequence">1</field>
+			<field name="act_window_id" ref="ir_action_report_pentaho_report"/>
+			<field name="view_mode">form</field>
+			<field name="view_id" ref="act_report_pentaho_report_form"/>
+			<field name="sequence">1</field>
 		</record>
 
 		<menuitem parent="base.menu_custom" name="Pentaho reports for OpenERP" id="pentaho_reports_menu"/>

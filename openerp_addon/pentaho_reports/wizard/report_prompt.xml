@@ -1,0 +1,52 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<openerp>
+	<data>
+		<record model='ir.ui.view' id='wiz_pentaho_report_prompt'>
+			<field name='name'>Pentaho Report Options</field>
+			<field name='model'>ir.actions.report.promptwizard</field>
+			<field name='type'>form</field>
+			<field name='arch' type='xml'>
+				<form string='Pentaho Report Options'>
+					<field name='report_name'/>
+					<newline/>
+					<field name="output_type" colspan='2'/>
+					<separator colspan = "4" string='Selections'/>
+
+					<field name='param_000_type' invisible='1'/>
+					<label string='__option_label__' align='1.0' colspan='1'/>
+					<field name='param_000_string_value' nolabel='1' colspan='1' default_focus='1'
+							attrs="{'invisible' : [('param_000_type', '!=', 'str')]}"
+					/>
+					<newline/>
+
+					<separator colspan = "4"/>
+					<group colspan="4" col="4">
+						<label string='' colspan="2"/>
+						<button icon="gtk-cancel" special="cancel" string="Cancel"/>
+						<button icon="gtk-print" name="check_report" string="Print" type="object" default_focus="1" />
+					</group>
+				</form>
+			</field>
+		</record>
+
+
+         <record id="action_pentaho_timesheet_report" model="ir.actions.act_window">
+             <field name="name">Pentaho Timesheet Report</field>
+             <field name="res_model">ir.actions.report.promptwizard</field>
+             <field name="type">ir.actions.act_window</field>
+             <field name="view_type">form</field>
+             <field name="view_mode">tree,form</field>
+             <field name="view_id" ref="wiz_pentaho_report_prompt"/>
+             <field name="context">{'service_name' : "pentaho.timesheet.report"}</field>
+             <field name="target">new</field>
+       </record>
+
+
+        <menuitem icon="STOCK_PRINT"
+            name="zzzzz"
+            action="action_pentaho_timesheet_report"
+            id="menu_pentaho_timesheet_report"
+            parent="account.next_id_22"/>
+		
+	</data>
+</openerp>

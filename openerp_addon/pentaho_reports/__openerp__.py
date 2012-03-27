@@ -8,7 +8,8 @@
 	"category": "Reporting subsystems",
 	"data": [
 		"data/report_xml_view.xml",
-		"data/ir.model.access.csv"
+		"data/ir.model.access.csv",
+		'wizard/report_prompt.xml',
 	],
 	"installable": True,
 	"active": False

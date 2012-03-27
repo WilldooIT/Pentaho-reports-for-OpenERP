@@ -57,13 +57,20 @@ class Report(object):
 			proxy_argument = {
 				"_prpt_file_content": encoded_prpt_file.getvalue(),
 				"_output_type": self.output_format,
-				"_openerp_host": "localhost", "_openerp_port": "8069",
-				"_openerp_db": self.cr.dbname,
-				"_openerp_login": current_user.login, "_openerp_password": current_user.password,
+#				"_openerp_host": "localhost", "_openerp_port": "8069",
+#				"_openerp_db": self.cr.dbname,
+#				"_openerp_login": current_user.login, "_openerp_password": current_user.password,
 				"ids": self.ids
 			}
 
 			self.logger.debug("Parameters defined in the report: %s" % proxy.report.get_parameter_info(proxy_argument))
+
+			if self.data and self.data.get('variables', False):
+				for variable in self.data['variables']:
+					proxy_argument[variable]=self.data['variables'][variable]
+
+			if self.data and self.data.get('output_type', False):
+				proxy_argument['_output_type']=self.data['output_type']
 
 			self.logger.debug("Calling proxy with arg: %s" % proxy_argument)
 			encoded_pdf_string = proxy.report.execute(proxy_argument)
