@@ -12,18 +12,35 @@
 					<field name="output_type" colspan='2'/>
 					<separator colspan = "4" string='Selections'/>
 
-					<field name='param_000_type' invisible='1'/>
-					<label string='__option_label__' align='1.0' colspan='1'/>
-					<field name='param_000_string_value' nolabel='1' colspan='1' default_focus='1'
-							attrs="{'invisible' : [('param_000_type', '!=', 'str')]}"
-					/>
-					<newline/>
+					<group colspan="4" col="20">
+						<group string="repeater">
+							<field name='param_000_type' invisible='1'/>
+							<label string='__option_label__' align='1.0' colspan='1'/>
+							<field name='param_000_string_value' nolabel='1' colspan='1' default_focus='__focus_val__'
+									attrs="{'invisible' : [('param_000_type', '!=', 'str')]}"
+							/>
+							<field name='param_000_boolean_value' nolabel='1' colspan='1' default_focus='__focus_val__'
+									attrs="{'invisible' : [('param_000_type', '!=', 'bool')]}"
+							/>
+							<field name='param_000_number_value' nolabel='1' colspan='1' default_focus='__focus_val__'
+									attrs="{'invisible' : [('param_000_type', '!=', 'num')]}"
+							/>
+							<field name='param_000_date_value' nolabel='1' colspan='1' default_focus='__focus_val__'
+									attrs="{'invisible' : [('param_000_type', '!=', 'date')]}"
+							/>
+							<field name='param_000_time_value' nolabel='1' colspan='1' default_focus='__focus_val__'
+									attrs="{'invisible' : [('param_000_type', '!=', 'dtm')]}"
+							/>
+							<label string='' colspan='2'/>
+							<newline/>
+						</group>
+					</group>
 
 					<separator colspan = "4"/>
 					<group colspan="4" col="4">
 						<label string='' colspan="2"/>
 						<button icon="gtk-cancel" special="cancel" string="Cancel"/>
-						<button icon="gtk-print" name="check_report" string="Print" type="object" default_focus="1" />
+						<button icon="gtk-print" name="check_report" string="Print" type="object" />
 					</group>
 				</form>
 			</field>

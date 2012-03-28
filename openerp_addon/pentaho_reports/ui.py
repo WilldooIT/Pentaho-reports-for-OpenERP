@@ -60,6 +60,7 @@ class report_xml(osv.osv):
 		#	b) update if "do_add_item"
 		# or
 		#	c) create if not found and "do_add_item"
+		# don't forget security groups.
 
 
 	def create(self, cr, uid, vals, context = None):
