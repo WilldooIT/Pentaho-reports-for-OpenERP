@@ -10,108 +10,117 @@ import pooler
 import report
 from osv import osv, fields
 
+from datetime import datetime
+
+from .wizard.report_prompt import JAVA_MAPPING, PARAM_VALUES
+
+
 class Report(object):
-	def __init__(self, name, cr, uid, ids, data, context):
-		self.name = name
-		self.cr = cr
-		self.uid = uid
-		self.ids = ids
-		self.data = data
-		self.context = context or {}
-		self.pool = pooler.get_pool(self.cr.dbname)
-		self.report_path = None
-		self.output_format = "pdf"
+    def __init__(self, name, cr, uid, ids, data, context):
+        self.name = name
+        self.cr = cr
+        self.uid = uid
+        self.ids = ids
+        self.data = data
+        self.context = context or {}
+        self.pool = pooler.get_pool(self.cr.dbname)
+        self.report_path = None
+        self.output_format = "pdf"
 
-	def execute(self):
-		self.logger = logging.getLogger()
+    def execute(self):
+        self.logger = logging.getLogger()
 
-		ids = self.pool.get("ir.actions.report.xml").search(self.cr, self.uid, [("report_name", "=", self.name[7:]), ("report_rml", "ilike", ".prpt")], context = self.context)
-		data = self.pool.get("ir.actions.report.xml").read(self.cr, self.uid, ids[0], ["report_rml", "pentaho_report_output_type"])
-		self.report_path = data["report_rml"]
-		self.output_format = data["pentaho_report_output_type"] or "pdf"
-		self.report_path = os.path.join(self.get_addons_path(), self.report_path)
+        ids = self.pool.get("ir.actions.report.xml").search(self.cr, self.uid, [("report_name", "=", self.name[7:]), ("report_rml", "ilike", ".prpt")], context = self.context)
+        data = self.pool.get("ir.actions.report.xml").read(self.cr, self.uid, ids[0], ["report_rml", "pentaho_report_output_type"])
+        self.report_path = data["report_rml"]
+        self.output_format = data["pentaho_report_output_type"] or "pdf"
+        self.report_path = os.path.join(self.get_addons_path(), self.report_path)
 
-		self.logger.debug("self.ids: %s" % self.ids)
-		self.logger.debug("self.data: %s" % self.data)
-		self.logger.debug("self.context: %s" % self.context)
-		self.logger.info("Requested report: '%s'" % self.report_path)
+        self.logger.debug("self.ids: %s" % self.ids)
+        self.logger.debug("self.data: %s" % self.data)
+        self.logger.debug("self.context: %s" % self.context)
+        self.logger.info("Requested report: '%s'" % self.report_path)
 
-		output_report_data = base64.decodestring(self.execute_report())
+        output_report_data = base64.decodestring(self.execute_report())
 
-		return (output_report_data, self.output_format)
-	
-	def get_addons_path(self):
-		return os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
+        return (output_report_data, self.output_format)
+    
+    def get_addons_path(self):
+        return os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
 
-	def execute_report(self):
-		user_model = self.pool.get("res.users")
-		current_user = user_model.browse(self.cr, self.uid, self.uid)
+    def execute_report(self):
+        user_model = self.pool.get("res.users")
+        current_user = user_model.browse(self.cr, self.uid, self.uid)
 
-		encoded_pdf_string = ""
-		with open(self.report_path, "rb") as prpt_file:
-			encoded_prpt_file = io.BytesIO()
-			base64.encode(prpt_file, encoded_prpt_file)
+        encoded_pdf_string = ""
+        with open(self.report_path, "rb") as prpt_file:
+            encoded_prpt_file = io.BytesIO()
+            base64.encode(prpt_file, encoded_prpt_file)
 
-			#TODO: Make this configurable from inside the UI
-			proxy = xmlrpclib.ServerProxy("http://localhost:8090")
-			proxy_argument = {
-				"_prpt_file_content": encoded_prpt_file.getvalue(),
-				"_output_type": self.output_format,
-#				"_openerp_host": "localhost", "_openerp_port": "8069",
-#				"_openerp_db": self.cr.dbname,
-#				"_openerp_login": current_user.login, "_openerp_password": current_user.password,
-				"ids": self.ids
-			}
+            #TODO: Make this configurable from inside the UI
+            proxy = xmlrpclib.ServerProxy("http://localhost:8090")
+            proxy_argument = {
+                "_prpt_file_content": encoded_prpt_file.getvalue(),
+                "_output_type": self.output_format,
+#                "_openerp_host": "localhost", "_openerp_port": "8069",
+#                "_openerp_db": self.cr.dbname,
+#                "_openerp_login": current_user.login, "_openerp_password": current_user.password,
+                "ids": self.ids
+            }
 
-			self.logger.debug("Parameters defined in the report: %s" % proxy.report.get_parameter_info(proxy_argument))
+            proxy_parameter_info = proxy.report.get_parameter_info(proxy_argument)
 
-			if self.data and self.data.get('variables', False):
-				for variable in self.data['variables']:
-					proxy_argument[variable]=self.data['variables'][variable]
+            if self.data and self.data.get('variables', False):
+                for variable in self.data['variables']:
+                    proxy_argument[variable]=self.data['variables'][variable]
 
-			if self.data and self.data.get('output_type', False):
-				proxy_argument['_output_type']=self.data['output_type']
+                for parameter in proxy_parameter_info:
+                    if proxy_argument[parameter['name']]:
+                        if PARAM_VALUES[JAVA_MAPPING[parameter['value_type']](parameter['attributes'].get('data-format', False))].get('convert',False):
+                            # convert from string types to correct types for reporter
+                            proxy_argument[parameter['name']] = PARAM_VALUES[JAVA_MAPPING[parameter['value_type']](parameter['attributes'].get('data-format', False))]['convert'](proxy_argument[parameter['name']])
 
-			self.logger.debug("Calling proxy with arg: %s" % proxy_argument)
-			encoded_pdf_string = proxy.report.execute(proxy_argument)
-			self.logger.debug("Report server returned: %s" % encoded_pdf_string)
-			
-		return encoded_pdf_string
+            if self.data and self.data.get('output_type', False):
+                proxy_argument['_output_type']=self.data['output_type']
+
+            encoded_pdf_string = proxy.report.execute(proxy_argument)
+
+        return encoded_pdf_string
 
 class PentahoReportOpenERPInterface(report.interface.report_int):
-	def __init__(self, name):
-		if name in netsvc.Service._services:
-			del netsvc.Service._services[name]
+    def __init__(self, name):
+        if name in netsvc.Service._services:
+            del netsvc.Service._services[name]
 
-		super(PentahoReportOpenERPInterface, self).__init__(name)
+        super(PentahoReportOpenERPInterface, self).__init__(name)
 
-	def create(self, cr, uid, ids, data, context):
-		name = self.name
+    def create(self, cr, uid, ids, data, context):
+        name = self.name
 
-		report_instance = Report(name, cr, uid, ids, data, context)
+        report_instance = Report(name, cr, uid, ids, data, context)
 
-		return report_instance.execute()
+        return report_instance.execute()
 
 def register_pentaho_report(report_name):
-	name = "report.%s" % report_name
+    name = "report.%s" % report_name
 
-	if name in netsvc.Service._services:
-		if isinstance(netsvc.Service._services[name], PentahoReportOpenERPInterface):
-			return
-		del netsvc.Service._services[name]
-	
-	PentahoReportOpenERPInterface(name)
+    if name in netsvc.Service._services:
+        if isinstance(netsvc.Service._services[name], PentahoReportOpenERPInterface):
+            return
+        del netsvc.Service._services[name]
+    
+    PentahoReportOpenERPInterface(name)
 
 #Following OpenERP's (messed up) naming convention
 class ir_actions_report_xml(osv.osv):
-	_inherit = "ir.actions.report.xml"
+    _inherit = "ir.actions.report.xml"
 
-	def register_all(self, cr):
-		cr.execute("SELECT * FROM ir_act_report_xml WHERE report_rml ILIKE '%.prpt' ORDER BY id")
-		records = cr.dictfetchall()
-		for record in records:
-			register_pentaho_report(record["report_name"])
+    def register_all(self, cr):
+        cr.execute("SELECT * FROM ir_act_report_xml WHERE report_rml ILIKE '%.prpt' ORDER BY id")
+        records = cr.dictfetchall()
+        for record in records:
+            register_pentaho_report(record["report_name"])
 
-		return super(ir_actions_report_xml, self).register_all(cr)
+        return super(ir_actions_report_xml, self).register_all(cr)
 
 ir_actions_report_xml()

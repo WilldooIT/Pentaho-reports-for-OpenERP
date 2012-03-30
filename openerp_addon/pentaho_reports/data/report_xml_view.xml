@@ -52,6 +52,7 @@
 				<field name="pentaho_report_output_type" required="True" select="1"/>
 				<field name="attachment"/>
 				<field name="attachment_use"/>
+				<field name='linked_menu_id'/>
 				<separator string="Files" colspan="4"/>
 				<field name="pentaho_report_file_ids" colspan="4" nolabel="1" />
 				<separator string="Groups" colspan="4"/>
