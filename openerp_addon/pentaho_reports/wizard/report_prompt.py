@@ -1,7 +1,6 @@
 import io
 import os
 import xmlrpclib
-import base64
 
 from lxml import etree
 
@@ -22,20 +21,20 @@ TYPE_TIME = 'dtm'
 
 # define mappings as functions, which can be passed the data format to make them conditional...
 
-JAVA_MAPPING = {'class java.lang.String' : lambda x: TYPE_STRING,
-                'class java.lang.Boolean' : lambda x: TYPE_BOOLEAN,
-                'class java.lang.Number' : lambda x: TYPE_NUMBER,
-                'class java.util.Date' : lambda x: TYPE_DATE if x and not('H' in x) else TYPE_TIME,
-                'class java.sql.Date' : lambda x: TYPE_DATE if x and not('H' in x) else TYPE_TIME,
-                'class java.sql.Time' : lambda x: TYPE_TIME,
-                'class java.sql.Timestamp' : lambda x: TYPE_TIME,
-                'class java.lang.Double' : lambda x: TYPE_NUMBER,
-                'class java.lang.Float' : lambda x: TYPE_NUMBER,
-                'class java.lang.Integer' : lambda x: TYPE_INTEGER,
-                'class java.lang.Long' : lambda x: TYPE_INTEGER,
-                'class java.lang.Short' : lambda x: TYPE_INTEGER,
-                'class java.math.BigInteger' : lambda x: TYPE_INTEGER,
-                'class java.math.BigDecimal' : lambda x: TYPE_NUMBER,
+JAVA_MAPPING = {'java.lang.String' : lambda x: TYPE_STRING,
+                'java.lang.Boolean' : lambda x: TYPE_BOOLEAN,
+                'java.lang.Number' : lambda x: TYPE_NUMBER,
+                'java.util.Date' : lambda x: TYPE_DATE if x and not('H' in x) else TYPE_TIME,
+                'java.sql.Date' : lambda x: TYPE_DATE if x and not('H' in x) else TYPE_TIME,
+                'java.sql.Time' : lambda x: TYPE_TIME,
+                'java.sql.Timestamp' : lambda x: TYPE_TIME,
+                'java.lang.Double' : lambda x: TYPE_NUMBER,
+                'java.lang.Float' : lambda x: TYPE_NUMBER,
+                'java.lang.Integer' : lambda x: TYPE_INTEGER,
+                'java.lang.Long' : lambda x: TYPE_INTEGER,
+                'java.lang.Short' : lambda x: TYPE_INTEGER,
+                'java.math.BigInteger' : lambda x: TYPE_INTEGER,
+                'java.math.BigDecimal' : lambda x: TYPE_NUMBER,
                 }
 
 MAX_PARAMS = 50  # Do not make this bigger than 999
@@ -203,12 +202,11 @@ class report_prompt_class(osv.osv_memory):
 
         if not self.paramfile or self.paramfile['report_id'] != report_ids[0] or self.paramfile['report_path'] != report_path or self.paramfile['report_time'] != report_time:
             with open(report_path, 'rb') as prpt_file:
-                encoded_prpt_file = io.BytesIO()
-                base64.encode(prpt_file, encoded_prpt_file)
+                prpt_file_content = xmlrpclib.Binary(prpt_file.read())
 
                 proxy = xmlrpclib.ServerProxy("http://localhost:8090")
                 proxy_argument = {
-                    "_prpt_file_content": encoded_prpt_file.getvalue(),
+                    "_prpt_file_content": prpt_file_content
                 }
 
                 report_parameters = proxy.report.getParameterInfo(proxy_argument)

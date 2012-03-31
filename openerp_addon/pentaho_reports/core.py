@@ -3,7 +3,6 @@ import os
 import logging
 import subprocess
 import xmlrpclib
-import base64
 
 import netsvc
 import pooler
@@ -41,9 +40,7 @@ class Report(object):
         self.logger.debug("self.context: %s" % self.context)
         self.logger.info("Requested report: '%s'" % self.report_path)
 
-        output_report_data = base64.decodestring(self.execute_report())
-
-        return (output_report_data, self.output_format)
+        return (self.execute_report(), self.output_format)
     
     def get_addons_path(self):
         return os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
@@ -52,19 +49,17 @@ class Report(object):
         user_model = self.pool.get("res.users")
         current_user = user_model.browse(self.cr, self.uid, self.uid)
 
-        encoded_pdf_string = ""
         with open(self.report_path, "rb") as prpt_file:
-            encoded_prpt_file = io.BytesIO()
-            base64.encode(prpt_file, encoded_prpt_file)
+            prpt_file_content = xmlrpclib.Binary(prpt_file.read())
 
             #TODO: Make this configurable from inside the UI
             proxy = xmlrpclib.ServerProxy("http://localhost:8090")
             proxy_argument = {
-                "_prpt_file_content": encoded_prpt_file.getvalue(),
+                "_prpt_file_content": prpt_file_content,
                 "_output_type": self.output_format,
-#                "_openerp_host": "localhost", "_openerp_port": "8069",
-#                "_openerp_db": self.cr.dbname,
-#                "_openerp_login": current_user.login, "_openerp_password": current_user.password,
+                "_openerp_host": "localhost", "_openerp_port": "8069",
+                "_openerp_db": self.cr.dbname,
+                "_openerp_login": current_user.login, "_openerp_password": current_user.password,
                 "ids": self.ids
             }
 
@@ -72,7 +67,7 @@ class Report(object):
 
             if self.data and self.data.get('variables', False):
                 for variable in self.data['variables']:
-                    proxy_argument[variable]=self.data['variables'][variable]
+                    proxy_argument[variable] = self.data['variables'][variable]
 
                 for parameter in proxy_parameter_info:
                     if parameter['name'] in proxy_argument.keys():
@@ -83,9 +78,9 @@ class Report(object):
             if self.data and self.data.get('output_type', False):
                 proxy_argument['_output_type']=self.data['output_type']
 
-            encoded_pdf_string = proxy.report.execute(proxy_argument)
+            rendered_report = proxy.report.execute(proxy_argument)
 
-        return encoded_pdf_string
+        return rendered_report
 
 class PentahoReportOpenERPInterface(report.interface.report_int):
     def __init__(self, name):

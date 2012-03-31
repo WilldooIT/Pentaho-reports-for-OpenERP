@@ -80,7 +80,7 @@ public class KludgyReportServer {
 				HashMap<String, Object> zero_namespace_attributes = new HashMap<String, Object>();
 
 				one_param_info.put("name", param_def_entry.getName());
-				one_param_info.put("value_type", param_def_entry.getValueType().toString());
+				one_param_info.put("value_type", param_def_entry.getValueType().getName());
 				one_param_info.put("is_mandatory", param_def_entry.isMandatory());
 
 				Object default_value = param_def_entry.getDefaultValue(param_context);
