@@ -29,6 +29,10 @@ import org.pentaho.reporting.engine.classic.core.modules.output.pageable.plainte
 
 import org.pentaho.reporting.engine.classic.core.parameters.ReportParameterDefinition;
 import org.pentaho.reporting.engine.classic.core.parameters.ParameterDefinitionEntry;
+import org.pentaho.reporting.engine.classic.core.parameters.DefaultParameterContext;
+import org.pentaho.reporting.engine.classic.core.parameters.ReportParameterValidator;
+import org.pentaho.reporting.engine.classic.core.parameters.ValidationResult;
+import org.pentaho.reporting.engine.classic.core.parameters.ValidationMessage;
 
 import org.pentaho.reporting.engine.classic.core.util.ReportParameterValues;
 
@@ -55,35 +59,50 @@ public class KludgyReportServer {
 	private String output_type = "pdf";
 	private Object parameter_ids = null;
 	private HashMap<String, Object> parameters = new HashMap<String, Object>();
-	private String encoded_prpt_file = null;
-
-	public ArrayList<HashMap> get_parameter_info(Hashtable args) throws Exception {
+	private byte[] prpt_file_content = null;
+	
+	public ArrayList<HashMap> getParameterInfo(Hashtable args) throws Exception {
 		ArrayList<HashMap> ret_val = new ArrayList<HashMap>();
 
 		try {
-			encoded_prpt_file = (String) args.get("_prpt_file_content");
-
-			//Decode passed prpt file
-			ByteArrayOutputStream temp_prpt_stream = new ByteArrayOutputStream();
-			temp_prpt_stream.write(Base64.decodeBase64(encoded_prpt_file));
+			prpt_file_content = (byte[]) args.get("_prpt_file_content");
 
 			//Load the report (we may be overriding Pentaho's caching mechanisms by doing this
-			Resource res = manager.createDirectly(temp_prpt_stream.toByteArray(), MasterReport.class);
+			Resource res = manager.createDirectly(prpt_file_content, MasterReport.class);
 			MasterReport report = (MasterReport) res.getResource();
 
 			//New stuff
 			ReportParameterDefinition param_def = report.getParameterDefinition();
 			ParameterDefinitionEntry[] param_def_entries = param_def.getParameterDefinitions();
+			DefaultParameterContext param_context = new DefaultParameterContext(report);
 			for(ParameterDefinitionEntry param_def_entry : param_def_entries) {
 				HashMap<String, Object> one_param_info = new HashMap<String, Object>();
 				HashMap<String, Object> zero_namespace_attributes = new HashMap<String, Object>();
 
 				one_param_info.put("name", param_def_entry.getName());
 				one_param_info.put("value_type", param_def_entry.getValueType().toString());
-				one_param_info.put("attributes", zero_namespace_attributes);
+				one_param_info.put("is_mandatory", param_def_entry.isMandatory());
 
-				logger.debug("Parameter name: " + param_def_entry.getName());
-				logger.debug("Parameter type: " + param_def_entry.getValueType());
+				Object default_value = param_def_entry.getDefaultValue(param_context);
+				if(default_value != null) {
+					String param_def_entry_type = param_def_entry.getValueType().getName();
+
+					if(param_def_entry_type.equals("java.lang.Long"))
+						default_value = (Integer) ((Long) default_value).intValue();
+					else if(param_def_entry_type.equals("java.lang.Short"))
+						default_value = (Integer) ((java.lang.Short) default_value).intValue();
+					else if(param_def_entry_type.equals("java.math.BigInteger"))
+						default_value = (Integer) ((java.math.BigInteger) default_value).intValue();
+					else if(param_def_entry_type.equals("java.lang.Number"))
+						default_value = (Double) ((Number) default_value).doubleValue();
+					else if(param_def_entry_type.equals("java.lang.Float"))
+						default_value = (Double) ((Float) default_value).doubleValue();
+					else if(param_def_entry_type.equals("java.math.BigDecimal"))
+						default_value = (Double) ((java.math.BigDecimal) default_value).doubleValue();
+
+					one_param_info.put("default_value", default_value);
+				}
+				one_param_info.put("attributes", zero_namespace_attributes);
 
 				String[] param_attr_nss = param_def_entry.getParameterAttributeNamespaces();
 				for(String param_attr_ns : param_attr_nss)
@@ -91,7 +110,7 @@ public class KludgyReportServer {
 
 				String[] param_attr_names = param_def_entry.getParameterAttributeNames(param_attr_nss[0]);
 				for(String param_attr_name : param_attr_names) {
-					String param_attr = param_def_entry.getParameterAttribute(param_attr_nss[0], param_attr_name, null);
+					String param_attr = param_def_entry.getParameterAttribute(param_attr_nss[0], param_attr_name, param_context);
 					zero_namespace_attributes.put(param_attr_name, param_attr);
 					logger.debug("Attribute: " + param_attr_name + " = " + param_attr);
 				}
@@ -107,7 +126,20 @@ public class KludgyReportServer {
 		}
 	}
 
-	public String execute(Hashtable args) throws Exception {
+	private HashMap<String, Object> getParametersTypes(MasterReport report) throws Exception {
+		ReportParameterDefinition param_def = report.getParameterDefinition();
+		ParameterDefinitionEntry[] param_def_entries = param_def.getParameterDefinitions();
+		DefaultParameterContext param_context = new DefaultParameterContext(report);
+
+		HashMap<String, Object> name_to_type = new HashMap<String, Object>();
+
+		for(ParameterDefinitionEntry param_def_entry : param_def_entries)
+			name_to_type.put(param_def_entry.getName(), param_def_entry.getValueType());
+
+		return name_to_type;
+	}
+
+	public byte[] execute(Hashtable args) throws Exception {
 		try {
 			for(Enumeration argnames = args.keys(); argnames.hasMoreElements();) {
 				String argname = (String) argnames.nextElement();
@@ -124,7 +156,7 @@ public class KludgyReportServer {
 				else if (argname.equals("_openerp_password"))
 					openerp_password = (String) argval;
 				else if (argname.equals("_prpt_file_content"))
-					encoded_prpt_file = (String) argval;
+					prpt_file_content = (byte[]) argval;
 				else if (argname.equals("_output_type"))
 					output_type = (String) argval;
 				else if (argname.equals("ids"))
@@ -132,13 +164,10 @@ public class KludgyReportServer {
 				else parameters.put(argname, argval);
 			}
 
-			//Decode passed prpt file
-			ByteArrayOutputStream temp_prpt_stream = new ByteArrayOutputStream();
-			temp_prpt_stream.write(Base64.decodeBase64(encoded_prpt_file));
-
 			//Load the report (we may be overriding Pentaho's caching mechanisms by doing this
-			Resource res = manager.createDirectly(temp_prpt_stream.toByteArray(), MasterReport.class);
+			Resource res = manager.createDirectly(prpt_file_content, MasterReport.class);
 			MasterReport report = (MasterReport) res.getResource();
+			HashMap<String, Object> parameters_types = getParametersTypes(report);
 
 			//Fix up data sources specified by parameters passed in
 			fixConfiguration(report);
@@ -147,7 +176,27 @@ public class KludgyReportServer {
 			ReportParameterValues values = report.getParameterValues();
 			for(String parameter_name : parameters.keySet()) {
 				Object parameter_value = parameters.get(parameter_name);
-				values.put(parameter_name, parameter_value);
+				if(parameters_types.get(parameter_name) != null) {
+					String parameter_type = ((Class) parameters_types.get(parameter_name)).getName();
+					if(parameter_type.equals("java.lang.Long"))
+						values.put(parameter_name, new Long(((Integer) parameter_value)));
+					else if(parameter_type.equals("java.lang.Short"))
+						values.put(parameter_name, ((Integer) parameter_value).shortValue());
+					else if(parameter_type.equals("java.math.BigInteger"))
+						values.put(parameter_name, java.math.BigInteger.valueOf(((Integer) parameter_value)));
+					else if(parameter_type.equals("java.lang.Float"))
+						values.put(parameter_name, ((Double) parameter_value).floatValue());
+					else if(parameter_type.equals("java.math.BigDecimal"))
+						values.put(parameter_name, java.math.BigDecimal.valueOf(((Double) parameter_value)));
+					else if(parameter_type.equals("java.sql.Date"))
+						values.put(parameter_name, new java.sql.Date(((java.util.Date) parameter_value).getTime()));
+					else if(parameter_type.equals("java.sql.Time"))
+						values.put(parameter_name, new java.sql.Time(((java.util.Date) parameter_value).getTime()));
+					else if(parameter_type.equals("java.sql.Timestamp"))
+						values.put(parameter_name, new java.sql.Timestamp(((java.util.Date) parameter_value).getTime()));
+					else
+						values.put(parameter_name, parameter_value);
+				}
 			}
 
 			//Create the report output stream
@@ -165,10 +214,7 @@ public class KludgyReportServer {
 			else if(output_type.equals("txt"))
 				PlainTextReportUtil.createPlainText(report, report_bin_out);
 
-			//Return the base64 encoded output
-			String encoded_output_string = Base64.encodeBase64String(report_bin_out.toByteArray());
-			logger.debug("Returning:\n" + encoded_output_string);
-			return encoded_output_string;
+			return report_bin_out.toByteArray();
 		} catch(Exception exception) {
 			logger.error(exception.getMessage());
 			logger.error(ExceptionUtils.getStackTrace(exception));
@@ -273,5 +319,19 @@ public class KludgyReportServer {
 			if(e instanceof Section)
 				fixConfiguration((Section) e);
 		}
+	}
+
+	//Checks the validity of parameters values set earlier
+	private void checkParameters(MasterReport report) throws Exception {
+			DefaultParameterContext param_context = new DefaultParameterContext(report);
+			ReportParameterDefinition param_def = report.getParameterDefinition();
+			ReportParameterValidator validator = param_def.getValidator();
+			ValidationResult validation_result = validator.validate(new ValidationResult(), param_def, param_context);
+
+			for(int i = 0; i < param_def.getParameterCount(); i++) {
+				for(ValidationMessage msg : validation_result.getErrors(param_def.getParameterDefinition(i).getName())) {
+					System.out.println("Parameter Error: " + msg.getMessage());
+				}
+			}
 	}
 }
