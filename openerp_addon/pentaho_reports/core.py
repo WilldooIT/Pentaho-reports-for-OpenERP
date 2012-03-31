@@ -78,7 +78,7 @@ class Report(object):
             if self.data and self.data.get('output_type', False):
                 proxy_argument['_output_type']=self.data['output_type']
 
-            rendered_report = proxy.report.execute(proxy_argument)
+            rendered_report = proxy.report.execute(proxy_argument).data
 
         return rendered_report
 
