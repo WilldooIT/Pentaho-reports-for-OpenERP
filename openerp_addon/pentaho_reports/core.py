@@ -68,14 +68,14 @@ class Report(object):
                 "ids": self.ids
             }
 
-            proxy_parameter_info = proxy.report.get_parameter_info(proxy_argument)
+            proxy_parameter_info = proxy.report.getParameterInfo(proxy_argument)
 
             if self.data and self.data.get('variables', False):
                 for variable in self.data['variables']:
                     proxy_argument[variable]=self.data['variables'][variable]
 
                 for parameter in proxy_parameter_info:
-                    if proxy_argument[parameter['name']]:
+                    if parameter['name'] in proxy_argument.keys():
                         if PARAM_VALUES[JAVA_MAPPING[parameter['value_type']](parameter['attributes'].get('data-format', False))].get('convert',False):
                             # convert from string types to correct types for reporter
                             proxy_argument[parameter['name']] = PARAM_VALUES[JAVA_MAPPING[parameter['value_type']](parameter['attributes'].get('data-format', False))]['convert'](proxy_argument[parameter['name']])

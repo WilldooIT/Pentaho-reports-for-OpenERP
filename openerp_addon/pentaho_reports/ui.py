@@ -1,3 +1,8 @@
+# todo:
+#    ir.actions.report.xml.file - is not needed - integrate directly on ir.actions.report.xml
+#    xml building improvement
+
+
 import os
 import base64
 import unicodedata
@@ -90,7 +95,7 @@ class report_xml(osv.osv):
 
 
     def delete_menu(self, cr, uid, menu_id, context=None):
-        action = self.pool.get('ir.ui.menu').browse(cr, uid, menu_id, context=context).action.split(',')
+        action = self.pool.get('ir.ui.menu').browse(cr, uid, menu_id, context=context).action
         if action and action._model._name == 'ir.actions.act_window':
             self.pool.get('ir.actions.act_window').unlink(cr, uid, [action.id], context=context)
         result = self.pool.get('ir.ui.menu').unlink(cr, uid, [menu_id], context=context)

@@ -25,17 +25,17 @@ TYPE_TIME = 'dtm'
 JAVA_MAPPING = {'class java.lang.String' : lambda x: TYPE_STRING,
                 'class java.lang.Boolean' : lambda x: TYPE_BOOLEAN,
                 'class java.lang.Number' : lambda x: TYPE_NUMBER,
-                'class java.util.Date' : lambda x: TYPE_DATE if x and not('HH' in x) else TYPE_TIME,
-                'class java.sql.Date' : lambda x: TYPE_DATE if x and not('HH' in x) else TYPE_TIME,
+                'class java.util.Date' : lambda x: TYPE_DATE if x and not('H' in x) else TYPE_TIME,
+                'class java.sql.Date' : lambda x: TYPE_DATE if x and not('H' in x) else TYPE_TIME,
                 'class java.sql.Time' : lambda x: TYPE_TIME,
                 'class java.sql.Timestamp' : lambda x: TYPE_TIME,
                 'class java.lang.Double' : lambda x: TYPE_NUMBER,
-#                'class java.lang.Float' : lambda x: TYPE_NUMBER,
+                'class java.lang.Float' : lambda x: TYPE_NUMBER,
                 'class java.lang.Integer' : lambda x: TYPE_INTEGER,
-#                'class java.lang.Long' : lambda x: TYPE_INTEGER,
-#                'class java.lang.Short' : lambda x: TYPE_INTEGER,
-#                'class java.math.BigInteger' : lambda x: TYPE_INTEGER,
-#                'class java.math.BigDecimal' : lambda x: TYPE_NUMBER,
+                'class java.lang.Long' : lambda x: TYPE_INTEGER,
+                'class java.lang.Short' : lambda x: TYPE_INTEGER,
+                'class java.math.BigInteger' : lambda x: TYPE_INTEGER,
+                'class java.math.BigDecimal' : lambda x: TYPE_NUMBER,
                 }
 
 MAX_PARAMS = 50  # Do not make this bigger than 999
@@ -52,7 +52,7 @@ PARAM_XXX_TIME_VALUE = 'param_%03i_time_value'
 PARAM_VALUES = {TYPE_STRING : {'value' : PARAM_XXX_STRING_VALUE, 'if_false' : ''},
                 TYPE_BOOLEAN : {'value' : PARAM_XXX_BOOLEAN_VALUE, 'if_false' : False},
                 TYPE_INTEGER : {'value' : PARAM_XXX_INTEGER_VALUE, 'if_false' : 0},
-                TYPE_NUMBER : {'value' : PARAM_XXX_NUMBER_VALUE, 'if_false' : 0},
+                TYPE_NUMBER : {'value' : PARAM_XXX_NUMBER_VALUE, 'if_false' : 0.0, 'convert' : lambda x: float(x)},
                 TYPE_DATE : {'value' : PARAM_XXX_DATE_VALUE, 'if_false' : '', 'convert' : lambda x: datetime.strptime(x, '%Y-%m-%d'), 'conv_default' : lambda x: datetime.strptime(x.value, '%Y%m%dT%H:%M:%S').strftime('%Y-%m-%d')},
                 TYPE_TIME : {'value' : PARAM_XXX_TIME_VALUE, 'if_false' : '', 'convert' : lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M:%S'), 'conv_default' : lambda x: datetime.strptime(x.value, '%Y%m%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')},
                 }
@@ -165,8 +165,6 @@ class report_prompt_class(osv.osv_memory):
 
     def _parse_report_parameters(self, report_parameters):
 
-        print report_parameters
-
         result = []
         for parameter in report_parameters:
             if not parameter.get('attributes',{}):
@@ -178,8 +176,6 @@ class report_prompt_class(osv.osv_memory):
 
         if len(result) > MAX_PARAMS + 1:
             raise osv.except_osv(('Error'), ("Too many report parameters (%d)." % len(self.parameters) + 1))
-
-        print result
 
         return result
 
@@ -215,7 +211,7 @@ class report_prompt_class(osv.osv_memory):
                     "_prpt_file_content": encoded_prpt_file.getvalue(),
                 }
 
-                report_parameters = proxy.report.get_parameter_info(proxy_argument)
+                report_parameters = proxy.report.getParameterInfo(proxy_argument)
 
                 self.parameters = self._parse_report_parameters(report_parameters)
 
