@@ -176,7 +176,7 @@ class report_xml(osv.osv):
 
             values_ids = values_obj.search(cr, uid, [("value", "=", "ir.actions.report.xml,%s" % report.id)])
 
-            if report.pentaho_filename or report.pantaho_file:
+            if report.pentaho_filename or report.pentaho_file:
                 path = self.save_content_to_file(report.pentaho_filename, report.pentaho_file)
 
                 super(report_xml, self).write(cr, uid, [report.id], {"report_rml": path})
