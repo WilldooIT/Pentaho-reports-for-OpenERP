@@ -14,31 +14,6 @@
 			</field>
 		</record>
 
-		<record id="act_report_pentaho_report_file_form" model="ir.ui.view">
-			<field name="name">ir.actions.report.pentaho.report.file.form</field>
-			<field name="model">ir.actions.report.xml.file</field>
-			<field name="type">form</field>
-			<field name="arch" type="xml">
-			<form string="Pentaho reports - report file(s)">
-				<field name="file" filename="filename" colspan="4"/>
-				<field name="filename" colspan="4"/>
-				<field name="default" colspan="4"/>
-			</form>
-			</field>
-		</record>
-
-		<record id="act_report_pentaho_report_file_tree" model="ir.ui.view">
-			<field name="name">ir.actions.report.pentaho.report.file.tree</field>
-			<field name="model">ir.actions.report.xml.file</field>
-			<field name="type">tree</field>
-			<field name="arch" type="xml">
-			<tree string="Pentaho reports - report file(s)">
-				<field name="filename"/>
-				<field name="default"/>
-			</tree>
-			</field>
-		</record>
-
 		<record id="act_report_pentaho_report_form" model="ir.ui.view">
 			<field name="name">ir.actions.report.pentaho.report.form</field>
 			<field name="model">ir.actions.report.xml</field>
@@ -53,8 +28,9 @@
 				<field name="attachment"/>
 				<field name="attachment_use"/>
 				<field name='linked_menu_id'/>
-				<separator string="Files" colspan="4"/>
-				<field name="pentaho_report_file_ids" colspan="4" nolabel="1" />
+				<newline/>
+				<field name="pentaho_file" filename="pentaho_filename" colspan="4"/>
+				<field name="pentaho_filename" colspan="4"/>
 				<separator string="Groups" colspan="4"/>
 				<field name="groups_id" colspan="4" nolabel="1" />
 			</form>

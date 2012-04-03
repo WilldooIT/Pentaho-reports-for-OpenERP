@@ -1,8 +1,3 @@
-# todo:
-#    ir.actions.report.xml.file - is not needed - integrate directly on ir.actions.report.xml
-#    xml building improvement
-
-
 import os
 import base64
 import unicodedata
@@ -11,30 +6,6 @@ from osv import osv, fields
 
 import core
 
-class report_xml_file(osv.osv):
-    _name = "ir.actions.report.xml.file"
-    _columns = {
-        "file": fields.binary("File", required = True, filters = "*.prpt", help = ""),
-        "filename": fields.char("Filename", size = 256, required = False, help = ""),
-        "report_id": fields.many2one("ir.actions.report.xml", "Report", required = True, ondelete = "cascade", help = ""),
-        "default": fields.boolean("Default", help = "")
-    }
-
-    def create(self, cr, uid, vals, context = None):
-        result = super(report_xml_file, self).create(cr, uid, vals, context=context)
-        self.pool.get("ir.actions.report.xml").update(cr, uid, [vals["report_id"]], context=context)
-
-        return result
-    
-    def update(self, cr, uid, ids, vals, context = None):
-        result = super(report_xml_file, self).write(cr, uid, ids, vals, context=context)
-
-        for attachment in self.browse(cr, uid, ids, context=context):
-            self.pool.get("ir.actions.report.xml").update(cr, uid, [attachment.report_id.id], context=context)
-
-        return result
-    
-report_xml_file()
 
 #
 class report_xml(osv.osv):
@@ -45,8 +16,9 @@ class report_xml(osv.osv):
             ("pdf", "PDF"), ("html", "HTML"), ("csv", "CSV"),
             ("xls", "Excel"), ("rtf", "RTF"), ("txt", "Plain text")
         ], "Output format"),
-        "pentaho_report_file_ids": fields.one2many("ir.actions.report.xml.file", "report_id", "Files", help = ""),
         "pentaho_report_model_id": fields.many2one("ir.model", "Model", help = ""),
+        "pentaho_file": fields.binary("File", filters = "*.prpt"),
+        "pentaho_filename": fields.char("Filename", size = 256, required = False),
         "is_pentaho_report": fields.boolean("Is this a Pentaho report?", help = ""),
         'linked_menu_id' : fields.many2one('ir.ui.menu','Linked menu item', select=True),
         'created_menu_id' : fields.many2one('ir.ui.menu','Created menu item'),
@@ -56,14 +28,13 @@ class report_xml(osv.osv):
         "pentaho_report_output_type": lambda self, cr, uid, context: context and context.get("is_pentaho_report") and "pdf" or False
     }
 
-
     def copy(self, cr, uid, id, default=None, context=None):
         if default is None:
             default = {}
         if context is None:
             context = {}
         default = default.copy()
-        default['created_menu_id'] = 0
+        default.update({'created_menu_id' : 0})
         return super(report_xml, self).copy(cr, uid, id, default, context=context)
 
 
@@ -133,6 +104,8 @@ class report_xml(osv.osv):
         return result
 
 
+
+
     def create(self, cr, uid, vals, context = None):
         if context is None:
             context={}
@@ -142,11 +115,18 @@ class report_xml(osv.osv):
             vals["type"] = "ir.actions.report.xml"
             vals["report_type"] = "pdf"
             vals["is_pentaho_report"] = True
+            vals['auto'] = False
 
         if vals.get('linked_menu_id', False):
             vals['created_menu_id'] = self.create_menu(cr, uid, vals, context=context)
 
-        return super(report_xml, self).create(cr, uid, vals, context=context)
+        res = super(report_xml, self).create(cr, uid, vals, context=context)
+
+        self.update_pentaho(cr, uid, [res], context=context)
+
+        return res
+
+
 
 
     def write(self, cr, uid, ids, vals, context = None):
@@ -159,6 +139,7 @@ class report_xml(osv.osv):
             vals["type"] = "ir.actions.report.xml"
             vals["report_type"] = "pdf"
             vals["is_pentaho_report"] = True
+            vals['auto'] = False
 
         res = super(report_xml, self).write(cr, uid, ids, vals, context=context)
 
@@ -167,53 +148,64 @@ class report_xml(osv.osv):
             if created_menu_id != r.created_menu_id:
                 super(report_xml, self).write(cr, uid, [r.id], {'created_menu_id': created_menu_id}, context=context)
 
+        self.update_pentaho(cr, uid, ids if isinstance(ids, list) else [ids], context=context)
+
         return res
 
 
     def unlink(self, cr, uid, ids, context=None):
+
+        values_obj=self.pool.get('ir.values')
+
         for r in self.browse(cr, uid, ids, context=context):
             if r.created_menu_id:
                 self.delete_menu(cr, uid, r.created_menu_id.id, context=context)
+
+            values_obj.unlink(cr, uid, values_obj.search(cr, uid, [("value", "=", "ir.actions.report.xml,%s" % r.id)]), context=context)
+
         return super(report_xml, self).unlink(cr, uid, ids, context=context)
 
 
-    def update(self, cr, uid, ids, context = None):
+
+
+    def update_pentaho(self, cr, uid, ids, context = None):
+
+        values_obj=self.pool.get('ir.values')
+
         for report in self.browse(cr, uid, ids):
-            has_default = False
 
-            for attachment in report.pentaho_report_file_ids:
-                content = attachment.file
-                file_name = attachment.filename
-                if not file_name or not content:
-                    continue
-                path = self.save_content_to_file(file_name, content)
-                if file_name.endswith(".prpt"):
-                    if attachment.default:
-                        if has_default:
-                            raise osv.except_osv("Error", "More than one report file marked as default!")
-                        has_default = True
+            values_ids = values_obj.search(cr, uid, [("value", "=", "ir.actions.report.xml,%s" % report.id)])
 
-                        self.write(cr, uid, [report.id], {"report_rml": path})
-                        values_id = self.pool.get("ir.values").search(cr, uid, [("value", "=", "ir.actions.report.xml,%s" % report.id)])
-                        data = {
+            if report.pentaho_filename or report.pantaho_file:
+                path = self.save_content_to_file(report.pentaho_filename, report.pentaho_file)
+
+                super(report_xml, self).write(cr, uid, [report.id], {"report_rml": path})
+
+                if not report.linked_menu_id and report.pentaho_filename.endswith(".prpt"):
+                    data = {
                             "name": report.name,
                             "model": report.model,
                             "key": "action",
                             "object": True,
                             "key2": "client_print_multi",
                             "value": "ir.actions.report.xml,%s" % report.id
-                        }
-                        if not values_id:
-                            values_id = self.pool.get("ir.values").create(cr, uid, data, context=context)
-                        else:
-                            self.pool.get("ir.values").write(cr, uid, values_id, data, context=context)
-                            values_id = values_id[0]
-            if not has_default:
-                raise osv.except_osv("Error", "No report marked as default.")
-            
-            core.register_pentaho_report(report.report_name)
+                            }
+                    if not values_ids:
+                        values_obj.create(cr, uid, data, context=context)
+                    else:
+                        values_obj.write(cr, uid, values_ids, data, context=context)
+                    values_ids = []
+
+                core.register_pentaho_report(report.report_name)
+
+            if context.get('is_pentaho_report', False) and values_ids:
+                values_obj.unlink(cr, uid, values_ids, context=context)
+
         return True
-    
+
+
+
+
     def save_content_to_file(self, name, value):
         path = os.path.abspath(os.path.dirname(__file__))
         path += os.sep + "custom_reports" + os.sep + name
