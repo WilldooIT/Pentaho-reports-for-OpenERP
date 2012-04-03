@@ -9,7 +9,6 @@
 			<field name="arch" type="xml">
 				<field name="report_name" position="after">
 					<field name="pentaho_report_output_type"/>
-					<button string="Update from attachments" name="update" type="object" colspan="2"/>
 				</field>
 			</field>
 		</record>
@@ -54,7 +53,7 @@
 		</record>
 
 		<record id="ir_action_report_pentaho_report" model="ir.actions.act_window">
-			<field name="name">Pentaho reports for OpenERP</field>
+			<field name="name">Pentaho Reports</field>
 			<field name="type">ir.actions.act_window</field>
 			<field name="res_model">ir.actions.report.xml</field>
 			<field name="view_type">form</field>
@@ -77,7 +76,6 @@
 			<field name="sequence">1</field>
 		</record>
 
-		<menuitem parent="base.menu_custom" name="Pentaho reports for OpenERP" id="pentaho_reports_menu"/>
-		<menuitem action="ir_action_report_pentaho_report" id="menu_ir_action_report_pentaho_report" parent="pentaho_reports_menu"/> 
+		<menuitem action="ir_action_report_pentaho_report" id="menu_ir_action_report_pentaho_report" parent="base.next_id_6"/> 
 	</data>
 </openerp>
