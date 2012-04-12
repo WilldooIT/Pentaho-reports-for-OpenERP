@@ -53,7 +53,6 @@ class report_xml(osv.osv):
                        }
         action_id = self.pool.get('ir.actions.act_window').create(cr, uid, action_vals, context=context)
 
-        action = 'ir.actions.act_window,652'
         result = self.pool.get('ir.ui.menu').create(cr, uid, {'name' : vals.get('name' ,'Pentaho Report'),
                                                               'sequence' : 10,
                                                               'parent_id' : vals['linked_menu_id'],

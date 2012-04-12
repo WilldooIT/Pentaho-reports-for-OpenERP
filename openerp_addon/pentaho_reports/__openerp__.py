@@ -7,7 +7,7 @@
 	"depends": ["base"],
 	"category": "Reporting subsystems",
 	"data": [
-		"data/report_xml_view.xml",
+		"report_xml_view.xml",
 		'wizard/report_prompt.xml',
 	],
 	"installable": True,
