@@ -87,17 +87,17 @@ public class KludgyReportServer {
 					String param_def_entry_type = param_def_entry.getValueType().getName();
 
 					if(param_def_entry_type.equals("java.lang.Long"))
-						default_value = (Integer) ((Long) default_value).intValue();
+						default_value = ((Long) default_value).intValue();
 					else if(param_def_entry_type.equals("java.lang.Short"))
-						default_value = (Integer) ((java.lang.Short) default_value).intValue();
+						default_value = ((java.lang.Short) default_value).intValue();
 					else if(param_def_entry_type.equals("java.math.BigInteger"))
-						default_value = (Integer) ((java.math.BigInteger) default_value).intValue();
+						default_value = ((java.math.BigInteger) default_value).intValue();
 					else if(param_def_entry_type.equals("java.lang.Number"))
-						default_value = (Double) ((Number) default_value).doubleValue();
+						default_value = ((Number) default_value).doubleValue();
 					else if(param_def_entry_type.equals("java.lang.Float"))
-						default_value = (Double) ((Float) default_value).doubleValue();
+						default_value = ((Float) default_value).doubleValue();
 					else if(param_def_entry_type.equals("java.math.BigDecimal"))
-						default_value = (Double) ((java.math.BigDecimal) default_value).doubleValue();
+						default_value = ((java.math.BigDecimal) default_value).doubleValue();
 
 					one_param_info.put("default_value", default_value);
 				}
