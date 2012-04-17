@@ -16,12 +16,15 @@ class report_xml(osv.osv):
             ("pdf", "PDF"), ("html", "HTML"), ("csv", "CSV"),
             ("xls", "Excel"), ("rtf", "RTF"), ("txt", "Plain text")
         ], "Output format"),
-        "pentaho_report_model_id": fields.many2one("ir.model", "Model", help = ""),
+        "pentaho_report_model_id": fields.many2one("ir.model", "Model"),
         "pentaho_file": fields.binary("File", filters = "*.prpt"),
         "pentaho_filename": fields.char("Filename", size = 256, required = False),
-        "is_pentaho_report": fields.boolean("Is this a Pentaho report?", help = ""),
+        "is_pentaho_report": fields.boolean("Is this a Pentaho report?"),
         'linked_menu_id' : fields.many2one('ir.ui.menu','Linked menu item', select=True),
         'created_menu_id' : fields.many2one('ir.ui.menu','Created menu item'),
+        'pentaho_load_file' : fields.boolean('Load prpt file from filename'), # This is not displayed on the client
+                                                                              # It can be used by module updates to force a prpt file to be copied from a custom module to the custom reports folder of pentaho_reports.
+                                                                              # In this case, the filename should be specified with a module path.
 
     }
     _defaults = {
@@ -176,6 +179,12 @@ class report_xml(osv.osv):
             values_ids = values_obj.search(cr, uid, [("value", "=", "ir.actions.report.xml,%s" % report.id)])
 
             if report.pentaho_filename:
+                if report.pentaho_load_file:
+                    # if we receive a filename and no content, this has probably been loaded by a process other than the standard client, such as a data import
+                    # in this case, we expect the filename to be a fully specified file within a module from which we load the file data
+                    super(report_xml, self).write(cr, uid, [report.id], {'pentaho_filename' : os.path.basename(report.pentaho_filename), 'pentaho_file' : self.read_content_from_file(report.pentaho_filename), 'pentaho_load_file' : False})
+                    report = self.browse(cr, uid, report.id)
+
                 path = self.save_content_to_file(report.pentaho_filename, report.pentaho_file)
 
                 super(report_xml, self).write(cr, uid, [report.id], {"report_rml": path})
@@ -217,5 +226,17 @@ class report_xml(osv.osv):
 
         path = "pentaho_reports" + os.sep + "custom_reports" + os.sep + name
         return path
+
+
+
+
+    def read_content_from_file(self, name):
+        path = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
+        path += os.sep + name
+
+        with open(path, "rb") as report_file:
+            data = base64.encodestring(report_file.read())
+
+        return data
 
 report_xml()
