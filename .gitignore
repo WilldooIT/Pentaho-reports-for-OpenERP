@@ -2,3 +2,5 @@
 *.class
 *.pyc
 *.jar
+.project
+.pydevproject

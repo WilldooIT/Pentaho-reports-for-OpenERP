@@ -6,6 +6,9 @@ from osv import osv, fields
 
 import core
 
+from tools import config
+ADDONS_PATHS = config['addons_path'].split(",")
+
 
 #
 class report_xml(osv.osv):
@@ -231,8 +234,24 @@ class report_xml(osv.osv):
 
 
     def read_content_from_file(self, name):
-        path = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
-        path += os.sep + name
+
+        path_found = False
+
+        for addons_path in ADDONS_PATHS:
+            try:
+                os.stat(addons_path + os.sep + name)
+                path_found = True
+                break
+            except:
+                pass
+
+        if not path_found:
+            raise osv.except_osv('Error','Could not locate path for file %s' % name)
+
+#        path = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
+#        path += os.sep + name
+
+        path = addons_path + os.sep + name
 
         with open(path, "rb") as report_file:
             data = base64.encodestring(report_file.read())
