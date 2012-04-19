@@ -1,3 +1,13 @@
+# Todo:
+#    alternate user may need to be passed if executing the report (if emailing) - concurrency errors
+#    restructure xml parsing of repeating section
+#    change to use the prpt file stored in the DB, not off disk (allows different DBs to have different prpt files)
+#    ?? make ports configurable, especially for sql based reports - Need user profiles, perhaps
+#    also for proxy connections
+#    selection pulldowns
+#    multiple prpt files for one action - allows for alternate formats.
+
+
 import io
 import os
 import logging
@@ -12,6 +22,8 @@ from osv import osv, fields
 from datetime import datetime
 
 from .wizard.report_prompt import JAVA_MAPPING, PARAM_VALUES
+
+from tools import config
 
 
 class Report(object):
@@ -52,12 +64,12 @@ class Report(object):
         with open(self.report_path, "rb") as prpt_file:
             prpt_file_content = xmlrpclib.Binary(prpt_file.read())
 
-            #TODO: Make this configurable from inside the UI
+            #TODO: Make this configurable from inside the UI - In report_prompt wizard, too...
             proxy = xmlrpclib.ServerProxy("http://localhost:8090")
             proxy_argument = {
                 "_prpt_file_content": prpt_file_content,
                 "_output_type": self.output_format,
-                "_openerp_host": "localhost", "_openerp_port": "8069",
+                "_openerp_host": config["xmlrpc_interface"] or "localhost", "_openerp_port": str(config["xmlrpc_port"]), 
                 "_openerp_db": self.cr.dbname,
                 "_openerp_login": current_user.login, "_openerp_password": current_user.password,
                 "ids": self.ids
