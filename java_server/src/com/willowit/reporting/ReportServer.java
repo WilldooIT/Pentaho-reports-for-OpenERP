@@ -1,3 +1,5 @@
+package com.willowit.reporting;
+
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.ArrayList;
@@ -15,7 +17,7 @@ import org.apache.commons.logging.LogFactory;
 import org.pentaho.reporting.engine.classic.core.AbstractReportDefinition;
 import org.pentaho.reporting.engine.classic.core.ClassicEngineBoot;
 import org.pentaho.reporting.engine.classic.core.CompoundDataFactory;
-import org.pentaho.reporting.engine.classic.core.Element;
+import org.pentaho.reporting.engine.classic.core.ReportElement;
 import org.pentaho.reporting.engine.classic.core.MasterReport;
 import org.pentaho.reporting.engine.classic.core.Section;
 
@@ -43,8 +45,8 @@ import org.pentaho.reporting.libraries.resourceloader.ResourceManager;
 import org.pentaho.reporting.engine.classic.extensions.datasources.openerp.OpenERPDataFactory;
 import com.debortoliwines.openerp.reporting.di.OpenERPFilterInfo;
 
-public class KludgyReportServer {
-	private static Log logger = LogFactory.getLog(KludgyReportServer.class);
+public class ReportServer {
+	private static Log logger = LogFactory.getLog(ReportServer.class);
 
 	//One common manager instance to be initialised on startup
 	private static ResourceManager manager;
@@ -251,7 +253,7 @@ public class KludgyReportServer {
 			XmlRpcServer rpc_server = server.getXmlRpcServer();
 
 			PropertyHandlerMapping phm = new PropertyHandlerMapping();
-			phm.addHandler("report", KludgyReportServer.class);
+			phm.addHandler("report", ReportServer.class);
 			rpc_server.setHandlerMapping(phm);
 
 			//XmlRpcServerConfigImpl server_config = (XmlRpcServerConfigImpl) rpc_server.getConfig();
@@ -313,7 +315,7 @@ public class KludgyReportServer {
 
 		//Go through all children and fix up their datasources too
 		for(int i = 0; i < section.getElementCount(); i++) {
-			Element e = section.getElement(i);
+			ReportElement e = section.getElement(i);
 
 			if(e instanceof Section)
 				fixConfiguration((Section) e);
