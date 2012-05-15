@@ -5,6 +5,7 @@
 		<dependency org="org.apache.commons" name="commons-lang3" rev="3.1"/>
 		<dependency org="org.apache.xmlrpc" name="xmlrpc-server" rev="3.1.3"/>
 		<dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-core" rev="3.9.0-GA"/>
+		<dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions" rev="3.9.0-GA"/>
 		<dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-openerp" rev="3.8-SNAPSHOT"/>
 	</dependencies>
 </ivy-module>
