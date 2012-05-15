@@ -1,18 +1,29 @@
-<project name="report-server" basedir="." default="jar">
+<project name="report-server" basedir="." default="jar" xmlns:ivy="antlib:org.apache.ivy.ant">
 	<property name="src.dir" value="src"/>
+	<property name="lib.dir" value="lib"/>
 	<property name="build.dir" value="build"/>
 	<property name="classes.dir" value="${build.dir}/classes"/>
 	<property name="jar.dir" value="${build.dir}/jar"/>
 
 	<property name="main-class" value="com.willowit.reporting.ReportServer"/>
 
+	<!-- Include all JARs inside the lib directory in a path named 'classpath'-->
+	<path id="classpath">
+		<fileset dir="${lib.dir}" includes="**/*.jar"/>
+	</path>
+
 	<target name="clean">
 		<delete dir="${build.dir}"/>
 	</target>
 
-	<target name="compile">
+	<!-- Ivy magic -->
+	<target name="resolve" description="Retrieve project dependencies using Ivy">
+		<ivy:retrieve type="jar"/>
+	</target>
+
+	<target name="compile" depends="resolve">
 		<mkdir dir="${classes.dir}"/>
-		<javac srcdir="${src.dir}" destdir="${classes.dir}"/>
+		<javac srcdir="${src.dir}" destdir="${classes.dir}" classpathref="classpath"/>
 	</target>
 
 	<target name="jar" depends="compile">
@@ -25,7 +36,14 @@
 	</target>
 
 	<target name="run" depends="jar">
-		<java jar="${jar.dir}/${ant.project.name}.jar" fork="true"/>
+		<java classname="${main-class}" fork="true">
+			<classpath>
+				<!-- Include classpath defined earlier -->
+				<path refid="classpath"/>
+				<!-- Include built jar -->
+				<path location="${jar.dir}/${ant.project.name}.jar" />
+			</classpath>
+		</java>
 	</target>
 
 	<target name="clean-build" depends="clean, jar"/>
