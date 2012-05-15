@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<ivy-settings>
+	<settings defaultResolver="main" />
+	<resolvers>
+		<chain name="main">
+			<ibiblio name="default" m2compatible="true"/>
+			<ibiblio name="pentaho-compat" m2compatible="true" root="http://repository.pentaho.org/artifactory/repo/"/>
+		</chain>
+	</resolvers>
+</ivy-settings>
