@@ -4,3 +4,5 @@
 *.jar
 .project
 .pydevproject
+build/
+lib/
