@@ -5,8 +5,6 @@ import java.util.Hashtable;
 import java.util.ArrayList;
 import java.util.Enumeration;
 
-import java.io.StringWriter;
-import java.io.PrintWriter;
 import java.io.ByteArrayOutputStream;
 
 import org.apache.xmlrpc.server.XmlRpcServer;
@@ -247,24 +245,29 @@ public class ReportServer {
 		}
 	}
 
-	public static void main(String[] args) {
-		//Start up Pentaho
+	public static Exception bootPentaho() {
+		Exception exception = null;
 		if(ClassicEngineBoot.getInstance().isBootDone() == false) {
 			LibLoaderBoot.getInstance().start();
 			LibFontBoot.getInstance().start();
 			ClassicEngineBoot.getInstance().start();
 
-			Exception exception = ClassicEngineBoot.getInstance().getBootFailureReason();
-			if (exception != null) {
-				StringWriter trace_stream = new StringWriter();
-				exception.printStackTrace(new PrintWriter(trace_stream));
-
-				logger.error(exception.getMessage());
-				logger.error(trace_stream.toString());
-
-				System.exit(1);
-			}
+			exception = ClassicEngineBoot.getInstance().getBootFailureReason();
 		}
+
+		return exception;
+	}
+
+	public static void main(String[] args) {
+		//Start up Pentaho
+		Exception boot_exception = bootPentaho();
+		if(boot_exception != null) {
+			logger.error(boot_exception.getMessage());
+			logger.error(ExceptionUtils.getStackTrace(boot_exception));
+
+			System.exit(1);
+		}
+
 		manager = new ResourceManager();
 		manager.registerDefaults();
 
@@ -398,10 +401,8 @@ public class ReportServer {
 		ReportParameterValidator validator = param_def.getValidator();
 		ValidationResult validation_result = validator.validate(new ValidationResult(), param_def, param_context);
 
-		for(int i = 0; i < param_def.getParameterCount(); i++) {
-			for(ValidationMessage msg : validation_result.getErrors(param_def.getParameterDefinition(i).getName())) {
+		for(int i = 0; i < param_def.getParameterCount(); i++)
+			for(ValidationMessage msg : validation_result.getErrors(param_def.getParameterDefinition(i).getName()))
 				logger.info("Parameter Error: " + msg.getMessage());
-			}
-		}
 	}
 }
