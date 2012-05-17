@@ -4,6 +4,9 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.ArrayList;
 import java.util.Enumeration;
+
+import java.io.StringWriter;
+import java.io.PrintWriter;
 import java.io.ByteArrayOutputStream;
 
 import org.apache.xmlrpc.server.XmlRpcServer;
@@ -253,8 +256,12 @@ public class ReportServer {
 
 			Exception exception = ClassicEngineBoot.getInstance().getBootFailureReason();
 			if (exception != null) {
-				System.out.println(exception.getMessage());
-				exception.printStackTrace();
+				StringWriter trace_stream = new StringWriter();
+				exception.printStackTrace(new PrintWriter(trace_stream));
+
+				logger.error(exception.getMessage());
+				logger.error(trace_stream.toString());
+
 				System.exit(1);
 			}
 		}
@@ -393,7 +400,7 @@ public class ReportServer {
 
 		for(int i = 0; i < param_def.getParameterCount(); i++) {
 			for(ValidationMessage msg : validation_result.getErrors(param_def.getParameterDefinition(i).getName())) {
-				System.out.println("Parameter Error: " + msg.getMessage());
+				logger.info("Parameter Error: " + msg.getMessage());
 			}
 		}
 	}
