@@ -1,15 +1,20 @@
 <project name="report-server" basedir="." default="jar" xmlns:ivy="antlib:org.apache.ivy.ant">
 	<property name="src.dir" value="src"/>
-	<property name="lib.dir" value="lib"/>
 	<property name="build.dir" value="build"/>
+	<property name="lib.dir" value="${build.dir}/lib"/>
 	<property name="classes.dir" value="${build.dir}/classes"/>
 	<property name="jar.dir" value="${build.dir}/jar"/>
 
 	<property name="main-class" value="com.willowit.reporting.ReportServer"/>
 
-	<!-- Include all JARs inside the lib directory in a path named 'classpath'-->
-	<path id="classpath">
-		<fileset dir="${lib.dir}" includes="**/*.jar"/>
+	<!-- Include all JARs required to compile the project -->
+	<path id="build-classpath">
+		<fileset dir="${lib.dir}/build" includes="**/*.jar"/>
+	</path>
+
+	<!-- Include all JARs required to run the project -->
+	<path id="runtime-classpath">
+		<fileset dir="${lib.dir}/runtime" includes="**/*.jar"/>
 	</path>
 
 	<target name="clean">
@@ -18,35 +23,38 @@
 
 	<!-- Ivy magic -->
 	<target name="resolve" description="Retrieve project dependencies using Ivy">
-		<ivy:retrieve type="jar"/>
+		<ivy:retrieve type="jar" pattern="${ivy.lib.dir}/[conf]/[artifact].[ext]"/>
 	</target>
 
 	<target name="compile" depends="resolve">
 		<mkdir dir="${classes.dir}"/>
-		<javac srcdir="${src.dir}" destdir="${classes.dir}" classpathref="classpath"/>
+		<javac srcdir="${src.dir}" destdir="${classes.dir}" classpathref="build-classpath"/>
 	</target>
 
 	<target name="jar" depends="compile">
 		<mkdir dir="${jar.dir}"/>
-			<jar destfile="${jar.dir}/${ant.project.name}.jar" basedir="${classes.dir}">
-				<manifest>
-					<attribute name="Main-Class" value="${main-class}"/>
-				</manifest>
-			</jar>
+
+		<jar destfile="${jar.dir}/${ant.project.name}.jar" basedir="${classes.dir}">
+			<manifest>
+				<attribute name="Main-Class" value="${main-class}"/>
+			</manifest>
+		</jar>
 	</target>
 
-	<target name="run" depends="jar">
+	<!-- Build and launch the application -->
+	<target name="launch" depends="jar">
 		<java classname="${main-class}" fork="true">
 			<classpath>
 				<!-- Include classpath defined earlier -->
-				<path refid="classpath"/>
+				<path refid="runtime-classpath"/>
 				<!-- Include built jar -->
-				<path location="${jar.dir}/${ant.project.name}.jar" />
+				<path location="${jar.dir}/${ant.project.name}.jar"/>
 			</classpath>
 		</java>
 	</target>
 
+	<!-- Shortcuts -->
 	<target name="clean-build" depends="clean, jar"/>
 
-	<target name="main" depends="clean, run"/>
+	<target name="clean-launch" depends="clean, launch"/>
 </project>
