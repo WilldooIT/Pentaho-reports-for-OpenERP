@@ -2,6 +2,7 @@
 	<property name="src.dir" value="src"/>
 	<property name="build.dir" value="build"/>
 	<property name="lib.dir" value="${build.dir}/lib"/>
+	<property name="ivy.lib.dir" value="${lib.dir}"/>
 	<property name="classes.dir" value="${build.dir}/classes"/>
 	<property name="jar.dir" value="${build.dir}/jar"/>
 
