@@ -17,6 +17,7 @@ import org.apache.commons.logging.LogFactory;
 import org.pentaho.reporting.engine.classic.core.AbstractReportDefinition;
 import org.pentaho.reporting.engine.classic.core.ClassicEngineBoot;
 import org.pentaho.reporting.engine.classic.core.CompoundDataFactory;
+import org.pentaho.reporting.engine.classic.core.DataFactory;
 import org.pentaho.reporting.engine.classic.core.ReportElement;
 import org.pentaho.reporting.engine.classic.core.MasterReport;
 import org.pentaho.reporting.engine.classic.core.Section;
@@ -27,6 +28,9 @@ import org.pentaho.reporting.engine.classic.core.modules.output.table.html.HtmlR
 import org.pentaho.reporting.engine.classic.core.modules.output.table.xls.ExcelReportUtil;
 import org.pentaho.reporting.engine.classic.core.modules.output.pageable.pdf.PdfReportUtil;
 import org.pentaho.reporting.engine.classic.core.modules.output.pageable.plaintext.PlainTextReportUtil;
+
+import org.pentaho.reporting.engine.classic.core.modules.misc.datafactory.sql.SQLReportDataFactory;
+import org.pentaho.reporting.engine.classic.core.modules.misc.datafactory.sql.DriverConnectionProvider;
 
 import org.pentaho.reporting.engine.classic.core.parameters.ReportParameterDefinition;
 import org.pentaho.reporting.engine.classic.core.parameters.ParameterDefinitionEntry;
@@ -57,6 +61,13 @@ public class ReportServer {
 	private String openerp_db = null;
 	private String openerp_login = null;
 	private String openerp_password = null;
+
+	private String postgres_host = null;
+	private String postgres_port = null;
+	private String postgres_db = null;
+	private String postgres_login = null;
+	private String postgres_password = null;
+
 	private String output_type = "pdf";
 	private Object parameter_ids = null;
 	private HashMap<String, Object> parameters = new HashMap<String, Object>();
@@ -156,6 +167,16 @@ public class ReportServer {
 					openerp_login = (String) argval;
 				else if (argname.equals("_openerp_password"))
 					openerp_password = (String) argval;
+				else if(argname.equals("_postgres_host"))
+					postgres_host = (String) argval;
+				else if (argname.equals("_postgres_port"))
+					postgres_port = (String) argval;
+				else if (argname.equals("_postgres_db"))
+					postgres_db = (String) argval;
+				else if (argname.equals("_postgres_login"))
+					postgres_login = (String) argval;
+				else if (argname.equals("_postgres_password"))
+					postgres_password = (String) argval;
 				else if (argname.equals("_prpt_file_content"))
 					prpt_file_content = (byte[]) argval;
 				else if (argname.equals("_output_type"))
@@ -269,15 +290,16 @@ public class ReportServer {
 	}
 
 	//DBW
-	private void fixConfiguration(Section section) {
+	private void fixConfiguration(Section section) throws Exception {
 		//If one of the datasources is an OpenERP datasource, reset the connection to the passed parameters
 		if(section instanceof AbstractReportDefinition) {
 			String selected_query_name = ((AbstractReportDefinition) section).getQuery();
 
 			CompoundDataFactory factories = (CompoundDataFactory) ((AbstractReportDefinition) section).getDataFactory();
 			for(int j = 0; j < factories.size(); j++) {
-				if (factories.getReference(j) instanceof OpenERPDataFactory) {
-					OpenERPDataFactory factory = (OpenERPDataFactory) factories.getReference(j);
+				DataFactory data_factory = factories.getReference(j);
+				if(data_factory instanceof OpenERPDataFactory) {
+					OpenERPDataFactory factory = (OpenERPDataFactory) data_factory;
 
 					//Fix up connection parameters
 					if(openerp_host != null)
@@ -309,6 +331,46 @@ public class ReportServer {
 						else
 							parameters.put("ids", parameter_ids);
 					}
+				} else if(data_factory instanceof SQLReportDataFactory && (postgres_login != null || postgres_password != null || postgres_host != null || postgres_port != null || postgres_db != null)) {
+					SQLReportDataFactory factory = (SQLReportDataFactory) data_factory;
+					SQLReportDataFactory new_factory;
+					DriverConnectionProvider new_settings;
+
+					if(postgres_host == null || postgres_db == null)
+						throw new Exception("Invalid JDBC data source settings passed: PostgreS server's hostname (or IP address) and the database name must be set if specifying custom connection settings.");
+
+					if(postgres_login == null)
+						postgres_login = factory.getUserField();
+
+					if(postgres_password == null)
+						postgres_password = factory.getPasswordField();
+
+					if(postgres_port == null)
+						postgres_port = "5432";
+
+					String jdbc_url = "jdbc:postgresql://" + postgres_host + ":" + postgres_port + "/" + postgres_db;
+
+					new_settings = new DriverConnectionProvider();
+					new_settings.setDriver("org.postgresql.Driver");
+					new_settings.setUrl(jdbc_url);
+					new_settings.setProperty("user", postgres_login);
+					new_settings.setProperty("password", postgres_password);
+					new_settings.setProperty("::pentaho-reporting::name", "Custom PostgreS datasource");
+					new_settings.setProperty("::pentaho-reporting::hostname", postgres_host);
+					new_settings.setProperty("::pentaho-reporting::port", postgres_port);
+					new_settings.setProperty("::pentaho-reporting::database-name", postgres_db);
+					new_settings.setProperty("::pentaho-reporting::database-type", "POSTGRESQL");
+
+					new_factory = new SQLReportDataFactory(new_settings);
+					new_factory.setUserField(postgres_login);
+					new_factory.setPasswordField(postgres_password);
+					new_factory.setGlobalScriptLanguage(factory.getGlobalScriptLanguage());
+					new_factory.setGlobalScript(factory.getGlobalScript());
+
+					for(String one_query_name : factory.getQueryNames())
+						new_factory.setQuery(one_query_name, factory.getQuery(one_query_name));
+
+					factories.set(j, new_factory);
 				}
 			}
 		}
@@ -324,15 +386,15 @@ public class ReportServer {
 
 	//Checks the validity of parameters values set earlier
 	private void checkParameters(MasterReport report) throws Exception {
-			DefaultParameterContext param_context = new DefaultParameterContext(report);
-			ReportParameterDefinition param_def = report.getParameterDefinition();
-			ReportParameterValidator validator = param_def.getValidator();
-			ValidationResult validation_result = validator.validate(new ValidationResult(), param_def, param_context);
+		DefaultParameterContext param_context = new DefaultParameterContext(report);
+		ReportParameterDefinition param_def = report.getParameterDefinition();
+		ReportParameterValidator validator = param_def.getValidator();
+		ValidationResult validation_result = validator.validate(new ValidationResult(), param_def, param_context);
 
-			for(int i = 0; i < param_def.getParameterCount(); i++) {
-				for(ValidationMessage msg : validation_result.getErrors(param_def.getParameterDefinition(i).getName())) {
-					System.out.println("Parameter Error: " + msg.getMessage());
-				}
+		for(int i = 0; i < param_def.getParameterCount(); i++) {
+			for(ValidationMessage msg : validation_result.getErrors(param_def.getParameterDefinition(i).getName())) {
+				System.out.println("Parameter Error: " + msg.getMessage());
 			}
+		}
 	}
 }
