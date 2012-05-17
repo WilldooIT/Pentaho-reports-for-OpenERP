@@ -76,9 +76,9 @@ class Report(object):
             }
 
 #            postgresconfig_obj = self.pool.get('pentaho.postgres.config')
-#            postgresconfig_ids = postgresconfig_obj.search(cr, uid, [], context=context)
+#            postgresconfig_ids = postgresconfig_obj.search(self.cr, self.uid, [], context=context)
 #            if postgresconfig_ids:
-#                postgresconfig = postgresconfig_obj.browse(cr, uid, postgresconfig_ids[0], context=context)
+#                postgresconfig = postgresconfig_obj.browse(self.cr, self.uid, postgresconfig_ids[0], context=context)
 #                proxy_argument.update({'_postgres_host': postgresconfig.host or 'localhost',
 #                                       '_postgres_port': postgresconfig.port or '5432',
 #                                       '_postgres_db': self.cr.dbname,
@@ -86,10 +86,10 @@ class Report(object):
 #                                       '_postgres_password': postgresconfig.password,
 #                                       })
 
-            postgresconfig_host = self.pool.get('ir.config_parameter').get_param(cr, uid, 'postgres.host', default='localhost')
-            postgresconfig_port = self.pool.get('ir.config_parameter').get_param(cr, uid, 'postgres.port', default='5432')
-            postgresconfig_login = self.pool.get('ir.config_parameter').get_param(cr, uid, 'postgres.login')
-            postgresconfig_password = self.pool.get('ir.config_parameter').get_param(cr, uid, 'postgres.password')
+            postgresconfig_host = self.pool.get('ir.config_parameter').get_param(self.cr, self.uid, 'postgres.host', default='localhost')
+            postgresconfig_port = self.pool.get('ir.config_parameter').get_param(self.cr, self.uid, 'postgres.port', default='5432')
+            postgresconfig_login = self.pool.get('ir.config_parameter').get_param(self.cr, self.uid, 'postgres.login')
+            postgresconfig_password = self.pool.get('ir.config_parameter').get_param(self.cr, self.uid, 'postgres.password')
 
             if postgresconfig_host and postgresconfig_port and postgresconfig_login and postgresconfig_password:
                 proxy_argument.update({'_postgres_host': postgresconfig_host,
