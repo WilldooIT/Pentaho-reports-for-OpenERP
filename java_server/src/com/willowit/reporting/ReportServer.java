@@ -56,29 +56,11 @@ public class ReportServer {
 	//One common manager instance to be initialised on startup
 	private static ResourceManager manager;
 
-	//Unique for every invocation
-	private String openerp_host = null;
-	private String openerp_port = null;
-	private String openerp_db = null;
-	private String openerp_login = null;
-	private String openerp_password = null;
-
-	private String postgres_host = null;
-	private String postgres_port = null;
-	private String postgres_db = null;
-	private String postgres_login = null;
-	private String postgres_password = null;
-
-	private String output_type = "pdf";
-	private Object parameter_ids = null;
-	private HashMap<String, Object> parameters = new HashMap<String, Object>();
-	private byte[] prpt_file_content = null;
-	
 	public ArrayList<HashMap> getParameterInfo(Hashtable args) throws Exception {
 		ArrayList<HashMap> ret_val = new ArrayList<HashMap>();
 
 		try {
-			prpt_file_content = (byte[]) args.get("_prpt_file_content");
+			private byte[] pprpt_file_content = (byte[]) args.get("prpt_file_content");
 
 			//Load the report (we may be overriding Pentaho's caching mechanisms by doing this
 			Resource res = manager.createDirectly(prpt_file_content, MasterReport.class);
@@ -152,40 +134,64 @@ public class ReportServer {
 		return name_to_type;
 	}
 
+	private void typeCastAndStore(ReportParameterValues target, String parameter_type, String parameter_name, Object parameter_value) {
+		if(parameter_type.equals("java.lang.Long"))
+			target.put(parameter_name, new Long(((Integer) parameter_value)));
+		else if(parameter_type.equals("java.lang.Short"))
+			target.put(parameter_name, ((Integer) parameter_value).shortValue());
+		else if(parameter_type.equals("java.math.BigInteger"))
+			target.put(parameter_name, java.math.BigInteger.valueOf(((Integer) parameter_value)));
+		else if(parameter_type.equals("java.lang.Float"))
+			target.put(parameter_name, ((Double) parameter_value).floatValue());
+		else if(parameter_type.equals("java.math.BigDecimal"))
+			target.put(parameter_name, java.math.BigDecimal.valueOf(((Double) parameter_value)));
+		else if(parameter_type.equals("java.sql.Date"))
+			target.put(parameter_name, new java.sql.Date(((java.util.Date) parameter_value).getTime()));
+		else if(parameter_type.equals("java.sql.Time"))
+			target.put(parameter_name, new java.sql.Time(((java.util.Date) parameter_value).getTime()));
+		else if(parameter_type.equals("java.sql.Timestamp"))
+			target.put(parameter_name, new java.sql.Timestamp(((java.util.Date) parameter_value).getTime()));
+		else
+			target.put(parameter_name, parameter_value);
+	}
+
+	private byte[] renderReport(MasterReport report, String output_type) throws Exception {
+		//Create the report output stream
+		ByteArrayOutputStream report_bin_out = new ByteArrayOutputStream();
+
+		if(output_type.equals("pdf"))
+			PdfReportUtil.createPDF(report, report_bin_out);
+		else if(output_type.equals("xls"))
+			ExcelReportUtil.createXLS(report, report_bin_out);
+		else if(output_type.equals("csv"))
+			CSVReportUtil.createCSV(report, report_bin_out, null);
+		else if(output_type.equals("rtf"))
+			RTFReportUtil.createRTF(report, report_bin_out);
+		else if(output_type.equals("html"))
+			HtmlReportUtil.createStreamHTML(report, report_bin_out);
+		else if(output_type.equals("txt"))
+			PlainTextReportUtil.createPlainText(report, report_bin_out);
+
+		return report_bin_out.toByteArray();
+	}
+
 	public byte[] execute(Hashtable args) throws Exception {
+		byte[] prpt_file_content = null;
+		String output_type = null;
+
+		HashMap<String, Object> parameters = new HashMap<String, Object>();
+		HashMap<String, Object> connection_settings = new HashMap<String, Hashtable>();
+		HashMap<String, String> openerp_settings = new HashMap<String, String>();
+		HashMap<String, String> postgres_settings = new HashMap<String, String>();
+
+		logger.debug(args);
+
 		try {
-			for(Enumeration argnames = args.keys(); argnames.hasMoreElements();) {
-				String argname = (String) argnames.nextElement();
-				Object argval = args.get(argname); 
-				logger.debug(argname + ": " + argval);
-				if(argname.equals("_openerp_host"))
-					openerp_host = (String) argval;
-				else if (argname.equals("_openerp_port"))
-					openerp_port = (String) argval;
-				else if (argname.equals("_openerp_db"))
-					openerp_db = (String) argval;
-				else if (argname.equals("_openerp_login"))
-					openerp_login = (String) argval;
-				else if (argname.equals("_openerp_password"))
-					openerp_password = (String) argval;
-				else if(argname.equals("_postgres_host"))
-					postgres_host = (String) argval;
-				else if (argname.equals("_postgres_port"))
-					postgres_port = (String) argval;
-				else if (argname.equals("_postgres_db"))
-					postgres_db = (String) argval;
-				else if (argname.equals("_postgres_login"))
-					postgres_login = (String) argval;
-				else if (argname.equals("_postgres_password"))
-					postgres_password = (String) argval;
-				else if (argname.equals("_prpt_file_content"))
-					prpt_file_content = (byte[]) argval;
-				else if (argname.equals("_output_type"))
-					output_type = (String) argval;
-				else if (argname.equals("ids"))
-					parameter_ids = argval;
-				else parameters.put(argname, argval);
-			}
+			prpt_file_content = (byte[]) args.get("prpt_file_content");
+			output_type = (String) args.get("output_type");
+
+			connection_settings = args.get("connection_settings");
+			parameters = args.get("report_parameters");
 
 			//Load the report (we may be overriding Pentaho's caching mechanisms by doing this
 			Resource res = manager.createDirectly(prpt_file_content, MasterReport.class);
@@ -199,48 +205,18 @@ public class ReportServer {
 			ReportParameterValues values = report.getParameterValues();
 			for(String parameter_name : parameters.keySet()) {
 				Object parameter_value = parameters.get(parameter_name);
+
 				if(parameters_types.get(parameter_name) != null) {
 					String parameter_type = ((Class) parameters_types.get(parameter_name)).getName();
-					if(parameter_type.equals("java.lang.Long"))
-						values.put(parameter_name, new Long(((Integer) parameter_value)));
-					else if(parameter_type.equals("java.lang.Short"))
-						values.put(parameter_name, ((Integer) parameter_value).shortValue());
-					else if(parameter_type.equals("java.math.BigInteger"))
-						values.put(parameter_name, java.math.BigInteger.valueOf(((Integer) parameter_value)));
-					else if(parameter_type.equals("java.lang.Float"))
-						values.put(parameter_name, ((Double) parameter_value).floatValue());
-					else if(parameter_type.equals("java.math.BigDecimal"))
-						values.put(parameter_name, java.math.BigDecimal.valueOf(((Double) parameter_value)));
-					else if(parameter_type.equals("java.sql.Date"))
-						values.put(parameter_name, new java.sql.Date(((java.util.Date) parameter_value).getTime()));
-					else if(parameter_type.equals("java.sql.Time"))
-						values.put(parameter_name, new java.sql.Time(((java.util.Date) parameter_value).getTime()));
-					else if(parameter_type.equals("java.sql.Timestamp"))
-						values.put(parameter_name, new java.sql.Timestamp(((java.util.Date) parameter_value).getTime()));
-					else
-						values.put(parameter_name, parameter_value);
+					typeCastAndStore(values, ((Class) parameters_types.get(parameter_name)).getName(), parameter_name, parameter_value);
 				}
 			}
 
-			//Create the report output stream
-			ByteArrayOutputStream report_bin_out = new ByteArrayOutputStream();
-			if(output_type.equals("pdf"))
-				PdfReportUtil.createPDF(report, report_bin_out);
-			else if(output_type.equals("xls"))
-				ExcelReportUtil.createXLS(report, report_bin_out);
-			else if(output_type.equals("csv"))
-				CSVReportUtil.createCSV(report, report_bin_out, null);
-			else if(output_type.equals("rtf"))
-				RTFReportUtil.createRTF(report, report_bin_out);
-			else if(output_type.equals("html"))
-				HtmlReportUtil.createStreamHTML(report, report_bin_out);
-			else if(output_type.equals("txt"))
-				PlainTextReportUtil.createPlainText(report, report_bin_out);
-
-			return report_bin_out.toByteArray();
+			return renderReport(report, output_type);
 		} catch(Exception exception) {
 			logger.error(exception.getMessage());
 			logger.error(ExceptionUtils.getStackTrace(exception));
+
 			throw exception;
 		}
 	}
