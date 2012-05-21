@@ -1,5 +1,5 @@
 <ivy-module version="2.0">
-	<info organisation="com.willowit" module="report-server"/>
+	<info organisation="com.willowit" module="pentaho-reports-for-openerp"/>
 
 	<configurations>
 		<conf name="build" description="'Small' set of dependencies needed for building the report-server."/>
@@ -7,6 +7,8 @@
 	</configurations>
 
 	<dependencies>
+		<dependency org="javax.servlet" name="servlet-api" rev="2.5"/>
+
 		<dependency org="org.apache.commons" name="commons-lang3" rev="3.1" conf="build -> master(*)"/>
 		<dependency org="org.apache.xmlrpc" name="xmlrpc-server" rev="3.1.3" conf="build -> master(*)"/>
 		<dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-core" rev="3.9.0-GA" conf="build -> master(*), optional(*)"/>
