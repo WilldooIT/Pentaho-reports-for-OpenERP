@@ -1,0 +1,29 @@
+<web-app xmlns="http://java.sun.com/xml/ns/javaee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd" version="2.5">
+	<display-name>Pentaho reports for OpenERP</display-name>
+	<description>Java XML-RPC service exposing the Pentaho reporting engine to OpenERP</description>
+
+	<filter>
+		<filter-name>Pentaho boot-up checker</filter-name>
+		<filter-class>com.willowit.application.PentahoResourceChecker</filter-class>
+	</filter>
+
+	<filter-mapping>
+		<filter-name>Pentaho boot-up checker</filter-name>
+		<servlet-name>XmlRpcServlet</servlet-name>
+	</filter-mapping>
+	
+	<listener>
+		<listener-class>com.willowit.application.PentahoResourceManager</listener-class>
+	</listener>
+
+	<servlet>
+		<servlet-name>XmlRpcServlet</servlet-name>
+		<servlet-class>org.apache.xmlrpc.webserver.XmlRpcServlet</servlet-class>
+		<load-on-startup>1</load-on-startup>
+	</servlet>
+
+	<servlet-mapping>
+		<servlet-name>XmlRpcServlet</servlet-name>
+		<url-pattern>/*</url-pattern>
+	</servlet-mapping>
+</web-app>
