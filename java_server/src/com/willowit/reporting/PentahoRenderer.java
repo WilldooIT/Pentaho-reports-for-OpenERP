@@ -340,7 +340,7 @@ public class PentahoRenderer {
 		String output_type = null;
 
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
-		HashMap<String, Hashtable> connection_settings = new HashMap<String, Hashtable>();
+		HashMap<String, HashMap> connection_settings = new HashMap<String, HashMap>();
 		HashMap<String, String> openerp_settings = new HashMap<String, String>();
 		HashMap<String, String> postgres_settings = new HashMap<String, String>();
 
@@ -358,6 +358,8 @@ public class PentahoRenderer {
 
 			connection_settings = (HashMap) args.get("connection_settings");
 			parameters = (HashMap) args.get("report_parameters");
+			openerp_settings = connection_settings.get("openerp");
+			postgres_settings = connection_settings.get("postgres");
 
 			//Load the report (we may be overriding Pentaho's caching mechanisms by doing this
 			Resource res = manager.createDirectly(prpt_file_content, MasterReport.class);
