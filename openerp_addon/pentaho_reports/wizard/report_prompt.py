@@ -8,6 +8,8 @@ from datetime import datetime
 
 from osv import osv, fields
 
+from tools import config
+
 
 #---------------------------------------------------------------------------------------------------------------
 
@@ -187,6 +189,7 @@ class report_prompt_class(osv.osv_memory):
             context={}
 
         ir_actions_obj = self.pool.get('ir.actions.report.xml')
+        config_obj = self.pool.get('ir.config_parameter')
 
         report_ids = ir_actions_obj.search(cr, uid, [('report_name', '=', context.get('service_name',''))], context=context)
         if not report_ids:
@@ -202,12 +205,32 @@ class report_prompt_class(osv.osv_memory):
 
         if not self.paramfile or self.paramfile['report_id'] != report_ids[0] or self.paramfile['report_path'] != report_path or self.paramfile['report_time'] != report_time:
             with open(report_path, 'rb') as prpt_file:
+                current_user = self.pool.get('res.users').browse(cr, uid, uid)
+
                 prpt_file_content = xmlrpclib.Binary(prpt_file.read())
 
-                proxy = xmlrpclib.ServerProxy("http://localhost:8090")
-                proxy_argument = {
-                    "_prpt_file_content": prpt_file_content
-                }
+                proxy = xmlrpclib.ServerProxy(config_obj.get_param(cr, uid, 'pentaho.server.url', default='http://localhost:8090'))
+                proxy_argument = {"prpt_file_content": prpt_file_content,
+                                  "connection_settings" : {'openerp' : {"host": config["xmlrpc_interface"] or "localhost",
+                                                                        "port": str(config["xmlrpc_port"]), 
+                                                                        "db": cr.dbname,
+                                                                        "login": current_user.login,
+                                                                        "password": current_user.password,
+                                                                        }},
+                                  }
+
+                postgresconfig_host = config_obj.get_param(cr, uid, 'postgres.host', default='localhost')
+                postgresconfig_port = config_obj.get_param(cr, uid, 'postgres.port', default='5432')
+                postgresconfig_login = config_obj.get_param(cr, uid, 'postgres.login')
+                postgresconfig_password = config_obj.get_param(cr, uid, 'postgres.password')
+    
+                if postgresconfig_host and postgresconfig_port and postgresconfig_login and postgresconfig_password:
+                    proxy_argument['connection_settings'].update({'postgres' : {'host': postgresconfig_host,
+                                                                                'port': postgresconfig_port,
+                                                                                'db': cr.dbname,
+                                                                                'login': postgresconfig_login,
+                                                                                'password': postgresconfig_password,
+                                                                                }})
 
                 report_parameters = proxy.report.getParameterInfo(proxy_argument)
 
