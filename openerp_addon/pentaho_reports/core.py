@@ -1,9 +1,6 @@
 # Todo:
-#    alternate user may need to be passed if executing the report (if emailing) - concurrency errors
 #    restructure xml parsing of repeating section
 #    change to use the prpt file stored in the DB, not off disk (allows different DBs to have different prpt files)
-#    ?? make ports configurable, especially for sql based reports - Need user profiles, perhaps
-#    also for proxy connections
 #    selection pulldowns
 #    multiple prpt files for one action - allows for alternate formats.
 
@@ -59,21 +56,24 @@ class Report(object):
 
     def execute_report(self):
         user_model = self.pool.get("res.users")
+        config_obj = self.pool.get('ir.config_parameter')
         current_user = user_model.browse(self.cr, self.uid, self.uid)
 
         with open(self.report_path, "rb") as prpt_file:
             prpt_file_content = xmlrpclib.Binary(prpt_file.read())
 
-            #TODO: Make this configurable from inside the UI - In report_prompt wizard, too...
-            proxy = xmlrpclib.ServerProxy("http://localhost:8090")
+            proxy = xmlrpclib.ServerProxy(config_obj.get_param(self.cr, self.uid, 'pentaho.server.url', default='http://localhost:8090'))
             proxy_argument = {
-                "_prpt_file_content": prpt_file_content,
-                "_output_type": self.output_format,
-                "_openerp_host": config["xmlrpc_interface"] or "localhost", "_openerp_port": str(config["xmlrpc_port"]), 
-                "_openerp_db": self.cr.dbname,
-                "_openerp_login": current_user.login, "_openerp_password": current_user.password,
-                "ids": self.ids
-            }
+                              "prpt_file_content": prpt_file_content,
+                              "output_type": self.output_format,
+                              "connection_settings" : {'openerp' : {"host": config["xmlrpc_interface"] or "localhost",
+                                                                    "port": str(config["xmlrpc_port"]), 
+                                                                    "db": self.cr.dbname,
+                                                                    "login": current_user.login,
+                                                                    "password": current_user.password,
+                                                                    }},
+                              "report_parameters" : {"ids": self.ids},
+                              }
 
 #            postgresconfig_obj = self.pool.get('pentaho.postgres.config')
 #            postgresconfig_ids = postgresconfig_obj.search(self.cr, self.uid, [], context=context)
@@ -86,33 +86,33 @@ class Report(object):
 #                                       '_postgres_password': postgresconfig.password,
 #                                       })
 
-            postgresconfig_host = self.pool.get('ir.config_parameter').get_param(self.cr, self.uid, 'postgres.host', default='localhost')
-            postgresconfig_port = self.pool.get('ir.config_parameter').get_param(self.cr, self.uid, 'postgres.port', default='5432')
-            postgresconfig_login = self.pool.get('ir.config_parameter').get_param(self.cr, self.uid, 'postgres.login')
-            postgresconfig_password = self.pool.get('ir.config_parameter').get_param(self.cr, self.uid, 'postgres.password')
+            postgresconfig_host = config_obj.get_param(self.cr, self.uid, 'postgres.host', default='localhost')
+            postgresconfig_port = config_obj.get_param(self.cr, self.uid, 'postgres.port', default='5432')
+            postgresconfig_login = config_obj.get_param(self.cr, self.uid, 'postgres.login')
+            postgresconfig_password = config_obj.get_param(self.cr, self.uid, 'postgres.password')
 
             if postgresconfig_host and postgresconfig_port and postgresconfig_login and postgresconfig_password:
-                proxy_argument.update({'_postgres_host': postgresconfig_host,
-                                       '_postgres_port': postgresconfig_port,
-                                       '_postgres_db': self.cr.dbname,
-                                       '_postgres_login': postgresconfig_login,
-                                       '_postgres_password': postgresconfig_password,
-                                       })
+                proxy_argument['connection_settings'].update({'postgres' : {'host': postgresconfig_host,
+                                                                            'port': postgresconfig_port,
+                                                                            'db': self.cr.dbname,
+                                                                            'login': postgresconfig_login,
+                                                                            'password': postgresconfig_password,
+                                                                            }})
 
             proxy_parameter_info = proxy.report.getParameterInfo(proxy_argument)
 
             if self.data and self.data.get('variables', False):
-                for variable in self.data['variables']:
-                    proxy_argument[variable] = self.data['variables'][variable]
+
+                proxy_argument['report_parameters'].update(self.data['variables'])
 
                 for parameter in proxy_parameter_info:
-                    if parameter['name'] in proxy_argument.keys():
+                    if parameter['name'] in proxy_argument['report_parameters'].keys():
                         if PARAM_VALUES[JAVA_MAPPING[parameter['value_type']](parameter['attributes'].get('data-format', False))].get('convert',False):
                             # convert from string types to correct types for reporter
-                            proxy_argument[parameter['name']] = PARAM_VALUES[JAVA_MAPPING[parameter['value_type']](parameter['attributes'].get('data-format', False))]['convert'](proxy_argument[parameter['name']])
+                            proxy_argument['report_parameters'][parameter['name']] = PARAM_VALUES[JAVA_MAPPING[parameter['value_type']](parameter['attributes'].get('data-format', False))]['convert'](proxy_argument['report_parameters'][parameter['name']])
 
             if self.data and self.data.get('output_type', False):
-                proxy_argument['_output_type']=self.data['output_type']
+                proxy_argument['output_type']=self.data['output_type']
 
             rendered_report = proxy.report.execute(proxy_argument).data
 
