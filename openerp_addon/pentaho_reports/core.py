@@ -72,7 +72,7 @@ class Report(object):
                                                                     "login": current_user.login,
                                                                     "password": current_user.password,
                                                                     }},
-                              "report_parameters" : {"ids": self.ids},
+                              "report_parameters" : {"ids": self.ids} if self.ids else {},
                               }
 
 #            postgresconfig_obj = self.pool.get('pentaho.postgres.config')
