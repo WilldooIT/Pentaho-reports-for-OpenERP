@@ -16,5 +16,14 @@
 
 		<dependency org="com.lowagie" name="itext" rev="2.1.7" force="true" conf="runtime -> master(*)"/>
 		<dependency org="postgresql" name="postgresql" rev="8.3-604.jdbc3" conf="runtime -> master(*)"/>
+		<dependency org="log4j" name="log4j" rev="1.2.14" conf="runtime -> default"/>
+
+		<!-- Other Pentaho extensions -->
+		<dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions" rev="3.9.0-GA" conf="runtime -> default"/>
+		<dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-toc" rev="3.9.0-GA" conf="runtime -> default"/>
+		<dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-charting" rev="3.9.0-GA" conf="runtime -> default"/>
+		<dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-scripting" rev="3.9.0-GA" conf="runtime -> default"/>
+		<dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-drill-down" rev="3.9.0-GA" conf="runtime -> default"/>
+		<dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-wizard-core" rev="3.9.0-GA" conf="runtime -> default"/>
 	</dependencies>
 </ivy-module>

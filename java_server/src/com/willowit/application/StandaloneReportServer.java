@@ -1,4 +1,4 @@
-package com.willowit.reporting;
+package com.willowit.application;
 
 import org.apache.xmlrpc.server.XmlRpcServer;
 import org.apache.xmlrpc.server.PropertyHandlerMapping;
@@ -7,8 +7,10 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-public class ReportServer {
-	private static Log logger = LogFactory.getLog(ReportServer.class);
+import com.willowit.reporting.PentahoRenderer;
+
+public class StandaloneReportServer {
+	private static Log logger = LogFactory.getLog(StandaloneReportServer.class);
 
 	public static void main(String[] args) {
 		//Start up Pentaho
