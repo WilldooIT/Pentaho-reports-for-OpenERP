@@ -62,7 +62,7 @@ class Report(object):
         with open(self.report_path, "rb") as prpt_file:
             prpt_file_content = xmlrpclib.Binary(prpt_file.read())
 
-            proxy = xmlrpclib.ServerProxy(config_obj.get_param(self.cr, self.uid, 'pentaho.server.url', default='http://localhost:8090'))
+            proxy = xmlrpclib.ServerProxy(config_obj.get_param(self.cr, self.uid, 'pentaho.server.url'))
             proxy_argument = {
                               "prpt_file_content": prpt_file_content,
                               "output_type": self.output_format,
@@ -86,8 +86,8 @@ class Report(object):
 #                                       '_postgres_password': postgresconfig.password,
 #                                       })
 
-            postgresconfig_host = config_obj.get_param(self.cr, self.uid, 'postgres.host', default='localhost')
-            postgresconfig_port = config_obj.get_param(self.cr, self.uid, 'postgres.port', default='5432')
+            postgresconfig_host = config_obj.get_param(self.cr, self.uid, 'postgres.host')
+            postgresconfig_port = config_obj.get_param(self.cr, self.uid, 'postgres.port')
             postgresconfig_login = config_obj.get_param(self.cr, self.uid, 'postgres.login')
             postgresconfig_password = config_obj.get_param(self.cr, self.uid, 'postgres.password')
 

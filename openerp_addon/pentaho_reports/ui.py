@@ -72,7 +72,7 @@ class report_xml(osv.osv):
 
     def delete_menu(self, cr, uid, menu_id, context=None):
         action = self.pool.get('ir.ui.menu').browse(cr, uid, menu_id, context=context).action
-        if action and action._model._name == 'ir.actions.act_window':
+        if action and action._table._name == 'ir.actions.act_window':
             self.pool.get('ir.actions.act_window').unlink(cr, uid, [action.id], context=context)
         result = self.pool.get('ir.ui.menu').unlink(cr, uid, [menu_id], context=context)
         return result
@@ -93,7 +93,7 @@ class report_xml(osv.osv):
                                                     }, context=context)
             else:
                 action = action_report.created_menu_id.action
-                if action and action._model._name == 'ir.actions.act_window':
+                if action and action._table._name == 'ir.actions.act_window':
                     self.pool.get('ir.actions.act_window').write(cr, uid, [action.id], {'name' : action_report.name or 'Pentaho Report',
                                                                                         'context' : "{'service_name' : '%s'}" % action_report.report_name or ''
                                                                                         }, context=context)

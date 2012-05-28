@@ -209,7 +209,7 @@ class report_prompt_class(osv.osv_memory):
 
                 prpt_file_content = xmlrpclib.Binary(prpt_file.read())
 
-                proxy = xmlrpclib.ServerProxy(config_obj.get_param(cr, uid, 'pentaho.server.url', default='http://localhost:8090'))
+                proxy = xmlrpclib.ServerProxy(config_obj.get_param(cr, uid, 'pentaho.server.url'))
                 proxy_argument = {"prpt_file_content": prpt_file_content,
                                   "connection_settings" : {'openerp' : {"host": config["xmlrpc_interface"] or "localhost",
                                                                         "port": str(config["xmlrpc_port"]), 
@@ -219,8 +219,8 @@ class report_prompt_class(osv.osv_memory):
                                                                         }},
                                   }
 
-                postgresconfig_host = config_obj.get_param(cr, uid, 'postgres.host', default='localhost')
-                postgresconfig_port = config_obj.get_param(cr, uid, 'postgres.port', default='5432')
+                postgresconfig_host = config_obj.get_param(cr, uid, 'postgres.host')
+                postgresconfig_port = config_obj.get_param(cr, uid, 'postgres.port')
                 postgresconfig_login = config_obj.get_param(cr, uid, 'postgres.login')
                 postgresconfig_password = config_obj.get_param(cr, uid, 'postgres.password')
     
