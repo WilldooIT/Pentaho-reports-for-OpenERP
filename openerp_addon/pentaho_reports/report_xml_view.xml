@@ -29,7 +29,7 @@
 				<field name='linked_menu_id'/>
 				<newline/>
 				<field name="pentaho_file" filename="pentaho_filename" colspan="4"/>
-				<field name="pentaho_filename" colspan="4"/>
+				<field name="pentaho_filename" colspan="4" invisible='1'/>
 				<separator string="Groups" colspan="4"/>
 				<field name="groups_id" colspan="4" nolabel="1" />
 			</form>

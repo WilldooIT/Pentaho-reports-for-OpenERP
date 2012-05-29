@@ -25,8 +25,8 @@ class report_xml(osv.osv):
         "is_pentaho_report": fields.boolean("Is this a Pentaho report?"),
         'linked_menu_id' : fields.many2one('ir.ui.menu','Linked menu item', select=True),
         'created_menu_id' : fields.many2one('ir.ui.menu','Created menu item'),
-        'pentaho_load_file' : fields.boolean('Load prpt file from filename'), # This is not displayed on the client
-                                                                              # It can be used by module updates to force a prpt file to be copied from a custom module to the custom reports folder of pentaho_reports.
+        'pentaho_load_file' : fields.boolean('Load prpt file from filename'), # This is not displayed on the client - it is a trigger to indicate that
+                                                                              # a prpt file needs to be loaded - normally it is loaded by the client interface
                                                                               # In this case, the filename should be specified with a module path.
 
     }
@@ -188,9 +188,11 @@ class report_xml(osv.osv):
                     super(report_xml, self).write(cr, uid, [report.id], {'pentaho_filename' : os.path.basename(report.pentaho_filename), 'pentaho_file' : self.read_content_from_file(report.pentaho_filename), 'pentaho_load_file' : False})
                     report = self.browse(cr, uid, report.id)
 
-                path = self.save_content_to_file(report.pentaho_filename, report.pentaho_file)
+#                path = self.save_content_to_file(report.pentaho_filename, report.pentaho_file)
+#                super(report_xml, self).write(cr, uid, [report.id], {"report_rml": path})
 
-                super(report_xml, self).write(cr, uid, [report.id], {"report_rml": path})
+                # we are no longer relying on report_rml to contain a name at all - for clarity, though, still store it...
+                super(report_xml, self).write(cr, uid, [report.id], {"report_rml": report.pentaho_filename})
 
                 if not report.linked_menu_id and report.pentaho_filename.endswith(".prpt"):
                     data = {
@@ -220,15 +222,15 @@ class report_xml(osv.osv):
 
 
 
-    def save_content_to_file(self, name, value):
-        path = os.path.abspath(os.path.dirname(__file__))
-        path += os.sep + "custom_reports" + os.sep + name
-
-        with open(path, "wb+") as report_file:
-            report_file.write(base64.decodestring(value))
-
-        path = "pentaho_reports" + os.sep + "custom_reports" + os.sep + name
-        return path
+#    def save_content_to_file(self, name, value):
+#        path = os.path.abspath(os.path.dirname(__file__))
+#        path += os.sep + "custom_reports" + os.sep + name
+#
+#        with open(path, "wb+") as report_file:
+#            report_file.write(base64.decodestring(value))
+#
+#        path = "pentaho_reports" + os.sep + "custom_reports" + os.sep + name
+#        return path
 
 
 
