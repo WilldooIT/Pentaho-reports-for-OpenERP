@@ -25,5 +25,6 @@
 		<dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-scripting" rev="3.9.0-GA" conf="runtime -> default"/>
 		<dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-drill-down" rev="3.9.0-GA" conf="runtime -> default"/>
 		<dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-wizard-core" rev="3.9.0-GA" conf="runtime -> default"/>
+		<dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-legacy-charts" rev="3.9.0-GA" conf="runtime -> default"/>
 	</dependencies>
 </ivy-module>
