@@ -6,11 +6,13 @@ import base64
 from lxml import etree
 
 from datetime import datetime
+from datetime import date
 
 from osv import osv, fields
 
 from tools import config
-
+from tools import DEFAULT_SERVER_DATE_FORMAT
+from tools import DEFAULT_SERVER_DATETIME_FORMAT
 
 #---------------------------------------------------------------------------------------------------------------
 
@@ -51,12 +53,12 @@ PARAM_XXX_NUMBER_VALUE = 'param_%03i_number_value'
 PARAM_XXX_DATE_VALUE = 'param_%03i_date_value'
 PARAM_XXX_TIME_VALUE = 'param_%03i_time_value'
 
-PARAM_VALUES = {TYPE_STRING : {'value' : PARAM_XXX_STRING_VALUE, 'if_false' : ''},
-                TYPE_BOOLEAN : {'value' : PARAM_XXX_BOOLEAN_VALUE, 'if_false' : False},
-                TYPE_INTEGER : {'value' : PARAM_XXX_INTEGER_VALUE, 'if_false' : 0},
-                TYPE_NUMBER : {'value' : PARAM_XXX_NUMBER_VALUE, 'if_false' : 0.0, 'convert' : lambda x: float(x)},
-                TYPE_DATE : {'value' : PARAM_XXX_DATE_VALUE, 'if_false' : '', 'convert' : lambda x: datetime.strptime(x, '%Y-%m-%d'), 'conv_default' : lambda x: datetime.strptime(x.value, '%Y%m%dT%H:%M:%S').strftime('%Y-%m-%d')},
-                TYPE_TIME : {'value' : PARAM_XXX_TIME_VALUE, 'if_false' : '', 'convert' : lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M:%S'), 'conv_default' : lambda x: datetime.strptime(x.value, '%Y%m%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')},
+PARAM_VALUES = {TYPE_STRING : {'value' : PARAM_XXX_STRING_VALUE, 'if_false' : '', 'py_types': (str, unicode)},
+                TYPE_BOOLEAN : {'value' : PARAM_XXX_BOOLEAN_VALUE, 'if_false' : False, 'py_types': (bool,)},
+                TYPE_INTEGER : {'value' : PARAM_XXX_INTEGER_VALUE, 'if_false' : 0, 'py_types': (int, long)},
+                TYPE_NUMBER : {'value' : PARAM_XXX_NUMBER_VALUE, 'if_false' : 0.0, 'py_types': (float,), 'convert' : lambda x: float(x)},
+                TYPE_DATE : {'value' : PARAM_XXX_DATE_VALUE, 'if_false' : '', 'py_types': (str,unicode), 'convert' : lambda x: datetime.strptime(x, '%Y-%m-%d'), 'conv_default' : lambda x: datetime.strptime(x.value, '%Y%m%dT%H:%M:%S').strftime('%Y-%m-%d')},
+                TYPE_TIME : {'value' : PARAM_XXX_TIME_VALUE, 'if_false' : '', 'py_types': (str,unicode), 'convert' : lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M:%S'), 'conv_default' : lambda x: datetime.strptime(x.value, '%Y%m%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')},
                 }
 
 XML_LABEL = '__option_label__'
