@@ -15,12 +15,15 @@ import netsvc
 import pooler
 import report
 from osv import osv, fields
+from tools.translate import _
 
 from datetime import datetime
 
 from .wizard.report_prompt import JAVA_MAPPING, PARAM_VALUES
 
 from tools import config
+
+SERVICE_NAME_PREFIX = 'report.'
 
 
 class Report(object):
@@ -35,23 +38,39 @@ class Report(object):
         self.prpt_content = None
         self.output_format = "pdf"
 
-    def execute(self):
+
+    def setup_report(self):
         ids = self.pool.get("ir.actions.report.xml").search(self.cr, self.uid, [("report_name", "=", self.name[7:]), ("is_pentaho_report", "=", True)], context = self.context)
+        if not ids:
+            raise osv.except_osv(_('Error'), _("Report service name '%s' is not a Pentaho report.") % self.name[7:])
         data = self.pool.get("ir.actions.report.xml").read(self.cr, self.uid, ids[0], ["pentaho_report_output_type", "pentaho_file"])
         self.output_format = data["pentaho_report_output_type"] or "pdf"
         self.prpt_content = base64.decodestring(data["pentaho_file"])
 
+
+    def execute(self):
+        self.setup_report()
         return (self.execute_report(), self.output_format)
+
 
     def get_addons_path(self):
         return os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
 
-    def execute_report(self):
-        user_model = self.pool.get("res.users")
-        config_obj = self.pool.get('ir.config_parameter')
-        current_user = user_model.browse(self.cr, self.uid, self.uid)
 
-        proxy = xmlrpclib.ServerProxy(config_obj.get_param(self.cr, self.uid, 'pentaho.server.url', default='http://localhost:8090'))
+    def get_proxy_args(self):
+        """Return the arguments needed by Pentaho server proxy.
+        
+        @return: Tuple with:
+            [0]: Has the url for the Pentaho server.
+            [1]: Has dict with basic arguments to pass to Pentaho server. This
+                 includes the connection settings and report definition but does
+                 not include any report parameter values.
+        """
+        current_user = self.pool.get("res.users").browse(self.cr, self.uid, self.uid)
+        config_obj = self.pool.get('ir.config_parameter')
+
+        proxy_url = config_obj.get_param(self.cr, self.uid, 'pentaho.server.url', default='http://localhost:8090')
+        
         proxy_argument = {
                           "prpt_file_content": xmlrpclib.Binary(self.prpt_content),
                           "output_type": self.output_format,
@@ -77,12 +96,29 @@ class Report(object):
                                                                         'password': postgresconfig_password,
                                                                         }})
 
+        return proxy_url, proxy_argument
+
+
+    def fetch_report_parameters(self):
+        """Return the parameters object for this report.
+        
+        Returns the parameters object as returned by the Pentaho
+        server.
+        """
+        self.setup_report()
+        
+        proxy_url, proxy_argument = self.get_proxy_args()
+        proxy = xmlrpclib.ServerProxy(proxy_url)
+        return proxy.report.getParameterInfo(proxy_argument)
+
+
+    def execute_report(self):
+        proxy_url, proxy_argument = self.get_proxy_args()
+        proxy = xmlrpclib.ServerProxy(proxy_url)
         proxy_parameter_info = proxy.report.getParameterInfo(proxy_argument)
 
         if self.data and self.data.get('variables', False):
-
             proxy_argument['report_parameters'].update(self.data['variables'])
-
             for parameter in proxy_parameter_info:
                 if parameter['name'] in proxy_argument['report_parameters'].keys():
                     if PARAM_VALUES[JAVA_MAPPING[parameter['value_type']](parameter['attributes'].get('data-format', False))].get('convert',False):
@@ -92,9 +128,13 @@ class Report(object):
         if self.data and self.data.get('output_type', False):
             proxy_argument['output_type']=self.data['output_type']
 
+
         rendered_report = proxy.report.execute(proxy_argument).data
+        if len(rendered_report) == 0:
+            raise osv.except_osv(_('Error'), _("Pentaho returned no data for the report '%s'. Check report definition and parameters.") % self.name[7:])
 
         return rendered_report
+
 
 class PentahoReportOpenERPInterface(report.interface.report_int):
     def __init__(self, name):
@@ -105,13 +145,15 @@ class PentahoReportOpenERPInterface(report.interface.report_int):
 
     def create(self, cr, uid, ids, data, context):
         name = self.name
-
         report_instance = Report(name, cr, uid, ids, data, context)
-
         return report_instance.execute()
 
+
 def register_pentaho_report(report_name):
-    name = "report.%s" % report_name
+    if not report_name.startswith(SERVICE_NAME_PREFIX):
+        name = "%s%s" % (SERVICE_NAME_PREFIX, report_name)
+    else:
+        name = report_name
 
     if name in netsvc.Service._services:
         if isinstance(netsvc.Service._services[name], PentahoReportOpenERPInterface):
@@ -119,6 +161,23 @@ def register_pentaho_report(report_name):
         del netsvc.Service._services[name]
     
     PentahoReportOpenERPInterface(name)
+
+
+def fetch_report_parameters(cr, uid, report_name, context=None):
+    """Return the parameters object for this report.
+    
+    Returns the parameters object as returned by the Pentaho
+    server.
+    
+    @param report_name: The service name for the report.
+    """
+    if not report_name.startswith(SERVICE_NAME_PREFIX):
+        name = "%s%s" % (SERVICE_NAME_PREFIX, report_name)
+    else:
+        name = report_name
+
+    return Report(name, cr, uid, [1], {}, context).fetch_report_parameters()
+
 
 #Following OpenERP's (messed up) naming convention
 class ir_actions_report_xml(osv.osv):

@@ -1,10 +1,13 @@
 import os
 import base64
 import unicodedata
+from tools.translate import _
 
 from osv import osv, fields
 
 import core
+
+from .wizard.report_prompt import JAVA_MAPPING, PARAM_VALUES
 
 from tools import config
 ADDONS_PATHS = config['addons_path'].split(",")
@@ -259,5 +262,100 @@ class report_xml(osv.osv):
             data = base64.encodestring(report_file.read())
 
         return data
+
+
+    def pentaho_validate_params(self, cr, uid, report, param_vals, context=None):
+        """Validate a list of passed parameters against the defined params for
+        a Pentaho report. 
+
+        Raises an exception if any of the params are invalid.
+
+        @param report: Browse object on the ir.actions.report.xml record for the report.
+        @param param_vals: Dict with parameter values to pass to the report. These are python 
+            data types prior to conversion for passing to the Pentaho server.
+        """
+        param_defs = core.fetch_report_parameters(cr, uid, report.report_name, context=context)
+
+        val_names = param_vals.keys()
+        for pdef in param_defs:
+            pname = pdef.get('name', '')
+            if not pname:
+                continue
+
+            if pname in val_names:
+                val_names.remove(pname)
+            else:
+                if pdef.get('is_mandatory', False):
+                    raise osv.except_osv(_('Error'), _("Report '%s'. No value passed for mandatory report parameter '%s'.") % (report.report_name, pname))
+                continue
+
+            # Make sure data types match
+            java_type = pdef.get('value_type', False)
+            if (not java_type) or (java_type not in JAVA_MAPPING):
+                raise osv.except_osv(_('Error'), _("Report '%s', parameter '%s'. Type '%s' not supported.") % (report.report_name, pname, java_type))
+                
+            local_type = JAVA_MAPPING[java_type](pdef.get('attributes', {}).get('data-format', False))
+
+            param_val = param_vals[pname]
+
+            if not local_type in PARAM_VALUES:
+                raise osv.except_osv(_('Error'), _("Report '%s', parameter '%s'. Local type '%s' not supported.") % (report.report_name, pname, local_type))
+            if not isinstance(param_val, PARAM_VALUES[local_type]['py_types']):
+                raise osv.except_osv(_('Error'), _("Report '%s', parameter '%s'. Passed value is '%s' but must be one of '%s'.") % (report.report_name, pname, param_val.__class__.__name__, PARAM_VALUES[local_type]['py_types']))
+
+            converter = PARAM_VALUES[local_type].get('convert')
+            if converter:
+                try:
+                    converter(param_val)
+                except Exception, e:
+                    raise osv.except_osv(_('Error'), _("Report '%s', parameter '%s'. Passed value '%s' failed data conversion to type '%s'.\n%s") % (report.report_name, pname, param_val, local_type, str(e)))
+
+
+        # Make sure all passed values have a param to go to on the report.
+        # This wouldn't raise an error on the Pentaho side but flagging it here
+        # might save a lot of development time if a param is misnamed. 
+        if val_names:
+            raise osv.except_osv(_('Error'), _("Report '%s'. Parameter values not required by report: %s") % (report.report_name, val_names))
+
+
+    def pentaho_report_action(self, cr, uid, service_name, active_ids=None, param_values=None, context=None):
+        """Return the action definition to run a Pentaho report.
+        
+        The action definition is returned as a dict which can be returned
+        to the OpenERP client from a wizard button or server action to
+        cause the client to request the report.
+        
+        @param service_name: The report service name (without leading 'report.').
+        @param active_ids: List of ids on the report model to pass.
+        @param param_values: Dict with parameter values for the report.
+            The keys are the parameter names as defined by the Pentaho report.
+        """
+        report = False
+        report_ids = self.search(cr, uid, [('report_name', '=', service_name)], context=context)
+        if report_ids:
+            report = self.browse(cr, uid, report_ids[0], context=context)
+        if (not report) or (not report.is_pentaho_report):
+            raise osv.except_osv(_('Error'), _("Report '%s' is not a Pentaho report.") % service_name)
+
+        if (not active_ids) and (not param_values):
+            raise osv.except_osv(_('Error'), _("Report '%s' must be passed active ids or parameter values.") % service_name)
+
+        datas = {'model': report.model,
+                 'output_type': report.report_type,
+                }
+
+        if active_ids:
+            datas['ids'] = active_ids
+
+        if param_values:
+            self.pentaho_validate_params(cr, uid, report, param_values, context=context)
+            datas['variables'] = param_values
+
+        return {
+            'type': 'ir.actions.report.xml',
+            'report_name': report.report_name,
+            'datas': datas,
+        }
+
 
 report_xml()
