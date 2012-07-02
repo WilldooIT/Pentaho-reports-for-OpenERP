@@ -161,7 +161,7 @@ public class PentahoRenderer {
 		new_factory.setGlobalScript(factory.getGlobalScript());
 
 		for(String one_query_name : factory.getQueryNames())
-			new_factory.setQuery(one_query_name, factory.getQuery(one_query_name));
+			new_factory.setQuery(one_query_name, factory.getQuery(one_query_name), factory.getScriptingLanguage(one_query_name), factory.getScript(one_query_name));
 
 		return new_factory;
 	}
