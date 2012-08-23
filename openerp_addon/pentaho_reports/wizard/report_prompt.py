@@ -61,8 +61,6 @@ PARAM_VALUES = {TYPE_STRING : {'value' : PARAM_XXX_STRING_VALUE, 'if_false' : ''
                 TYPE_TIME : {'value' : PARAM_XXX_TIME_VALUE, 'if_false' : '', 'py_types': (str,unicode), 'convert' : lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M:%S'), 'conv_default' : lambda x: datetime.strptime(x.value, '%Y%m%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')},
                 }
 
-XML_LABEL = '__option_label__'
-XML_FOCUS_VAL = '__focus_val__'
 
 #---------------------------------------------------------------------------------------------------------------
 
@@ -88,11 +86,11 @@ class report_prompt_class(osv.osv_memory):
         super(report_prompt_class, self).__init__(pool, cr)
 
 #        selections = [map(lambda x: (x(False), ''), set(JAVA_MAPPING.values()))]
-        longest = reduce(lambda l, x: l and max(l,len(x(False))) or len(x(False)), JAVA_MAPPING.values(), 0)
+        self.longest = reduce(lambda l, x: l and max(l,len(x(False))) or len(x(False)), JAVA_MAPPING.values(), 0)
 
         for counter in range(0, MAX_PARAMS):
             field_name = PARAM_XXX_TYPE % counter
-            self._columns[field_name] = fields.char('Parameter Type', size=longest)
+            self._columns[field_name] = fields.char('Parameter Type', size=self.longest)
 
             field_name = PARAM_XXX_REQ % counter
             self._columns[field_name] = fields.boolean('Parameter Required')
@@ -258,58 +256,63 @@ class report_prompt_class(osv.osv_memory):
         return defaults
 
 
-
-
-    def _process_arch_repeaters(self, arch):
-#        any group with @attrs='repeater' will be repeated for every valid option
-        doc = etree.fromstring(arch)
-
-        parent_map = dict((c, p) for p in doc.getiterator() for c in p)
-
-        repeat_elements = doc.xpath("//group[@string='repeater']")
-        for one_element in repeat_elements:
-#            find the group, and strip the start and end enclosing group statements...
-            base_xml = etree.tostring(one_element).strip()[25:-8]
-#            add one copy of the xml for every parameter, replacing the label, and all other variables
-            new_xml = ''
-            for index in range(0, len(self.parameters)):
-                new_xml += base_xml.replace(XML_LABEL, '%s :' % self.parameters[index]['label']).replace('000', '%03i' % index).replace(XML_FOCUS_VAL, '1' if index==0 else '0')
-
-#            encase in a new wrapper, and add the children back
-            new_element = etree.fromstring('<dummyrepeater>' + new_xml + '</dummyrepeater>')
-            new_element_children = new_element.getchildren()
-            for child in reversed(new_element_children):
-                one_element.addnext(child)
-
-#        remove the unneeded groups
-        repeat_elements = doc.xpath("//group[@string='repeater']")
-        for one_element in repeat_elements:
-#            doc.remove(one_element)
-            parent_map[one_element].remove(one_element)
-
-        return etree.tostring(doc)
-
-
-
-
     def fields_view_get(self, cr, uid, view_id=None, view_type='form', context=None, toolbar=False, submenu=False):
+
+        def add_field(result, field_name):
+            result['fields'][field_name] = {'selectable' : self._columns[field_name].selectable,
+                                            'type' : self._columns[field_name]._type,
+                                            'size' : self._columns[field_name].size,
+                                            'string' : self._columns[field_name].string,
+                                            'views' : {}
+                                            }
+
+
+        def add_subelement(element, type, **kwargs):
+            sf = etree.SubElement(element, type)
+            for k, v in kwargs.iteritems():
+                sf.set(k, v)
+
 
         self._setup_parameters(cr, uid, context=context)
 
         result = super(report_prompt_class, self).fields_view_get(cr, uid, view_id=view_id, view_type=view_type, context=context, toolbar=toolbar, submenu=submenu)
 
-#        param_000_.... should already be defined on the form, and requested - need to ensure it is duplicated for every valid parameter
-        for index in range (1, len(self.parameters)):
-            result['fields'][PARAM_XXX_TYPE % index] = dict(result['fields'][PARAM_XXX_TYPE % 0])
-            result['fields'][PARAM_XXX_REQ % index] = dict(result['fields'][PARAM_XXX_REQ % 0])
+        doc = etree.fromstring(result['arch'])
 
-            for param_value in PARAM_VALUES:
-                result['fields'][PARAM_VALUES[param_value]['value'] % index] = dict(result['fields'][PARAM_VALUES[param_value]['value'] % 0])
+        selection_groups = False
+        selection_groups = doc.findall('group[@string="selections"]')
 
-#         default_focus='1'
+        if len(self.parameters) > 0:
+            for sel_group in selection_groups:
+                add_subelement(sel_group, 'separator',
+                               colspan = sel_group.get('col','4'),
+                               string = 'Selections',
+                               )
 
+        for index in range (0, len(self.parameters)):
+            add_field(result, PARAM_XXX_TYPE % index)
+            add_field(result, PARAM_XXX_REQ % index)
+            add_field(result, PARAM_VALUES[self.parameters[index]['type']]['value'] % index)
 
-        result['arch'] = self._process_arch_repeaters(result['arch'])
+            for sel_group in selection_groups:
+                add_subelement(sel_group, 'label',
+                               string = '%s :' % self.parameters[index]['label'],
+                               align = '1.0',
+                               colspan = '2',
+                               )
+                add_subelement(sel_group, 'field',
+                               name = PARAM_VALUES[self.parameters[index]['type']]['value'] % index,
+                               nolabel = '1',
+                               colspan = '2',
+                               default_focus = '1' if index==0 else '0',
+                               required = '[("%s", "=", True)]' % (PARAM_XXX_REQ % index),
+                               )
+                add_subelement(sel_group, 'newline')
+
+        for sel_group in selection_groups:
+            sel_group.set('string', '')
+
+        result['arch'] = etree.tostring(doc)
 
         return result
 
