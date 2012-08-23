@@ -10,47 +10,9 @@
 					<field name='report_name'/>
 					<newline/>
 					<field name="output_type" colspan='2'/>
-					<separator colspan = "4" string='Selections'/>
 
-					<group colspan="4" col="20">
-						<group string="repeater">
-							<field name='param_000_type' invisible='1'/>
-							<field name='param_000_req' invisible='1'/>
-							<label string='__option_label__' align='1.0' colspan='1'/>
-							<field name='param_000_string_value' nolabel='1' colspan='1' default_focus='__focus_val__'
-									attrs="{'invisible' : [('param_000_type', '!=', 'str')],
-											'required' : [('param_000_type', '=', 'str'), ('param_000_req', '=', True)]
-									}"
-							/>
-							<field name='param_000_boolean_value' nolabel='1' colspan='1' default_focus='__focus_val__'
-									attrs="{'invisible' : [('param_000_type', '!=', 'bool')],
-											'required' : [('param_000_type', '=', 'bool'), ('param_000_req', '=', True)]
-									}"
-							/>
-							<field name='param_000_integer_value' nolabel='1' colspan='1' default_focus='__focus_val__'
-									attrs="{'invisible' : [('param_000_type', '!=', 'int')],
-											'required' : [('param_000_type', '=', 'int'), ('param_000_req', '=', True)]
-									}"
-							/>
-							<field name='param_000_number_value' nolabel='1' colspan='1' default_focus='__focus_val__'
-									attrs="{'invisible' : [('param_000_type', '!=', 'num')],
-											'required' : [('param_000_type', '=', 'num'), ('param_000_req', '=', True)]
-									}"
-							/>
-							<field name='param_000_date_value' nolabel='1' colspan='1' default_focus='__focus_val__'
-									attrs="{'invisible' : [('param_000_type', '!=', 'date')],
-											'required' : [('param_000_type', '=', 'date'), ('param_000_req', '=', True)]
-									}"
-							/>
-							<field name='param_000_time_value' nolabel='1' colspan='1' default_focus='__focus_val__'
-									attrs="{'invisible' : [('param_000_type', '!=', 'dtm')],
-											'required' : [('param_000_type', '=', 'dtm'), ('param_000_req', '=', True)]
-									}"
-							/>
-							<label string='' colspan='2'/>
-							<newline/>
-						</group>
-					</group>
+					<!-- Place holder group for where selections will be inserted -->
+					<group colspan="4" col="10" string='selections'/>
 
 					<separator colspan = "4"/>
 					<group colspan="4" col="4">

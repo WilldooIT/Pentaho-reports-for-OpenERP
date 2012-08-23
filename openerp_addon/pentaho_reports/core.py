@@ -1,6 +1,7 @@
 # Todo:
-#    restructure xml parsing of repeating section
 #    selection pulldowns
+#    non-prompted parameters
+#
 #    multiple prpt files for one action - allows for alternate formats.
 
 
