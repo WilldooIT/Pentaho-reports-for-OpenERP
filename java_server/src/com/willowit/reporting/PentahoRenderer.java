@@ -29,8 +29,11 @@ import org.pentaho.reporting.engine.classic.core.modules.output.pageable.plainte
 import org.pentaho.reporting.engine.classic.core.modules.misc.datafactory.sql.SQLReportDataFactory;
 import org.pentaho.reporting.engine.classic.core.modules.misc.datafactory.sql.DriverConnectionProvider;
 
+import org.pentaho.reporting.engine.classic.core.parameters.ListParameter;
 import org.pentaho.reporting.engine.classic.core.parameters.ReportParameterDefinition;
+import org.pentaho.reporting.engine.classic.core.parameters.ParameterAttributeNames;
 import org.pentaho.reporting.engine.classic.core.parameters.ParameterDefinitionEntry;
+import org.pentaho.reporting.engine.classic.core.parameters.ParameterValues;
 import org.pentaho.reporting.engine.classic.core.parameters.DefaultParameterContext;
 import org.pentaho.reporting.engine.classic.core.parameters.ReportParameterValidator;
 import org.pentaho.reporting.engine.classic.core.parameters.ValidationResult;
@@ -100,7 +103,7 @@ public class PentahoRenderer {
 
 		//Fix up filters for the main query on the main report
 		//Skip subreports because it should join up with specific filters to the main report query
-		if(parameters.get("ids") != null &&  section instanceof MasterReport && factory.getQueryName().equals(selected_query_name)) {
+		if(parameters != null && parameters.get("ids") != null && section instanceof MasterReport && factory.getQueryName().equals(selected_query_name)) {
 			String model_path = "[" + factory.getConfig().getModelName() + "]";
 			boolean has_filters = false;
 			ArrayList<OpenERPFilterInfo> filters = factory.getConfig().getFilters();
@@ -269,15 +272,28 @@ public class PentahoRenderer {
 	public ArrayList<HashMap> getParameterInfo(Hashtable args) throws Exception {
 		ArrayList<HashMap> ret_val = new ArrayList<HashMap>();
 
+		//FIXME: redundant code
+		HashMap<String, Object> parameters = new HashMap<String, Object>();
+		HashMap<String, HashMap> connection_settings = new HashMap<String, HashMap>();
+		HashMap<String, String> openerp_settings = new HashMap<String, String>();
+		HashMap<String, String> postgres_settings = new HashMap<String, String>();
+
 		try {
 			byte[] prpt_file_content = (byte[]) args.get("prpt_file_content");
 
 			if(prpt_file_content == null)
 				throw new Exception("No report content sent!");		
 
-			//Load the report (we may be overriding Pentaho's caching mechanisms by doing this
+			//FIXME: redundant code
+			connection_settings = (HashMap) args.get("connection_settings");
+			parameters = (HashMap) args.get("report_parameters");
+			openerp_settings = connection_settings.get("openerp");
+			postgres_settings = connection_settings.get("postgres");
+
 			Resource res = manager.createDirectly(prpt_file_content, MasterReport.class);
 			MasterReport report = (MasterReport) res.getResource();
+
+			fixConfiguration(report, openerp_settings, postgres_settings, parameters);
 
 			//New stuff
 			ReportParameterDefinition param_def = report.getParameterDefinition();
@@ -285,7 +301,7 @@ public class PentahoRenderer {
 			DefaultParameterContext param_context = new DefaultParameterContext(report);
 			for(ParameterDefinitionEntry param_def_entry : param_def_entries) {
 				HashMap<String, Object> one_param_info = new HashMap<String, Object>();
-				HashMap<String, Object> zero_namespace_attributes = new HashMap<String, Object>();
+				HashMap<String, Object> core_namespace_attributes = new HashMap<String, Object>();
 
 				one_param_info.put("name", param_def_entry.getName());
 				one_param_info.put("value_type", param_def_entry.getValueType().getName());
@@ -310,17 +326,31 @@ public class PentahoRenderer {
 
 					one_param_info.put("default_value", default_value);
 				}
-				one_param_info.put("attributes", zero_namespace_attributes);
+				one_param_info.put("attributes", core_namespace_attributes);
 
-				String[] param_attr_nss = param_def_entry.getParameterAttributeNamespaces();
-				for(String param_attr_ns : param_attr_nss)
-					logger.debug("Attribute namespace: " + param_attr_ns);
-
-				String[] param_attr_names = param_def_entry.getParameterAttributeNames(param_attr_nss[0]);
+				String[] param_attr_names = param_def_entry.getParameterAttributeNames(ParameterAttributeNames.Core.NAMESPACE);
 				for(String param_attr_name : param_attr_names) {
-					String param_attr = param_def_entry.getParameterAttribute(param_attr_nss[0], param_attr_name, param_context);
-					zero_namespace_attributes.put(param_attr_name, param_attr);
+					String param_attr = param_def_entry.getParameterAttribute(ParameterAttributeNames.Core.NAMESPACE, param_attr_name, param_context);
+					core_namespace_attributes.put(param_attr_name, param_attr);
 					logger.debug("Attribute: " + param_attr_name + " = " + param_attr);
+				}
+
+				if(param_def_entry instanceof ListParameter) {
+					ParameterValues param_vals = ((ListParameter) param_def_entry).getValues(param_context);
+					int num_options = param_vals.getRowCount();
+					ArrayList selection_options = new ArrayList(num_options);
+
+					for(int i = 0; i < num_options; i++) {
+						ArrayList one_option = new ArrayList();
+
+						one_option.add(param_vals.getKeyValue(i));
+						one_option.add(param_vals.getTextValue(i));
+
+						selection_options.add(one_option);
+						logger.debug("Selection option: {" + param_vals.getKeyValue(i) + ": " + param_vals.getTextValue(i) + "}");
+					}
+
+					one_param_info.put("selection_options", selection_options);
 				}
 
 				ret_val.add(one_param_info);
