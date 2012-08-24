@@ -43,8 +43,6 @@ JAVA_MAPPING = {'java.lang.String' : lambda x: TYPE_STRING,
                 }
 
 MAX_PARAMS = 50  # Do not make this bigger than 999
-PARAM_XXX_TYPE = 'param_%03i_type'
-PARAM_XXX_REQ = 'param_%03i_req'
 
 PARAM_XXX_STRING_VALUE = 'param_%03i_string_value'
 PARAM_XXX_BOOLEAN_VALUE = 'param_%03i_boolean_value'
@@ -89,12 +87,6 @@ class report_prompt_class(osv.osv_memory):
         self.longest = reduce(lambda l, x: l and max(l,len(x(False))) or len(x(False)), JAVA_MAPPING.values(), 0)
 
         for counter in range(0, MAX_PARAMS):
-            field_name = PARAM_XXX_TYPE % counter
-            self._columns[field_name] = fields.char('Parameter Type', size=self.longest)
-
-            field_name = PARAM_XXX_REQ % counter
-            self._columns[field_name] = fields.boolean('Parameter Required')
-
             field_name = PARAM_XXX_STRING_VALUE % counter
             self._columns[field_name] = fields.char('String Value', size=64)
 
@@ -135,7 +127,24 @@ class report_prompt_class(osv.osv_memory):
 
 
 
-    def _parse_one_report_parameter(self, parameter):
+    def _parse_one_report_parameter(self, parameter, context=None):
+
+        """
+        Hidden values should be set by default values or context.
+
+        Creates a dictionary:
+
+            'variable': variable_name,
+            'label': label,
+            'type': data type,
+
+        Optional:
+            'default': default value either from report or context
+            'mandatory': True if field is required
+            'selections' : [('val', 'name'), ('val', 'name')]
+            'hidden' : True for non-displayed parameters
+        """
+
         if not parameter.get('value_type','') in JAVA_MAPPING:
             raise osv.except_osv(('Error'), ("Unhandled parameter type (%s)." % parameter.get('value_type','')))
 
@@ -146,7 +155,10 @@ class report_prompt_class(osv.osv_memory):
 
         result['type'] = JAVA_MAPPING[parameter['value_type']](parameter['attributes'].get('data-format', False))
 
-        if parameter.get('default_value',False):
+        if parameter['name'] in context.get('pentaho_defaults', {}).keys():
+            result['default'] = context['pentaho_defaults'][parameter['name']]
+
+        elif parameter.get('default_value',False):
             if PARAM_VALUES[result['type']].get('conv_default', False):
                 result['default'] = PARAM_VALUES[result['type']]['conv_default'](parameter['default_value'])
             else:
@@ -160,21 +172,28 @@ class report_prompt_class(osv.osv_memory):
         if parameter.get('is_mandatory',False):
             result['mandatory'] = parameter['is_mandatory']
 
+        if result['type'] in [TYPE_DATE, TYPE_TIME]:
+            result['mandatory'] = True
+
+        if parameter['attributes'].get('parameter-render-type',False) in ['dropdown', 'list']:
+            result['selections'] = parameter.get('selections', [])
+
+        if parameter['attributes'].get('hidden','false') == 'true':
+            result['hidden'] = True
+
         return result
 
 
 
 
-    def _parse_report_parameters(self, report_parameters):
+    def _parse_report_parameters(self, report_parameters, context=None):
 
         result = []
         for parameter in report_parameters:
             if not parameter.get('attributes',{}):
                 raise osv.except_osv(('Error'), ("Parameter received with no attributes."))
 
-            # skip hidden parameters ({'attributes': {'hidden': 'true'}})
-            if parameter['attributes'].get('hidden','false') != 'true':
-                result.append(self._parse_one_report_parameter(parameter))
+            result.append(self._parse_one_report_parameter(parameter, context=context))
 
         if len(result) > MAX_PARAMS + 1:
             raise osv.except_osv(('Error'), ("Too many report parameters (%d)." % len(self.parameters) + 1))
@@ -229,7 +248,7 @@ class report_prompt_class(osv.osv_memory):
 
             report_parameters = proxy.report.getParameterInfo(proxy_argument)
 
-            self.parameters = self._parse_report_parameters(report_parameters)
+            self.parameters = self._parse_report_parameters(report_parameters, context=context)
 
             self.paramfile = {'report_id': report_ids[0], 'prpt_content': prpt_content}
 
@@ -247,9 +266,6 @@ class report_prompt_class(osv.osv_memory):
                          })
 
         for index in range (0, len(self.parameters)):
-            defaults[PARAM_XXX_TYPE % index] = self.parameters[index]['type']
-            defaults[PARAM_XXX_REQ % index] = self.parameters[index]['type'] in [TYPE_DATE, TYPE_TIME] or self.parameters[index].get('mandatory', False)
-
             if self.parameters[index].get('default', False):
                 defaults[PARAM_VALUES[self.parameters[index]['type']]['value'] % index] = self.parameters[index]['default']
 
@@ -258,13 +274,18 @@ class report_prompt_class(osv.osv_memory):
 
     def fields_view_get(self, cr, uid, view_id=None, view_type='form', context=None, toolbar=False, submenu=False):
 
-        def add_field(result, field_name):
+        def add_field(result, field_name, selections=False, required=False):
             result['fields'][field_name] = {'selectable' : self._columns[field_name].selectable,
                                             'type' : self._columns[field_name]._type,
                                             'size' : self._columns[field_name].size,
                                             'string' : self._columns[field_name].string,
                                             'views' : {}
                                             }
+            if required:
+                result['fields'][field_name]['required'] = required
+            if type(selections) == list:
+                result['fields'][field_name]['type'] = 'selection'
+                result['fields'][field_name]['selection'] = selections
 
 
         def add_subelement(element, type, **kwargs):
@@ -282,32 +303,39 @@ class report_prompt_class(osv.osv_memory):
         selection_groups = False
         selection_groups = doc.findall('group[@string="selections"]')
 
-        if len(self.parameters) > 0:
-            for sel_group in selection_groups:
-                add_subelement(sel_group, 'separator',
-                               colspan = sel_group.get('col','4'),
-                               string = 'Selections',
-                               )
+        first_parameter = True
 
         for index in range (0, len(self.parameters)):
-            add_field(result, PARAM_XXX_TYPE % index)
-            add_field(result, PARAM_XXX_REQ % index)
-            add_field(result, PARAM_VALUES[self.parameters[index]['type']]['value'] % index)
+            add_field(result, PARAM_VALUES[self.parameters[index]['type']]['value'] % index,
+                      selections = self.parameters[index].get('selections',False),
+                      required = self.parameters[index].get('mandatory', False),
+                      )
 
-            for sel_group in selection_groups:
-                add_subelement(sel_group, 'label',
-                               string = '%s :' % self.parameters[index]['label'],
-                               align = '1.0',
-                               colspan = '2',
-                               )
-                add_subelement(sel_group, 'field',
-                               name = PARAM_VALUES[self.parameters[index]['type']]['value'] % index,
-                               nolabel = '1',
-                               colspan = '2',
-                               default_focus = '1' if index==0 else '0',
-                               required = '[("%s", "=", True)]' % (PARAM_XXX_REQ % index),
-                               )
-                add_subelement(sel_group, 'newline')
+            if not self.parameters[index].get('hidden', False):
+                for sel_group in selection_groups:
+                    if first_parameter:
+                        add_subelement(sel_group, 'separator',
+                                       colspan = sel_group.get('col','4'),
+                                       string = 'Selections',
+                                       )
+
+                    add_subelement(sel_group, 'label',
+                                   string = '%s :' % self.parameters[index]['label'],
+                                   align = '1.0',
+                                   colspan = '2',
+                                   )
+
+                    add_subelement(sel_group, 'field',
+                                   name = PARAM_VALUES[self.parameters[index]['type']]['value'] % index,
+                                   nolabel = '1',
+                                   colspan = '2',
+                                   default_focus = '1' if first_parameter else '0',
+                                   modifiers='{"required": %s}' % 'true' if self.parameters[index].get('mandatory', False) else 'false',
+                                   )
+
+                    add_subelement(sel_group, 'newline')
+
+                    first_parameter = False
 
         for sel_group in selection_groups:
             sel_group.set('string', '')

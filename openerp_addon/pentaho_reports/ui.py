@@ -97,14 +97,17 @@ class report_xml(osv.osv):
             else:
                 action = action_report.created_menu_id.action
                 if action and action._model._name == 'ir.actions.act_window':
+                    existing_context = eval(self.pool.get('ir.actions.act_window').browse(cr, uid, action.id, context=context).context)
+                    new_context = existing_context if type(existing_context) == dict else {}
+                    new_context['service_name'] = action_report.report_name or ''
                     self.pool.get('ir.actions.act_window').write(cr, uid, [action.id], {'name' : action_report.name or 'Pentaho Report',
-                                                                                        'context' : "{'service_name' : '%s'}" % action_report.report_name or ''
+                                                                                        'context' : str(new_context),
                                                                                         }, context=context)
 
                 self.pool.get('ir.ui.menu').write(cr, uid, [action_report.created_menu_id.id], {'name' : action_report.name or 'Pentaho Report',
-                                                                                             'parent_id' : action_report.linked_menu_id.id,
-                                                                                             'groups_id' : groups_id,
-                                                                                             }, context=context)
+                                                                                                'parent_id' : action_report.linked_menu_id.id,
+                                                                                                'groups_id' : groups_id,
+                                                                                                }, context=context)
                 result = action_report.created_menu_id.id
         else:
             result = 0
@@ -223,21 +226,6 @@ class report_xml(osv.osv):
         return True
 
 
-
-
-#    def save_content_to_file(self, name, value):
-#        path = os.path.abspath(os.path.dirname(__file__))
-#        path += os.sep + "custom_reports" + os.sep + name
-#
-#        with open(path, "wb+") as report_file:
-#            report_file.write(base64.decodestring(value))
-#
-#        path = "pentaho_reports" + os.sep + "custom_reports" + os.sep + name
-#        return path
-
-
-
-
     def read_content_from_file(self, name):
 
         path_found = False
@@ -252,9 +240,6 @@ class report_xml(osv.osv):
 
         if not path_found:
             raise osv.except_osv('Error','Could not locate path for file %s' % name)
-
-#        path = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
-#        path += os.sep + name
 
         path = addons_path + os.sep + name
 
