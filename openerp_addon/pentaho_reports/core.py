@@ -1,7 +1,4 @@
 # Todo:
-#    selection pulldowns
-#    non-prompted parameters
-#
 #    multiple prpt files for one action - allows for alternate formats.
 
 
@@ -128,7 +125,6 @@ class Report(object):
 
         if self.data and self.data.get('output_type', False):
             proxy_argument['output_type']=self.data['output_type']
-
 
         rendered_report = proxy.report.execute(proxy_argument).data
         if len(rendered_report) == 0:
