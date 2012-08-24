@@ -2,7 +2,7 @@
 
 This project provides an addon for OpenERP that integrates it with
 the Pentaho reporting system. End users of OpenERP can design 
-reports using the Pentaho report designer 3.9 (instructions on how
+reports using Pentaho report designer v3.9 (instructions on how
 to setup the designer: http://bit.ly/L4wPoC), and install/access
 them from inside the OpenERP interface.
 
@@ -13,8 +13,8 @@ Java servlet container (like Tomcat, Jetty, etc.)
 
 ## Building the Java component
 
-The included Ant build file contains the "war" target which
-performs all the necessary tasks to compile the web appliaction and
+The included Ant build file contains a "war" target which
+performs all the necessary tasks to compile the web application and
 create the pentaho-reports-for-openerp.war file. This requires that
 Apache Ant be installed, and also Apache Ivy as it is used to retrieve
 all the dependencies required to compile and run the application.
