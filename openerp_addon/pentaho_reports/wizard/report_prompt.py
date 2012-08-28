@@ -14,50 +14,8 @@ from tools import config
 from tools import DEFAULT_SERVER_DATE_FORMAT
 from tools import DEFAULT_SERVER_DATETIME_FORMAT
 
-#---------------------------------------------------------------------------------------------------------------
-
-TYPE_STRING = 'str'
-TYPE_BOOLEAN = 'bool'
-TYPE_INTEGER = 'int'
-TYPE_NUMBER = 'num'
-TYPE_DATE = 'date'
-TYPE_TIME = 'dtm'
-
-
-# define mappings as functions, which can be passed the data format to make them conditional...
-
-JAVA_MAPPING = {'java.lang.String' : lambda x: TYPE_STRING,
-                'java.lang.Boolean' : lambda x: TYPE_BOOLEAN,
-                'java.lang.Number' : lambda x: TYPE_NUMBER,
-                'java.util.Date' : lambda x: TYPE_DATE if x and not('H' in x) else TYPE_TIME,
-                'java.sql.Date' : lambda x: TYPE_DATE if x and not('H' in x) else TYPE_TIME,
-                'java.sql.Time' : lambda x: TYPE_TIME,
-                'java.sql.Timestamp' : lambda x: TYPE_TIME,
-                'java.lang.Double' : lambda x: TYPE_NUMBER,
-                'java.lang.Float' : lambda x: TYPE_NUMBER,
-                'java.lang.Integer' : lambda x: TYPE_INTEGER,
-                'java.lang.Long' : lambda x: TYPE_INTEGER,
-                'java.lang.Short' : lambda x: TYPE_INTEGER,
-                'java.math.BigInteger' : lambda x: TYPE_INTEGER,
-                'java.math.BigDecimal' : lambda x: TYPE_NUMBER,
-                }
-
-MAX_PARAMS = 50  # Do not make this bigger than 999
-
-PARAM_XXX_STRING_VALUE = 'param_%03i_string_value'
-PARAM_XXX_BOOLEAN_VALUE = 'param_%03i_boolean_value'
-PARAM_XXX_INTEGER_VALUE = 'param_%03i_integer_value'
-PARAM_XXX_NUMBER_VALUE = 'param_%03i_number_value'
-PARAM_XXX_DATE_VALUE = 'param_%03i_date_value'
-PARAM_XXX_TIME_VALUE = 'param_%03i_time_value'
-
-PARAM_VALUES = {TYPE_STRING : {'value' : PARAM_XXX_STRING_VALUE, 'if_false' : '', 'py_types': (str, unicode)},
-                TYPE_BOOLEAN : {'value' : PARAM_XXX_BOOLEAN_VALUE, 'if_false' : False, 'py_types': (bool,)},
-                TYPE_INTEGER : {'value' : PARAM_XXX_INTEGER_VALUE, 'if_false' : 0, 'py_types': (int, long)},
-                TYPE_NUMBER : {'value' : PARAM_XXX_NUMBER_VALUE, 'if_false' : 0.0, 'py_types': (float,), 'convert' : lambda x: float(x)},
-                TYPE_DATE : {'value' : PARAM_XXX_DATE_VALUE, 'if_false' : '', 'py_types': (str,unicode), 'convert' : lambda x: datetime.strptime(x, '%Y-%m-%d'), 'conv_default' : lambda x: datetime.strptime(x.value, '%Y%m%dT%H:%M:%S').strftime('%Y-%m-%d')},
-                TYPE_TIME : {'value' : PARAM_XXX_TIME_VALUE, 'if_false' : '', 'py_types': (str,unicode), 'convert' : lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M:%S'), 'conv_default' : lambda x: datetime.strptime(x.value, '%Y%m%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')},
-                }
+from ..java_oe import *
+from ..core import get_proxy_args
 
 
 #---------------------------------------------------------------------------------------------------------------
@@ -82,9 +40,6 @@ class report_prompt_class(osv.osv_memory):
         """
 
         super(report_prompt_class, self).__init__(pool, cr)
-
-#        selections = [map(lambda x: (x(False), ''), set(JAVA_MAPPING.values()))]
-        self.longest = reduce(lambda l, x: l and max(l,len(x(False))) or len(x(False)), JAVA_MAPPING.values(), 0)
 
         for counter in range(0, MAX_PARAMS):
             field_name = PARAM_XXX_STRING_VALUE % counter
@@ -141,11 +96,15 @@ class report_prompt_class(osv.osv_memory):
         Optional:
             'default': default value either from report or context
             'mandatory': True if field is required
-            'selections' : [('val', 'name'), ('val', 'name')]
+            'selection_options' : [('val', 'name'), ('val', 'name')]
+            'multi_select' : True if list of values allowed.  However, we can not prompt for this, so it is pretty much ignored...
             'hidden' : True for non-displayed parameters
         """
 
-        if not parameter.get('value_type','') in JAVA_MAPPING:
+        value_type = parameter.get('value_type','')
+        java_list, value_type = check_java_list(value_type)
+
+        if not value_type in JAVA_MAPPING:
             raise osv.except_osv(('Error'), ("Unhandled parameter type (%s)." % parameter.get('value_type','')))
 
         if not parameter.get('name', False):
@@ -153,16 +112,22 @@ class report_prompt_class(osv.osv_memory):
 
         result = {'variable' : parameter['name'], 'label' : parameter['attributes'].get('label','')}
 
-        result['type'] = JAVA_MAPPING[parameter['value_type']](parameter['attributes'].get('data-format', False))
+        result['type'] = JAVA_MAPPING[value_type](parameter['attributes'].get('data-format', False))
+        if java_list:
+            result['multi_select'] = True
 
         if parameter['name'] in context.get('pentaho_defaults', {}).keys():
             result['default'] = context['pentaho_defaults'][parameter['name']]
 
         elif parameter.get('default_value',False):
+            default_value = parameter['default_value']
+            if type(default_value) in (list, tuple):
+                default_value = default_value[0]
+
             if PARAM_VALUES[result['type']].get('conv_default', False):
-                result['default'] = PARAM_VALUES[result['type']]['conv_default'](parameter['default_value'])
+                result['default'] = PARAM_VALUES[result['type']]['conv_default'](default_value)
             else:
-                result['default'] = parameter['default_value']
+                result['default'] = default_value
 
         elif parameter['attributes'].get('default-value-formula',False):
             value = self._parse_one_report_parameter_default_formula(parameter['attributes']['default-value-formula'], result['type'])
@@ -175,8 +140,8 @@ class report_prompt_class(osv.osv_memory):
         if result['type'] in [TYPE_DATE, TYPE_TIME]:
             result['mandatory'] = True
 
-        if parameter['attributes'].get('parameter-render-type',False) in ['dropdown', 'list']:
-            result['selections'] = parameter.get('selections', [])
+        if parameter['attributes'].get('parameter-render-type',False) in ['dropdown', 'list', 'radio', 'checkbox', 'togglebutton']:
+            result['selection_options'] = parameter.get('selection_options', [])
 
         if parameter['attributes'].get('hidden','false') == 'true':
             result['hidden'] = True
@@ -219,38 +184,16 @@ class report_prompt_class(osv.osv_memory):
 
         prpt_content = base64.decodestring(report_record.pentaho_file)
 
-        if not self.paramfile or self.paramfile['report_id'] != report_ids[0] or self.paramfile['prpt_content'] != prpt_content:
+        if not self.paramfile or self.paramfile['report_id'] != report_ids[0] or self.paramfile['prpt_content'] != prpt_content or self.paramfile['context'] != context:
 
-            current_user = self.pool.get('res.users').browse(cr, uid, uid)
+            proxy_url, proxy_argument = get_proxy_args(cr, uid, prpt_content)
 
-            proxy = xmlrpclib.ServerProxy(config_obj.get_param(cr, uid, 'pentaho.server.url', default='http://localhost:8090'))
-            proxy_argument = {"prpt_file_content": xmlrpclib.Binary(prpt_content),
-                              "connection_settings" : {'openerp' : {"host": config["xmlrpc_interface"] or "localhost",
-                                                                    "port": str(config["xmlrpc_port"]), 
-                                                                    "db": cr.dbname,
-                                                                    "login": current_user.login,
-                                                                    "password": current_user.password,
-                                                                    }},
-                              }
-
-            postgresconfig_host = config_obj.get_param(cr, uid, 'postgres.host', default='localhost')
-            postgresconfig_port = config_obj.get_param(cr, uid, 'postgres.port', default='5432')
-            postgresconfig_login = config_obj.get_param(cr, uid, 'postgres.login')
-            postgresconfig_password = config_obj.get_param(cr, uid, 'postgres.password')
-
-            if postgresconfig_host and postgresconfig_port and postgresconfig_login and postgresconfig_password:
-                proxy_argument['connection_settings'].update({'postgres' : {'host': postgresconfig_host,
-                                                                            'port': postgresconfig_port,
-                                                                            'db': cr.dbname,
-                                                                            'login': postgresconfig_login,
-                                                                            'password': postgresconfig_password,
-                                                                            }})
-
+            proxy = xmlrpclib.ServerProxy(proxy_url)
             report_parameters = proxy.report.getParameterInfo(proxy_argument)
 
             self.parameters = self._parse_report_parameters(report_parameters, context=context)
 
-            self.paramfile = {'report_id': report_ids[0], 'prpt_content': prpt_content}
+            self.paramfile = {'report_id': report_ids[0], 'prpt_content': prpt_content, 'context' : context}
 
 
 
@@ -274,7 +217,7 @@ class report_prompt_class(osv.osv_memory):
 
     def fields_view_get(self, cr, uid, view_id=None, view_type='form', context=None, toolbar=False, submenu=False):
 
-        def add_field(result, field_name, selections=False, required=False):
+        def add_field(result, field_name, selection_options=False, required=False):
             result['fields'][field_name] = {'selectable' : self._columns[field_name].selectable,
                                             'type' : self._columns[field_name]._type,
                                             'size' : self._columns[field_name].size,
@@ -283,9 +226,9 @@ class report_prompt_class(osv.osv_memory):
                                             }
             if required:
                 result['fields'][field_name]['required'] = required
-            if type(selections) == list:
+            if type(selection_options) == list:
                 result['fields'][field_name]['type'] = 'selection'
-                result['fields'][field_name]['selection'] = selections
+                result['fields'][field_name]['selection'] = selection_options
 
 
         def add_subelement(element, type, **kwargs):
@@ -294,6 +237,8 @@ class report_prompt_class(osv.osv_memory):
                 sf.set(k, v)
 
 
+        # this will force a reload of parameters and not use the cached data - this is important as the available selections may have changed...
+        self.paramfile = None
         self._setup_parameters(cr, uid, context=context)
 
         result = super(report_prompt_class, self).fields_view_get(cr, uid, view_id=view_id, view_type=view_type, context=context, toolbar=toolbar, submenu=submenu)
@@ -307,7 +252,7 @@ class report_prompt_class(osv.osv_memory):
 
         for index in range (0, len(self.parameters)):
             add_field(result, PARAM_VALUES[self.parameters[index]['type']]['value'] % index,
-                      selections = self.parameters[index].get('selections',False),
+                      selection_options = self.parameters[index].get('selection_options',False),
                       required = self.parameters[index].get('mandatory', False),
                       )
 
