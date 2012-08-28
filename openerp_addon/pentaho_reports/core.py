@@ -17,11 +17,57 @@ from tools.translate import _
 
 from datetime import datetime
 
-from .wizard.report_prompt import JAVA_MAPPING, PARAM_VALUES
+from .java_oe import JAVA_MAPPING, check_java_list, PARAM_VALUES
 
 from tools import config
 
 SERVICE_NAME_PREFIX = 'report.'
+
+
+
+
+def get_proxy_args(cr, uid, prpt_content):
+    """Return the arguments needed by Pentaho server proxy.
+    
+    @return: Tuple with:
+        [0]: Has the url for the Pentaho server.
+        [1]: Has dict with basic arguments to pass to Pentaho server. This
+             includes the connection settings and report definition but does
+             not include any report parameter values.
+    """
+
+    pool = pooler.get_pool(cr.dbname)
+
+    current_user = pool.get("res.users").browse(cr, uid, uid)
+    config_obj = pool.get('ir.config_parameter')
+
+    proxy_url = config_obj.get_param(cr, uid, 'pentaho.server.url', default='http://localhost:8090')
+
+    proxy_argument = {
+                      "prpt_file_content": xmlrpclib.Binary(prpt_content),
+                      "connection_settings" : {'openerp' : {"host": config["xmlrpc_interface"] or "localhost",
+                                                            "port": str(config["xmlrpc_port"]), 
+                                                            "db": cr.dbname,
+                                                            "login": current_user.login,
+                                                            "password": current_user.password,
+                                                            }},
+                      }
+
+    postgresconfig_host = config_obj.get_param(cr, uid, 'postgres.host', default='localhost')
+    postgresconfig_port = config_obj.get_param(cr, uid, 'postgres.port', default='5432')
+    postgresconfig_login = config_obj.get_param(cr, uid, 'postgres.login')
+    postgresconfig_password = config_obj.get_param(cr, uid, 'postgres.password')
+
+    if postgresconfig_host and postgresconfig_port and postgresconfig_login and postgresconfig_password:
+        proxy_argument['connection_settings'].update({'postgres' : {'host': postgresconfig_host,
+                                                                    'port': postgresconfig_port,
+                                                                    'db': cr.dbname,
+                                                                    'login': postgresconfig_login,
+                                                                    'password': postgresconfig_password,
+                                                                    }})
+
+    return proxy_url, proxy_argument
+
 
 
 class Report(object):
@@ -51,52 +97,6 @@ class Report(object):
         return (self.execute_report(), self.output_format)
 
 
-    def get_addons_path(self):
-        return os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
-
-
-    def get_proxy_args(self):
-        """Return the arguments needed by Pentaho server proxy.
-        
-        @return: Tuple with:
-            [0]: Has the url for the Pentaho server.
-            [1]: Has dict with basic arguments to pass to Pentaho server. This
-                 includes the connection settings and report definition but does
-                 not include any report parameter values.
-        """
-        current_user = self.pool.get("res.users").browse(self.cr, self.uid, self.uid)
-        config_obj = self.pool.get('ir.config_parameter')
-
-        proxy_url = config_obj.get_param(self.cr, self.uid, 'pentaho.server.url', default='http://localhost:8090')
-        
-        proxy_argument = {
-                          "prpt_file_content": xmlrpclib.Binary(self.prpt_content),
-                          "output_type": self.output_format,
-                          "connection_settings" : {'openerp' : {"host": config["xmlrpc_interface"] or "localhost",
-                                                                "port": str(config["xmlrpc_port"]), 
-                                                                "db": self.cr.dbname,
-                                                                "login": current_user.login,
-                                                                "password": current_user.password,
-                                                                }},
-                          "report_parameters" : {"ids": self.ids} if self.ids else {},
-                          }
-
-        postgresconfig_host = config_obj.get_param(self.cr, self.uid, 'postgres.host', default='localhost')
-        postgresconfig_port = config_obj.get_param(self.cr, self.uid, 'postgres.port', default='5432')
-        postgresconfig_login = config_obj.get_param(self.cr, self.uid, 'postgres.login')
-        postgresconfig_password = config_obj.get_param(self.cr, self.uid, 'postgres.password')
-
-        if postgresconfig_host and postgresconfig_port and postgresconfig_login and postgresconfig_password:
-            proxy_argument['connection_settings'].update({'postgres' : {'host': postgresconfig_host,
-                                                                        'port': postgresconfig_port,
-                                                                        'db': self.cr.dbname,
-                                                                        'login': postgresconfig_login,
-                                                                        'password': postgresconfig_password,
-                                                                        }})
-
-        return proxy_url, proxy_argument
-
-
     def fetch_report_parameters(self):
         """Return the parameters object for this report.
         
@@ -104,24 +104,35 @@ class Report(object):
         server.
         """
         self.setup_report()
-        
-        proxy_url, proxy_argument = self.get_proxy_args()
+
+        proxy_url, proxy_argument = get_proxy_args(self.cr, self.uid, self.prpt_content)
         proxy = xmlrpclib.ServerProxy(proxy_url)
         return proxy.report.getParameterInfo(proxy_argument)
 
 
     def execute_report(self):
-        proxy_url, proxy_argument = self.get_proxy_args()
+        proxy_url, proxy_argument = get_proxy_args(self.cr, self.uid, self.prpt_content)
         proxy = xmlrpclib.ServerProxy(proxy_url)
         proxy_parameter_info = proxy.report.getParameterInfo(proxy_argument)
+
+
+        proxy_argument.update({
+                               'output_type' : self.output_format,
+                               'report_parameters' : {'ids': self.ids} if self.ids else {},
+                               })
 
         if self.data and self.data.get('variables', False):
             proxy_argument['report_parameters'].update(self.data['variables'])
             for parameter in proxy_parameter_info:
                 if parameter['name'] in proxy_argument['report_parameters'].keys():
-                    if PARAM_VALUES[JAVA_MAPPING[parameter['value_type']](parameter['attributes'].get('data-format', False))].get('convert',False):
+                    value_type = parameter['value_type']
+                    java_list, value_type = check_java_list(value_type)
+                    if PARAM_VALUES[JAVA_MAPPING[value_type](parameter['attributes'].get('data-format', False))].get('convert',False):
                         # convert from string types to correct types for reporter
-                        proxy_argument['report_parameters'][parameter['name']] = PARAM_VALUES[JAVA_MAPPING[parameter['value_type']](parameter['attributes'].get('data-format', False))]['convert'](proxy_argument['report_parameters'][parameter['name']])
+                        proxy_argument['report_parameters'][parameter['name']] = PARAM_VALUES[JAVA_MAPPING[value_type](parameter['attributes'].get('data-format', False))]['convert'](proxy_argument['report_parameters'][parameter['name']])
+                    # turn in to list
+                    if java_list:
+                        proxy_argument['report_parameters'][parameter['name']] = [proxy_argument['report_parameters'][parameter['name']]]
 
         if self.data and self.data.get('output_type', False):
             proxy_argument['output_type']=self.data['output_type']
@@ -156,7 +167,7 @@ def register_pentaho_report(report_name):
         if isinstance(netsvc.Service._services[name], PentahoReportOpenERPInterface):
             return
         del netsvc.Service._services[name]
-    
+
     PentahoReportOpenERPInterface(name)
 
 

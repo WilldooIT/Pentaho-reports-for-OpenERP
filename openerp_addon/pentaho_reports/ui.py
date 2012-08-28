@@ -7,7 +7,7 @@ from osv import osv, fields
 
 import core
 
-from .wizard.report_prompt import JAVA_MAPPING, PARAM_VALUES
+from .java_oe import JAVA_MAPPING, check_java_list, PARAM_VALUES
 
 from tools import config
 ADDONS_PATHS = config['addons_path'].split(",")
@@ -270,16 +270,23 @@ class report_xml(osv.osv):
             if pname in val_names:
                 val_names.remove(pname)
             else:
-                if pdef.get('is_mandatory', False):
-                    raise osv.except_osv(_('Error'), _("Report '%s'. No value passed for mandatory report parameter '%s'.") % (report.report_name, pname))
-                continue
+                if pdef.get('default_value', False):
+                    if type(pdef['default_value']) in (list, tuple):
+                        param_vals[pname] = pdef['default_value'][0]
+                    else:
+                        param_vals[pname] = pdef['default_value']
+                else:
+                    if pdef.get('is_mandatory', False):
+                        raise osv.except_osv(_('Error'), _("Report '%s'. No value passed for mandatory report parameter '%s'.") % (report.report_name, pname))
+                    continue
 
             # Make sure data types match
-            java_type = pdef.get('value_type', False)
-            if (not java_type) or (java_type not in JAVA_MAPPING):
-                raise osv.except_osv(_('Error'), _("Report '%s', parameter '%s'. Type '%s' not supported.") % (report.report_name, pname, java_type))
-                
-            local_type = JAVA_MAPPING[java_type](pdef.get('attributes', {}).get('data-format', False))
+            value_type = pdef.get('value_type', '')
+            java_list, value_type = check_java_list(value_type)
+            if not value_type in JAVA_MAPPING:
+                raise osv.except_osv(_('Error'), _("Report '%s', parameter '%s'. Type '%s' not supported.") % (report.report_name, pname, pdef.get('value_type', '')))
+
+            local_type = JAVA_MAPPING[value_type](pdef.get('attributes', {}).get('data-format', False))
 
             param_val = param_vals[pname]
 
