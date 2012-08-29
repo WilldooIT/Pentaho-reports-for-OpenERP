@@ -1,6 +1,132 @@
 {
     "name": "Pentaho reports for OpenERP",
-    "description": "Integrates Pentaho's reporting engine with OpenERP using De Bortoli Wines' extension(s).",
+    "description": """
+Pentaho - OpenERP Report Integration by Willow IT
+=================================================
+This module integrates Pentaho's reporting engine with OpenERP.
+
+This project was developed by WillowIT, using the libraries and extensions developed by De Bortoli Wines, \
+Australia (Pieter van der Merwe in particular) for the Pentaho reporting system. The OpenERP addon also derives \
+from and/or is inspired by the Jasper Reports addon developed by NaN-tic.
+
+
+Report Types
+------------
+Broadly speaking, two types of data sources can be used to produce the reports. OpenERP object data sources or SQL \
+query data sources.
+
+*   Object data sources have the advantage that they can use OpenERP model columns, even those that are not stored \
+in the database. This includes functional fields, related fields, properties. They can iterate through one2many \
+and many2many subfields. They also respect OpenERP record rules.
+
+*   SQL data sources have the advantage that they allow greater flexibility in selections, and other SQL features \
+like grouping and selective inclusion of sub-queries. It also allows selection where no OpenERP model relationship \
+exists. It does not respect OpenERP record rules, which may be seen as an advantage for creating summary type \
+reports which may be run by users who may not be able to view low-level data. Because of this, you need to be \
+careful.
+
+
+Report Parameters
+-----------------
+Prompted and hidden parameters are supported, as are mandatory values.
+
+Most Pentaho report parameter types and features have been mapped, where practicable, to something which makes \
+sense to an OpenERP environment. This means that a number of Java data types don't necessarily differentiate. \
+For example, (Integer / Long / Short / BigInteger / et al) will all be treated as integers.
+
+Default values can be passed, but default value formulas are not implemented.  The one special default value \
+formula =NOW() is the only exception, which returns datetime.date.today() as the default.
+
+Hidden parameters must obviously receive and work with a default value of some sort. This default can be the \
+Pentaho default, or can be sent to the report in the context in the format:
+    {'pentaho_defaults' : { .... }}
+where the passed dictionary contains the parameter names as keys. See below for guidance on where to set this up.
+
+Pentaho Display Types have been consolidated.  Drop Down, Single Value List, etc, all display as OpenERP selection \
+pull downs. Pentaho multi value selection types, such as Multi Value List, Check Box, etc, are implemented as \
+single value selection pull downs. Date Picker uses the standard OpenERP date/time widget.
+
+Other Pentaho parameter features should be considered unsupported, such as Post-Processing Formula, Display Value \
+Formula, Visible Items, Validate Values, et al.
+
+
+Setup
+-----
+Some parameters may be required in Settings/Customization/System Parameters.
+
+The address of the Pentaho server which is used to render the report is defined with the parameter:
+
+*   pentaho.server.url
+
+For object based data sources, the Pentaho server will use XML-RPC to connect to the current database using the \
+interface and port as defined in the OpenERP config file, and the reporting user's credentials.
+
+For SQL query based data sources, the Pentaho server will use the following parameters:
+
+*   pentaho.postgres.host
+*   pentaho.postgres.port
+*   pentaho.postgres.login
+*   pentaho.postgres.password
+
+
+Report Actions
+--------------
+Reports are defined to OpenERP under Settings/Customization/Low Level Objects/Actions/Pentaho Reports.
+
+Reports can be handled by OpenERP in two ways. They can be linked to a menu, or they can be linked to a model.
+
+*   Model linked reports will appear in the right hand toolbar as per standard reports, or they can be \
+specifically called with an action, such as a button. A record or number of records needs to be selected before \
+the action will be invoked, and the ids of the selected records will be passed to the report as a list parameter \
+called "ids". A report invoked this way will not prompt for any additional parameters. A front end custom wizard \
+can be created if desired to invoke the action, but that wizard and the report would be very closely tied and need \
+to be developed in conjunction with one other.
+
+*   Menu linked reports will appear somewhere in a menu. They will pop up a window prompting for a report output \
+type, and any additional (visible) parameters that are defined. Object ids are not passed to these reports, so \
+selections are probably required if not all data is to be included.
+
+The actions can override existing OpenERP actions (such as invoice prints) or can be new actions.
+
+The service name is only important if it is overriding an existing service, or if the report is to be invoked from \
+coded actions like buttons or wizards.
+
+Output types specified here are defaults, and can be overridden by either a custom wizard or by menu linked \
+reports. They will not be changeable for model linked reports which don't have specific coding.
+
+The prpt (Pentaho report definition) file selected is stored in the database. Changing the report using the \
+designer will require the report to be re-loaded.
+
+A prpt file and action can easily be defined as part of a module and distributed this way. Be aware, though, \
+if the module is upgraded from within OpenERP it could potentially reload the distributed report and may lose \
+changes that were uploaded manually after module installation.
+
+Security groups entered against the action will be respected in regard to action visibility - they play no role in \
+the report execution.
+
+If a context value is required to set a default value, it needs to be set against the created action. It comes up \
+under Settings/Customization/Low Level Actions/Actions/Window Actions. It will already have a Context Value with \
+the service_name defined, which should be left intact.
+
+
+Disclaimer
+----------
+This has been developed over time to meet specific requirements as we have needed to meet them. If something is \
+wrong, or you think would make a great feature, please do let us know at:
+
+    support@willowit.com.au
+
+
+Library
+-------
+We will be endeavouring to create a library of sample and useful reports. Check at:
+
+    http://www.willowit.com.au/
+
+where we will announce when and where this is available. In the meantime, if you develop any reports or templates \
+that you would consider worth sharing, please email them through with some description or details.
+
+    """,
     "version": "0.1",
     "author": "WillowIT Pty Ltd",
     "website": "http://www.willowit.com.au/",
@@ -9,6 +135,7 @@
     "data": [
              "report_xml_view.xml",
              'wizard/report_prompt.xml',
+             'data/ir.config_parameter.csv',
              ],
     "installable": True,
     "active": False

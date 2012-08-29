@@ -41,7 +41,7 @@ def get_proxy_args(cr, uid, prpt_content):
     current_user = pool.get("res.users").browse(cr, uid, uid)
     config_obj = pool.get('ir.config_parameter')
 
-    proxy_url = config_obj.get_param(cr, uid, 'pentaho.server.url', default='http://localhost:8090')
+    proxy_url = config_obj.get_param(cr, uid, 'pentaho.server.url', default='http://localhost:8080/pentaho-reports-for-openerp')
 
     proxy_argument = {
                       "prpt_file_content": xmlrpclib.Binary(prpt_content),
@@ -53,10 +53,10 @@ def get_proxy_args(cr, uid, prpt_content):
                                                             }},
                       }
 
-    postgresconfig_host = config_obj.get_param(cr, uid, 'postgres.host', default='localhost')
-    postgresconfig_port = config_obj.get_param(cr, uid, 'postgres.port', default='5432')
-    postgresconfig_login = config_obj.get_param(cr, uid, 'postgres.login')
-    postgresconfig_password = config_obj.get_param(cr, uid, 'postgres.password')
+    postgresconfig_host = config_obj.get_param(cr, uid, 'pentaho.postgres.host', default='localhost')
+    postgresconfig_port = config_obj.get_param(cr, uid, 'pentaho.postgres.port', default='5432')
+    postgresconfig_login = config_obj.get_param(cr, uid, 'pentaho.postgres.login')
+    postgresconfig_password = config_obj.get_param(cr, uid, 'pentaho.postgres.password')
 
     if postgresconfig_host and postgresconfig_port and postgresconfig_login and postgresconfig_password:
         proxy_argument['connection_settings'].update({'postgres' : {'host': postgresconfig_host,
