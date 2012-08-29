@@ -1,6 +1,0 @@
-"id","key","value"
-"pentaho_server_url","pentaho.server.url","http://localhost:8080/pentaho-reports-for-openerp"
-"pentaho_postgres_host","pentaho.postgres.host","localhost"
-"pentaho_postgres_port","pentaho.postgres.port",5432
-"pentaho_postgres_login","pentaho.postgres.login","openerp"
-"pentaho_postgres_password","pentaho.postgres.password","openerp"
