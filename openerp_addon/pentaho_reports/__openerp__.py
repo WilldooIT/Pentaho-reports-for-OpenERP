@@ -5,9 +5,24 @@ Pentaho - OpenERP Report Integration by Willow IT
 =================================================
 This module integrates Pentaho's reporting engine with OpenERP.
 
-This project was developed by WillowIT, using the libraries and extensions developed by De Bortoli Wines, \
+This project was developed by Willow IT, using the libraries and extensions developed by De Bortoli Wines, \
 Australia (Pieter van der Merwe in particular) for the Pentaho reporting system. The OpenERP addon also derives \
 from and/or is inspired by the Jasper Reports addon developed by NaN-tic.
+
+Willow IT contributions:
+    Deepak Seshadri - OpenERP-Pentaho server connector (Java)
+    Richard deMeester - frontend and core functions, automated wizard and action implementation
+    Douglas Parker - additional integration
+    Jon Wilson - inspiration, testing, and whipping
+
+
+Report Designer and Java Component
+----------------------------------
+For notes on installing and running the report designer, refer to:
+
+    http://bit.ly/L4wPoC
+
+The README document contains instructions relevant to building and running the java component.
 
 
 Report Types
@@ -135,7 +150,7 @@ that you would consider worth sharing, please email them through with some descr
     "data": [
              "report_xml_view.xml",
              'wizard/report_prompt.xml',
-             'data/ir.config_parameter.csv',
+             'data/config_data.xml',
              ],
     "installable": True,
     "active": False
