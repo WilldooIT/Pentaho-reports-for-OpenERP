@@ -2,6 +2,7 @@ import os
 import base64
 import unicodedata
 from tools.translate import _
+from tools.safe_eval import safe_eval
 
 from osv import osv, fields
 
@@ -97,7 +98,7 @@ class report_xml(osv.osv):
             else:
                 action = action_report.created_menu_id.action
                 if action and action._model._name == 'ir.actions.act_window':
-                    existing_context = eval(self.pool.get('ir.actions.act_window').browse(cr, uid, action.id, context=context).context)
+                    existing_context = safe_eval(self.pool.get('ir.actions.act_window').browse(cr, uid, action.id, context=context).context)
                     new_context = existing_context if type(existing_context) == dict else {}
                     new_context['service_name'] = action_report.report_name or ''
                     self.pool.get('ir.actions.act_window').write(cr, uid, [action.id], {'name' : action_report.name or 'Pentaho Report',
@@ -239,7 +240,7 @@ class report_xml(osv.osv):
                 pass
 
         if not path_found:
-            raise osv.except_osv('Error','Could not locate path for file %s' % name)
+            raise osv.except_osv(_('Error'), _('Could not locate path for file %s') % name)
 
         path = addons_path + os.sep + name
 
