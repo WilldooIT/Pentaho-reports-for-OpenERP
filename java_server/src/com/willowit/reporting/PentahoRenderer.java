@@ -1,52 +1,44 @@
 package com.willowit.reporting;
 
+import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.ArrayList;
-import java.util.Enumeration;
 
-import java.io.ByteArrayOutputStream;
-
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.commons.lang3.exception.ExceptionUtils;
-
 import org.pentaho.reporting.engine.classic.core.AbstractReportDefinition;
 import org.pentaho.reporting.engine.classic.core.ClassicEngineBoot;
 import org.pentaho.reporting.engine.classic.core.CompoundDataFactory;
 import org.pentaho.reporting.engine.classic.core.DataFactory;
-import org.pentaho.reporting.engine.classic.core.ReportElement;
 import org.pentaho.reporting.engine.classic.core.MasterReport;
+import org.pentaho.reporting.engine.classic.core.ReportElement;
 import org.pentaho.reporting.engine.classic.core.Section;
-
-import org.pentaho.reporting.engine.classic.core.modules.output.table.csv.CSVReportUtil;
-import org.pentaho.reporting.engine.classic.core.modules.output.table.rtf.RTFReportUtil;
-import org.pentaho.reporting.engine.classic.core.modules.output.table.html.HtmlReportUtil;
-import org.pentaho.reporting.engine.classic.core.modules.output.table.xls.ExcelReportUtil;
+import org.pentaho.reporting.engine.classic.core.modules.misc.datafactory.sql.DriverConnectionProvider;
+import org.pentaho.reporting.engine.classic.core.modules.misc.datafactory.sql.SQLReportDataFactory;
 import org.pentaho.reporting.engine.classic.core.modules.output.pageable.pdf.PdfReportUtil;
 import org.pentaho.reporting.engine.classic.core.modules.output.pageable.plaintext.PlainTextReportUtil;
-
-import org.pentaho.reporting.engine.classic.core.modules.misc.datafactory.sql.SQLReportDataFactory;
-import org.pentaho.reporting.engine.classic.core.modules.misc.datafactory.sql.DriverConnectionProvider;
-
+import org.pentaho.reporting.engine.classic.core.modules.output.table.csv.CSVReportUtil;
+import org.pentaho.reporting.engine.classic.core.modules.output.table.html.HtmlReportUtil;
+import org.pentaho.reporting.engine.classic.core.modules.output.table.rtf.RTFReportUtil;
+import org.pentaho.reporting.engine.classic.core.modules.output.table.xls.ExcelReportUtil;
+import org.pentaho.reporting.engine.classic.core.parameters.DefaultParameterContext;
 import org.pentaho.reporting.engine.classic.core.parameters.ListParameter;
-import org.pentaho.reporting.engine.classic.core.parameters.ReportParameterDefinition;
 import org.pentaho.reporting.engine.classic.core.parameters.ParameterAttributeNames;
 import org.pentaho.reporting.engine.classic.core.parameters.ParameterDefinitionEntry;
 import org.pentaho.reporting.engine.classic.core.parameters.ParameterValues;
-import org.pentaho.reporting.engine.classic.core.parameters.DefaultParameterContext;
+import org.pentaho.reporting.engine.classic.core.parameters.ReportParameterDefinition;
 import org.pentaho.reporting.engine.classic.core.parameters.ReportParameterValidator;
-import org.pentaho.reporting.engine.classic.core.parameters.ValidationResult;
 import org.pentaho.reporting.engine.classic.core.parameters.ValidationMessage;
-
+import org.pentaho.reporting.engine.classic.core.parameters.ValidationResult;
 import org.pentaho.reporting.engine.classic.core.util.ReportParameterValues;
-
+import org.pentaho.reporting.engine.classic.extensions.datasources.openerp.OpenERPDataFactory;
 import org.pentaho.reporting.libraries.fonts.LibFontBoot;
 import org.pentaho.reporting.libraries.resourceloader.LibLoaderBoot;
 import org.pentaho.reporting.libraries.resourceloader.Resource;
 import org.pentaho.reporting.libraries.resourceloader.ResourceManager;
 
-import org.pentaho.reporting.engine.classic.extensions.datasources.openerp.OpenERPDataFactory;
 import com.debortoliwines.openerp.reporting.di.OpenERPFilterInfo;
 
 public class PentahoRenderer {
@@ -78,16 +70,16 @@ public class PentahoRenderer {
 
 	//Internal functions
 	//DBW
-	private void fixOpenERPDataFactoryConfiguration(OpenERPDataFactory factory, HashMap openerp_settings, HashMap parameters, Section section) {
+	private void fixOpenERPDataFactoryConfiguration(OpenERPDataFactory factory, HashMap<String, String> openerp_settings, HashMap<String, ?> parameters, Section section) {
 		String selected_query_name = ((AbstractReportDefinition) section).getQuery();
 
 		//Fix up connection parameters
 		if(openerp_settings != null) {
-			String openerp_host = (String) openerp_settings.get("host");
-			String openerp_port = (String) openerp_settings.get("port");
-			String openerp_db = (String) openerp_settings.get("db");
-			String openerp_login = (String) openerp_settings.get("login");
-			String openerp_password = (String) openerp_settings.get("password");
+			String openerp_host = openerp_settings.get("host");
+			String openerp_port = openerp_settings.get("port");
+			String openerp_db = openerp_settings.get("db");
+			String openerp_login = openerp_settings.get("login");
+			String openerp_password = openerp_settings.get("password");
 
 			if(openerp_host != null)
 				factory.getConfig().setHostName(openerp_host);
@@ -120,15 +112,15 @@ public class PentahoRenderer {
 		}
 	}
 
-	private SQLReportDataFactory fixSQLDataFactoryConfiguration(SQLReportDataFactory factory, HashMap postgres_settings) throws Exception {
+	private SQLReportDataFactory fixSQLDataFactoryConfiguration(SQLReportDataFactory factory, HashMap<String, String> postgres_settings) throws Exception {
 		SQLReportDataFactory new_factory;
 		DriverConnectionProvider new_settings;
 
-		String postgres_host = (String) postgres_settings.get("host");
-		String postgres_port = (String) postgres_settings.get("port");
-		String postgres_db = (String) postgres_settings.get("db");
-		String postgres_login = (String) postgres_settings.get("login");
-		String postgres_password = (String) postgres_settings.get("password");
+		String postgres_host = postgres_settings.get("host");
+		String postgres_port = postgres_settings.get("port");
+		String postgres_db = postgres_settings.get("db");
+		String postgres_login = postgres_settings.get("login");
+		String postgres_password = postgres_settings.get("password");
 
 		if(postgres_host == null || postgres_db == null)
 			throw new Exception("Invalid JDBC data source settings passed: PostgreS server's hostname (or IP address) and the database name must be set if specifying custom connection settings.");
@@ -169,7 +161,7 @@ public class PentahoRenderer {
 		return new_factory;
 	}
 
-	private void fixConfiguration(Section section, HashMap openerp_settings, HashMap postgres_settings, HashMap parameters) throws Exception {
+	private void fixConfiguration(Section section, HashMap<String, String> openerp_settings, HashMap<String, String> postgres_settings, HashMap<String, ?> parameters) throws Exception {
 		//If one of the datasources is an OpenERP datasource, reset the connection to the passed parameters
 		if(section instanceof AbstractReportDefinition) {
 
@@ -217,7 +209,6 @@ public class PentahoRenderer {
 	private HashMap<String, Object> getParametersTypes(MasterReport report) throws Exception {
 		ReportParameterDefinition param_def = report.getParameterDefinition();
 		ParameterDefinitionEntry[] param_def_entries = param_def.getParameterDefinitions();
-		DefaultParameterContext param_context = new DefaultParameterContext(report);
 
 		HashMap<String, Object> name_to_type = new HashMap<String, Object>();
 
@@ -269,12 +260,12 @@ public class PentahoRenderer {
 	}
 
 	//Exported methods
-	public ArrayList<HashMap> getParameterInfo(Hashtable args) throws Exception {
-		ArrayList<HashMap> ret_val = new ArrayList<HashMap>();
+	public ArrayList<HashMap<String, ?>> getParameterInfo(Hashtable<String, ?> args) throws Exception {
+		ArrayList<HashMap<String, ?>> ret_val = new ArrayList<HashMap<String, ?>>();
 
 		//FIXME: redundant code
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
-		HashMap<String, HashMap> connection_settings = new HashMap<String, HashMap>();
+		HashMap<String, HashMap<String, ?>> connection_settings = new HashMap<String, HashMap<String, ?>>();
 		HashMap<String, String> openerp_settings = new HashMap<String, String>();
 		HashMap<String, String> postgres_settings = new HashMap<String, String>();
 
@@ -285,10 +276,10 @@ public class PentahoRenderer {
 				throw new Exception("No report content sent!");		
 
 			//FIXME: redundant code
-			connection_settings = (HashMap) args.get("connection_settings");
-			parameters = (HashMap) args.get("report_parameters");
-			openerp_settings = connection_settings.get("openerp");
-			postgres_settings = connection_settings.get("postgres");
+			connection_settings = (HashMap<String, HashMap<String, ?>>) args.get("connection_settings");
+			parameters = (HashMap<String, Object>) args.get("report_parameters");
+			openerp_settings = (HashMap<String, String>) connection_settings.get("openerp");
+			postgres_settings = (HashMap<String, String>) connection_settings.get("postgres");
 
 			Resource res = manager.createDirectly(prpt_file_content, MasterReport.class);
 			MasterReport report = (MasterReport) res.getResource();
@@ -338,10 +329,10 @@ public class PentahoRenderer {
 				if(param_def_entry instanceof ListParameter) {
 					ParameterValues param_vals = ((ListParameter) param_def_entry).getValues(param_context);
 					int num_options = param_vals.getRowCount();
-					ArrayList selection_options = new ArrayList(num_options);
+					ArrayList<ArrayList<Object>> selection_options = new ArrayList<ArrayList<Object>>(num_options);
 
 					for(int i = 0; i < num_options; i++) {
-						ArrayList one_option = new ArrayList();
+						ArrayList<Object> one_option = new ArrayList<Object>();
 
 						one_option.add(param_vals.getKeyValue(i));
 						one_option.add(param_vals.getTextValue(i));
@@ -365,12 +356,12 @@ public class PentahoRenderer {
 		}
 	}
 
-	public byte[] execute(Hashtable args) throws Exception {
+	public byte[] execute(Hashtable<String, ?> args) throws Exception {
 		byte[] prpt_file_content = null;
 		String output_type = null;
 
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
-		HashMap<String, HashMap> connection_settings = new HashMap<String, HashMap>();
+		HashMap<String, HashMap<String, ?>> connection_settings = new HashMap<String, HashMap<String, ?>>();
 		HashMap<String, String> openerp_settings = new HashMap<String, String>();
 		HashMap<String, String> postgres_settings = new HashMap<String, String>();
 
@@ -386,10 +377,10 @@ public class PentahoRenderer {
 			if(output_type == null)
 				output_type = "pdf";
 
-			connection_settings = (HashMap) args.get("connection_settings");
-			parameters = (HashMap) args.get("report_parameters");
-			openerp_settings = connection_settings.get("openerp");
-			postgres_settings = connection_settings.get("postgres");
+			connection_settings = (HashMap<String, HashMap<String, ?>>) args.get("connection_settings");
+			parameters = (HashMap<String, Object>) args.get("report_parameters");
+			openerp_settings = (HashMap<String, String>) connection_settings.get("openerp");
+			postgres_settings = (HashMap<String, String>) connection_settings.get("postgres");
 
 			//Load the report (we may be overriding Pentaho's caching mechanisms by doing this
 			Resource res = manager.createDirectly(prpt_file_content, MasterReport.class);
@@ -404,10 +395,8 @@ public class PentahoRenderer {
 			for(String parameter_name : parameters.keySet()) {
 				Object parameter_value = parameters.get(parameter_name);
 
-				if(parameters_types.get(parameter_name) != null) {
-					String parameter_type = ((Class) parameters_types.get(parameter_name)).getName();
-					typeCastAndStore(values, ((Class) parameters_types.get(parameter_name)).getName(), parameter_name, parameter_value);
-				}
+				if(parameters_types.get(parameter_name) != null)
+					typeCastAndStore(values, ((Class<?>) parameters_types.get(parameter_name)).getName(), parameter_name, parameter_value);
 			}
 
 			return renderReport(report, output_type);
