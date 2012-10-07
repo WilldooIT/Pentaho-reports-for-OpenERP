@@ -22,6 +22,7 @@ from .java_oe import JAVA_MAPPING, check_java_list, PARAM_VALUES
 from tools import config
 
 SERVICE_NAME_PREFIX = 'report.'
+DEFAULT_OUTPUT_TYPE = 'pdf'
 
 
 
@@ -80,7 +81,7 @@ class Report(object):
         self.context = context or {}
         self.pool = pooler.get_pool(self.cr.dbname)
         self.prpt_content = None
-        self.output_format = "pdf"
+        self.default_output_type = DEFAULT_OUTPUT_TYPE
 
 
     def setup_report(self):
@@ -88,13 +89,14 @@ class Report(object):
         if not ids:
             raise osv.except_osv(_('Error'), _("Report service name '%s' is not a Pentaho report.") % self.name[7:])
         data = self.pool.get("ir.actions.report.xml").read(self.cr, self.uid, ids[0], ["pentaho_report_output_type", "pentaho_file"])
-        self.output_format = data["pentaho_report_output_type"] or "pdf"
+        self.default_output_type = data["pentaho_report_output_type"] or DEFAULT_OUTPUT_TYPE
         self.prpt_content = base64.decodestring(data["pentaho_file"])
 
 
     def execute(self):
         self.setup_report()
-        return (self.execute_report(), self.output_format)
+        # returns report and format
+        return self.execute_report()
 
 
     def fetch_report_parameters(self):
@@ -115,9 +117,10 @@ class Report(object):
         proxy = xmlrpclib.ServerProxy(proxy_url)
         proxy_parameter_info = proxy.report.getParameterInfo(proxy_argument)
 
+        output_type = self.data and self.data.get('output_type', False) or self.default_output_type or DEFAULT_OUTPUT_TYPE
 
         proxy_argument.update({
-                               'output_type' : self.output_format,
+                               'output_type' : output_type,
                                'report_parameters' : {'ids': self.ids} if self.ids else {},
                                })
 
@@ -134,14 +137,11 @@ class Report(object):
                     if java_list:
                         proxy_argument['report_parameters'][parameter['name']] = [proxy_argument['report_parameters'][parameter['name']]]
 
-        if self.data and self.data.get('output_type', False):
-            proxy_argument['output_type']=self.data['output_type']
-
         rendered_report = proxy.report.execute(proxy_argument).data
         if len(rendered_report) == 0:
             raise osv.except_osv(_('Error'), _("Pentaho returned no data for the report '%s'. Check report definition and parameters.") % self.name[7:])
 
-        return rendered_report
+        return (rendered_report, output_type)
 
 
 class PentahoReportOpenERPInterface(report.interface.report_int):
