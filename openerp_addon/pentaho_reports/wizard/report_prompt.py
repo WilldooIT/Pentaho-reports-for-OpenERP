@@ -319,9 +319,6 @@ class report_prompt_class(osv.osv_memory):
 
         data['variables'] = self._set_report_variables(wizard)
 
-        # to rely on standard report action, update the action's output
-        self.pool.get('ir.actions.report.xml').write(cr, uid, [self.paramfile['report_id']], {'pentaho_report_output_type' : wizard.output_type}, context=context)
-
         return self._print_report(cr, uid, ids, data, context=context)
 
 
