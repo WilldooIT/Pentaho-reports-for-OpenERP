@@ -154,10 +154,11 @@ class report_prompt_class(osv.osv_memory):
 
         result = []
         for parameter in report_parameters:
-            if not parameter.get('attributes',{}):
-                raise osv.except_osv(_('Error'), _("Parameter received with no attributes."))
+            if not parameter in RESERVED_PARAMS.keys():
+                if not parameter.get('attributes',{}):
+                    raise osv.except_osv(_('Error'), _("Parameter received with no attributes."))
 
-            result.append(self._parse_one_report_parameter(parameter, context=context))
+                result.append(self._parse_one_report_parameter(parameter, context=context))
 
         if len(result) > MAX_PARAMS + 1:
             raise osv.except_osv(_('Error'), _("Too many report parameters (%d).") % len(self.parameters) + 1)

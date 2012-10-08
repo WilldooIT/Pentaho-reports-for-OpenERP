@@ -17,7 +17,7 @@ from tools.translate import _
 
 from datetime import datetime
 
-from .java_oe import JAVA_MAPPING, check_java_list, PARAM_VALUES
+from .java_oe import JAVA_MAPPING, check_java_list, PARAM_VALUES, RESERVED_PARAMS
 
 from tools import config
 
@@ -121,7 +121,7 @@ class Report(object):
 
         proxy_argument.update({
                                'output_type' : output_type,
-                               'report_parameters' : {'ids': self.ids} if self.ids else {},
+                               'report_parameters' : dict([(param_name, param_formula(self)) for (param_name, param_formula) in RESERVED_PARAMS.iteritems() if param_formula(self)]),
                                })
 
         if self.data and self.data.get('variables', False):
