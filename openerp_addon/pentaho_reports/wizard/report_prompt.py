@@ -174,7 +174,6 @@ class report_prompt_class(osv.osv_memory):
             context={}
 
         ir_actions_obj = self.pool.get('ir.actions.report.xml')
-        config_obj = self.pool.get('ir.config_parameter')
 
         report_ids = ir_actions_obj.search(cr, uid, [('report_name', '=', context.get('service_name',''))], context=context)
         if not report_ids:
