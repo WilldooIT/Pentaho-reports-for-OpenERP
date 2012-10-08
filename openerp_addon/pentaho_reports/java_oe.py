@@ -50,3 +50,11 @@ PARAM_VALUES = {TYPE_STRING : {'value' : PARAM_XXX_STRING_VALUE, 'if_false' : ''
                 TYPE_DATE : {'value' : PARAM_XXX_DATE_VALUE, 'if_false' : '', 'py_types': (str,unicode), 'convert' : lambda x: datetime.strptime(x, '%Y-%m-%d'), 'conv_default' : lambda x: datetime.strptime(x.value, '%Y%m%dT%H:%M:%S').strftime('%Y-%m-%d')},
                 TYPE_TIME : {'value' : PARAM_XXX_TIME_VALUE, 'if_false' : '', 'py_types': (str,unicode), 'convert' : lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M:%S'), 'conv_default' : lambda x: datetime.strptime(x.value, '%Y%m%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')},
                 }
+
+
+RESERVED_PARAMS = {'ids' : lambda s: s.ids,
+                   'context_lang' : lambda s: s.context.get('lang'),
+                   'context_tz' : lambda s: s.context.get('tz'),
+                   'user_id' : lambda s: s.uid,
+                   'user_name' : lambda s: s.pool.get('res.users').browse(s.cr, s.uid, s.uid, context=s.context).name,
+                   }
