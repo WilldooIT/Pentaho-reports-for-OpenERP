@@ -6,6 +6,7 @@ import base64
 from lxml import etree
 
 from datetime import date, datetime
+import pytz
 
 from osv import osv, fields
 
@@ -64,17 +65,25 @@ class report_prompt_class(osv.osv_memory):
 
 
 
-    def _parse_one_report_parameter_default_formula(self, formula, type):
+    def _parse_one_report_parameter_default_formula(self, formula, type, context=None):
+
+        # previously, we were not getting a default value if the report had a default formula, so we endeavoured to generate a value.
+        # However, default formulas are now (correctly) being evaluated by the Pentaho server and are passed back as default values.
+        # So, we never actually end up in here!
 
         result = False
 
-        if type == TYPE_DATE:
-            if formula == '=NOW()':
-                result = datetime.date.today().strftime('%Y-%m-%d')
+        if formula == '=NOW()':
+            now = datetime.date.now()
 
-        if type == TYPE_TIME:
-            if formula == '=NOW()':
-                result = datetime.date.today().strftime('%Y-%m-%d %H:%M:%S')
+            if context and context.get('tz'):
+                now = pytz.timezone('UTC').localize(now, is_dst=False).astimezone(pytz.timezone(context['tz']))
+
+            if type == TYPE_DATE:
+                result = now.strftime(DEFAULT_SERVER_DATE_FORMAT)
+
+            if type == TYPE_TIME:
+                result = now.strftime(DEFAULT_SERVER_DATETIME_FORMAT)
 
         return result
 
@@ -128,8 +137,15 @@ class report_prompt_class(osv.osv_memory):
             else:
                 result['default'] = default_value
 
+            # default date or datetime is passed from Pentaho in local time without a timezone.
+            # If it is a datetime value, we need to convert to UTC for OpenERP to handle it correctly.
+
+            if result['type'] == TYPE_TIME:
+                if context and context.get('tz'):
+                    result['default'] = pytz.timezone(context['tz']).localize(datetime.strptime(result['default'],DEFAULT_SERVER_DATETIME_FORMAT)).astimezone(pytz.timezone('UTC')).strftime(DEFAULT_SERVER_DATETIME_FORMAT)
+
         elif parameter['attributes'].get('default-value-formula',False):
-            value = self._parse_one_report_parameter_default_formula(parameter['attributes']['default-value-formula'], result['type'])
+            value = self._parse_one_report_parameter_default_formula(parameter['attributes']['default-value-formula'], result['type'], context=context)
             if value:
                 result['default'] = value
 
