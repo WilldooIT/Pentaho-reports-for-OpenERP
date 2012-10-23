@@ -14,7 +14,7 @@ from tools import DEFAULT_SERVER_DATE_FORMAT, DEFAULT_SERVER_DATETIME_FORMAT
 from tools.translate import _
 
 from ..java_oe import *
-from ..core import get_proxy_args
+from ..core import get_proxy_args, DEFAULT_OUTPUT_TYPE
 
 
 #---------------------------------------------------------------------------------------------------------------
@@ -204,7 +204,7 @@ class report_prompt_class(osv.osv_memory):
         defaults = super(report_prompt_class, self).default_get(cr, uid, fields, context=context)
 
         defaults.update({'report_name': self.pool.get('ir.actions.report.xml').browse(cr, uid, self.paramfile['report_id'], context=context).name,
-                         'output_type' : 'pdf',
+                         'output_type' : self.pool.get('ir.actions.report.xml').browse(cr, uid, self.paramfile['report_id'], context=context).pentaho_report_output_type or DEFAULT_OUTPUT_TYPE,
                          })
 
         for index in range (0, len(self.parameters)):
