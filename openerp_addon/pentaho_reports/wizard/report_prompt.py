@@ -154,7 +154,7 @@ class report_prompt_class(osv.osv_memory):
 
         result = []
         for parameter in report_parameters:
-            if not parameter in RESERVED_PARAMS.keys():
+            if not parameter.get('name') in RESERVED_PARAMS.keys():
                 if not parameter.get('attributes',{}):
                     raise osv.except_osv(_('Error'), _("Parameter received with no attributes."))
 
@@ -193,8 +193,6 @@ class report_prompt_class(osv.osv_memory):
             self.parameters = self._parse_report_parameters(report_parameters, context=context)
 
             self.paramfile = {'report_id': report_ids[0], 'prpt_content': prpt_content, 'context' : context}
-
-
 
 
     def default_get(self, cr, uid, fields, context=None):
