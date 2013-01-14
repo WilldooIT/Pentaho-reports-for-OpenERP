@@ -130,7 +130,7 @@ class Report(object):
                 if parameter['name'] in proxy_argument['report_parameters'].keys():
                     value_type = parameter['value_type']
                     java_list, value_type = check_java_list(value_type)
-                    if PARAM_VALUES[JAVA_MAPPING[value_type](parameter['attributes'].get('data-format', False))].get('convert',False):
+                    if not value_type == 'java.lang.Object' and PARAM_VALUES[JAVA_MAPPING[value_type](parameter['attributes'].get('data-format', False))].get('convert',False):
                         # convert from string types to correct types for reporter
                         proxy_argument['report_parameters'][parameter['name']] = PARAM_VALUES[JAVA_MAPPING[value_type](parameter['attributes'].get('data-format', False))]['convert'](proxy_argument['report_parameters'][parameter['name']])
                     # turn in to list
