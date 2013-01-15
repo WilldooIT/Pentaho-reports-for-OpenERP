@@ -229,6 +229,13 @@ class report_prompt_class(osv.osv_memory):
 
 
     def fields_view_get(self, cr, uid, view_id=None, view_type='form', context=None, toolbar=False, submenu=False):
+        if context is None:
+            context = {}
+
+        # fields_view_get() is called during module installation, in which case there is no
+        # service_name in the context. 
+        if context.get('service_name','').strip() == '':
+            return super(report_prompt_class, self).fields_view_get(cr, uid, view_id=view_id, view_type=view_type, context=context, toolbar=toolbar, submenu=submenu)
 
         def add_field(result, field_name, selection_options=False, required=False):
             result['fields'][field_name] = {'selectable' : self._columns[field_name].selectable,
@@ -252,6 +259,7 @@ class report_prompt_class(osv.osv_memory):
 
         # this will force a reload of parameters and not use the cached data - this is important as the available selections may have changed...
         self.paramfile = None
+
         self._setup_parameters(cr, uid, context=context)
 
         result = super(report_prompt_class, self).fields_view_get(cr, uid, view_id=view_id, view_type=view_type, context=context, toolbar=toolbar, submenu=submenu)
@@ -259,8 +267,12 @@ class report_prompt_class(osv.osv_memory):
         doc = etree.fromstring(result['arch'])
 
         selection_groups = False
-        selection_groups = doc.findall('group[@string="selections"]')
+#debug - below works but its a bit too specific.
+#debug   Need a less specific way but passing '//group[@string="Selections"]' to findall() doesn't work (can't use absolute path?)
 
+        selection_groups = doc.findall('group/group[@string="Selections"]')
+#debug - raise exception if selection groups not found?
+#debug - If no params then remove the seleciton group entirely?
         first_parameter = True
 
         for index in range (0, len(self.parameters)):
@@ -277,21 +289,12 @@ class report_prompt_class(osv.osv_memory):
                                        string = 'Selections',
                                        )
 
-                    add_subelement(sel_group, 'label',
-                                   string = '%s :' % self.parameters[index]['label'],
-                                   align = '1.0',
-                                   colspan = '2',
-                                   )
-
                     add_subelement(sel_group, 'field',
                                    name = PARAM_VALUES[self.parameters[index]['type']]['value'] % index,
-                                   nolabel = '1',
-                                   colspan = '2',
+                                   string = self.parameters[index]['label'],
                                    default_focus = '1' if first_parameter else '0',
                                    modifiers='{"required": %s}' % 'true' if self.parameters[index].get('mandatory', False) else 'false',
                                    )
-
-                    add_subelement(sel_group, 'newline')
 
                     first_parameter = False
 
