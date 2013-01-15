@@ -4,22 +4,19 @@
 		<record model='ir.ui.view' id='wiz_pentaho_report_prompt'>
 			<field name='name'>Pentaho Report Options</field>
 			<field name='model'>ir.actions.report.promptwizard</field>
-			<field name='type'>form</field>
 			<field name='arch' type='xml'>
-				<form string='Pentaho Report Options'>
-					<field name='report_name'/>
-					<newline/>
-					<field name="output_type" colspan='2'/>
-
-					<!-- Place holder group for where selections will be inserted -->
-					<group colspan="4" col="10" string='selections'/>
-
-					<separator colspan = "4"/>
-					<group colspan="4" col="4">
-						<label string='' colspan="2"/>
-						<button icon="gtk-cancel" special="cancel" string="Cancel"/>
-						<button icon="gtk-print" name="check_report" string="Print" type="object" />
+				<form string='Pentaho Report Options' version="7.0">
+					<group>
+						<field name="report_name"/>
+						<field name="output_type"/>
+						<!-- Place holder group for where selections will be inserted -->
+						<group colspan="4" string='Selections'/>
 					</group>
+	                <footer>
+						<button class="oe_highlight" string='Print' name='check_report' type='object' />
+						or
+						<button class="oe_link" string='Cancel' special='cancel'/>
+	                </footer>
 				</form>
 			</field>
 		</record>
