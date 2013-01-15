@@ -266,13 +266,8 @@ class report_prompt_class(osv.osv_memory):
 
         doc = etree.fromstring(result['arch'])
 
-        selection_groups = False
-#debug - below works but its a bit too specific.
-#debug   Need a less specific way but passing '//group[@string="Selections"]' to findall() doesn't work (can't use absolute path?)
+        selection_groups = doc.findall('.//group[@string="Selections"]')
 
-        selection_groups = doc.findall('group/group[@string="Selections"]')
-#debug - raise exception if selection groups not found?
-#debug - If no params then remove the seleciton group entirely?
         first_parameter = True
 
         for index in range (0, len(self.parameters)):
