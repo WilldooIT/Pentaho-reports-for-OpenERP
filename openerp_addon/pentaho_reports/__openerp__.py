@@ -1,3 +1,4 @@
+# v7.0 - Beta.
 {
     "name": "Pentaho reports for OpenERP",
     "description": """
