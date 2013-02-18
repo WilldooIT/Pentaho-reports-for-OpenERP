@@ -14,7 +14,9 @@ import org.pentaho.reporting.engine.classic.core.CompoundDataFactory;
 import org.pentaho.reporting.engine.classic.core.DataFactory;
 import org.pentaho.reporting.engine.classic.core.MasterReport;
 import org.pentaho.reporting.engine.classic.core.ReportElement;
+import org.pentaho.reporting.engine.classic.core.RootLevelBand;
 import org.pentaho.reporting.engine.classic.core.Section;
+import org.pentaho.reporting.engine.classic.core.SubReport;
 import org.pentaho.reporting.engine.classic.core.modules.misc.datafactory.sql.DriverConnectionProvider;
 import org.pentaho.reporting.engine.classic.core.modules.misc.datafactory.sql.SQLReportDataFactory;
 import org.pentaho.reporting.engine.classic.core.modules.output.pageable.pdf.PdfReportUtil;
@@ -189,6 +191,12 @@ public class PentahoRenderer {
 
 			if(e instanceof Section)
 				fixConfiguration((Section) e, openerp_settings, postgres_settings, parameters);
+			
+		  // Fix subreports
+      if (e instanceof RootLevelBand){
+        for (SubReport sub : ((RootLevelBand) e).getSubReports())  
+              fixConfiguration((Section) sub);
+      }
 		}
 	}
 
