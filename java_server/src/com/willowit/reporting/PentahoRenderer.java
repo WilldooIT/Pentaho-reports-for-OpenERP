@@ -196,8 +196,8 @@ public class PentahoRenderer {
 			if (e instanceof RootLevelBand){
 				for (SubReport sub : ((RootLevelBand) e).getSubReports())  
 					fixConfiguration((Section) sub, openerp_settings, postgres_settings, parameters);
-         	}
-	    }
+			}
+		}
 	}
 
 	//Checks the validity of parameters values set earlier
