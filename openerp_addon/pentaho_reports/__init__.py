@@ -1,3 +1,3 @@
-from core import *
-from ui import *
+import core
+import ui
 import wizard
