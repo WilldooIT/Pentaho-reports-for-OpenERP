@@ -1,3 +1,4 @@
+# -*- encoding: utf-8 -*-
 # Todo:
 #    multiple prpt files for one action - allows for alternate formats.
 
@@ -29,7 +30,7 @@ DEFAULT_OUTPUT_TYPE = 'pdf'
 
 def get_proxy_args(cr, uid, prpt_content):
     """Return the arguments needed by Pentaho server proxy.
-    
+
     @return: Tuple with:
         [0]: Has the url for the Pentaho server.
         [1]: Has dict with basic arguments to pass to Pentaho server. This
@@ -47,7 +48,7 @@ def get_proxy_args(cr, uid, prpt_content):
     proxy_argument = {
                       "prpt_file_content": xmlrpclib.Binary(prpt_content),
                       "connection_settings" : {'openerp' : {"host": config["xmlrpc_interface"] or "localhost",
-                                                            "port": str(config["xmlrpc_port"]), 
+                                                            "port": str(config["xmlrpc_port"]),
                                                             "db": cr.dbname,
                                                             "login": current_user.login,
                                                             "password": current_user.password,
@@ -101,7 +102,7 @@ class Report(object):
 
     def fetch_report_parameters(self):
         """Return the parameters object for this report.
-        
+
         Returns the parameters object as returned by the Pentaho
         server.
         """
@@ -173,10 +174,10 @@ def register_pentaho_report(report_name):
 
 def fetch_report_parameters(cr, uid, report_name, context=None):
     """Return the parameters object for this report.
-    
+
     Returns the parameters object as returned by the Pentaho
     server.
-    
+
     @param report_name: The service name for the report.
     """
     if not report_name.startswith(SERVICE_NAME_PREFIX):

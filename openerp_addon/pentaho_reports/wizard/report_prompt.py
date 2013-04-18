@@ -1,3 +1,5 @@
+# -*- encoding: utf-8 -*-
+
 import io
 import os
 import xmlrpclib
@@ -233,7 +235,7 @@ class report_prompt_class(osv.osv_memory):
             context = {}
 
         # fields_view_get() is called during module installation, in which case there is no
-        # service_name in the context. 
+        # service_name in the context.
         if context.get('service_name','').strip() == '':
             return super(report_prompt_class, self).fields_view_get(cr, uid, view_id=view_id, view_type=view_type, context=context, toolbar=toolbar, submenu=submenu)
 

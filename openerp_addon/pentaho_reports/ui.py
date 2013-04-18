@@ -1,3 +1,5 @@
+# -*- encoding: utf-8 -*-
+
 import os
 import base64
 import unicodedata
@@ -252,12 +254,12 @@ class report_xml(osv.osv):
 
     def pentaho_validate_params(self, cr, uid, report, param_vals, context=None):
         """Validate a list of passed parameters against the defined params for
-        a Pentaho report. 
+        a Pentaho report.
 
         Raises an exception if any of the params are invalid.
 
         @param report: Browse object on the ir.actions.report.xml record for the report.
-        @param param_vals: Dict with parameter values to pass to the report. These are python 
+        @param param_vals: Dict with parameter values to pass to the report. These are python
             data types prior to conversion for passing to the Pentaho server.
         """
         param_defs = core.fetch_report_parameters(cr, uid, report.report_name, context=context)
@@ -306,18 +308,18 @@ class report_xml(osv.osv):
 
         # Make sure all passed values have a param to go to on the report.
         # This wouldn't raise an error on the Pentaho side but flagging it here
-        # might save a lot of development time if a param is misnamed. 
+        # might save a lot of development time if a param is misnamed.
         if val_names:
             raise osv.except_osv(_('Error'), _("Report '%s'. Parameter values not required by report: %s") % (report.report_name, val_names))
 
 
     def pentaho_report_action(self, cr, uid, service_name, active_ids=None, param_values=None, context=None):
         """Return the action definition to run a Pentaho report.
-        
+
         The action definition is returned as a dict which can be returned
         to the OpenERP client from a wizard button or server action to
         cause the client to request the report.
-        
+
         @param service_name: The report service name (without leading 'report.').
         @param active_ids: List of ids on the report model to pass.
         @param param_values: Dict with parameter values for the report.
