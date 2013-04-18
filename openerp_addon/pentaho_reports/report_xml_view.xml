@@ -4,7 +4,6 @@
 		<record id="act_report_xml_view_pent" model="ir.ui.view">
 			<field name="name">ir.actions.report.xml.pentaho.reports</field>
 			<field name="model">ir.actions.report.xml</field>
-			<field name="type">form</field>
 			<field name="inherit_id" ref="base.act_report_xml_view"/>
 			<field name="arch" type="xml">
 				<field name="report_name" position="after">
@@ -16,7 +15,6 @@
 		<record id="act_report_pentaho_report_form" model="ir.ui.view">
 			<field name="name">ir.actions.report.pentaho.report.form</field>
 			<field name="model">ir.actions.report.xml</field>
-			<field name="type">form</field>
 			<field name="priority">20</field>
 			<field name="arch" type="xml">
 			<form string="Pentaho reports">
@@ -39,7 +37,6 @@
 		<record id="act_report_pentaho_report_tree" model="ir.ui.view">
 			<field name="name">ir.actions.report.pentaho.report.tree</field>
 			<field name="model">ir.actions.report.xml</field>
-			<field name="type">tree</field>
 			<field name="priority">20</field>
 			<field name="arch" type="xml">
 			<tree string="Pentaho reports">
@@ -76,6 +73,6 @@
 			<field name="sequence">1</field>
 		</record>
 
-		<menuitem action="ir_action_report_pentaho_report" id="menu_ir_action_report_pentaho_report" parent="base.next_id_6"/> 
+		<menuitem action="ir_action_report_pentaho_report" id="menu_ir_action_report_pentaho_report" parent="base.next_id_6"/>
 	</data>
 </openerp>
