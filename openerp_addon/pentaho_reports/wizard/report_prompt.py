@@ -1,29 +1,20 @@
 # -*- encoding: utf-8 -*-
 
-import io
-import os
 import xmlrpclib
 import base64
 
 from lxml import etree
 
-from datetime import date, datetime
-import pytz
-
-from osv import osv, fields
-
-from tools import config
-from tools import DEFAULT_SERVER_DATE_FORMAT, DEFAULT_SERVER_DATETIME_FORMAT
+from openerp.osv import orm, fields,
+from openerp.tools import (DEFAULT_SERVER_DATE_FORMAT,
+                           DEFAULT_SERVER_DATETIME_FORMAT)
 from tools.translate import _
 
 from ..java_oe import *
 from ..core import get_proxy_args, DEFAULT_OUTPUT_TYPE
 
 
-#---------------------------------------------------------------------------------------------------------------
-
-
-class report_prompt_class(osv.osv_memory):
+class report_prompt_class(orm.TransientModel):
 
     _name = "ir.actions.report.promptwizard"
 
@@ -38,8 +29,7 @@ class report_prompt_class(osv.osv_memory):
 
 
     def __init__(self, pool, cr):
-        """ Dynamically add columns
-        """
+        """ Dynamically add columns"""
 
         super(report_prompt_class, self).__init__(pool, cr)
 
@@ -115,10 +105,10 @@ class report_prompt_class(osv.osv_memory):
         java_list, value_type = check_java_list(value_type)
 
         if not value_type in JAVA_MAPPING:
-            raise osv.except_osv(_('Error'), _("Unhandled parameter type (%s).") % parameter.get('value_type',''))
+            raise orm.except_orm(_('Error'), _("Unhandled parameter type (%s).") % parameter.get('value_type',''))
 
         if not parameter.get('name', False):
-            raise osv.except_osv(_('Error'), _("Unnamed parameter encountered."))
+            raise orm.except_orm(_('Error'), _("Unnamed parameter encountered."))
 
         result = {'variable' : parameter['name'], 'label' : parameter['attributes'].get('label','')}
 
@@ -174,12 +164,12 @@ class report_prompt_class(osv.osv_memory):
         for parameter in report_parameters:
             if not parameter.get('name') in RESERVED_PARAMS.keys():
                 if not parameter.get('attributes',{}):
-                    raise osv.except_osv(_('Error'), _("Parameter received with no attributes."))
+                    raise orm.except_orm(_('Error'), _("Parameter received with no attributes."))
 
                 result.append(self._parse_one_report_parameter(parameter, context=context))
 
         if len(result) > MAX_PARAMS + 1:
-            raise osv.except_osv(_('Error'), _("Too many report parameters (%d).") % len(self.parameters) + 1)
+            raise orm.except_orm(_('Error'), _("Too many report parameters (%d).") % len(self.parameters) + 1)
 
         return result
 
@@ -195,7 +185,7 @@ class report_prompt_class(osv.osv_memory):
 
         report_ids = ir_actions_obj.search(cr, uid, [('report_name', '=', context.get('service_name',''))], context=context)
         if not report_ids:
-            raise osv.except_osv(_('Error'), _("Invalid report associated with menu item."))
+            raise orm.except_orm(_('Error'), _("Invalid report associated with menu item."))
 
         report_record = ir_actions_obj.browse(cr, uid, report_ids[0], context=context)
 

@@ -1,5 +1,6 @@
 # -*- encoding: utf-8 -*-
 
-from core import *
-from ui import *
+import core
+import ui
+import java_oe
 import wizard

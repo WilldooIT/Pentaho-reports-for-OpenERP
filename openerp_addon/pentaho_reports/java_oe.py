@@ -1,7 +1,6 @@
 # -*- encoding: utf-8 -*-
 
 from datetime import datetime
-from datetime import date
 
 TYPE_STRING = 'str'
 TYPE_BOOLEAN = 'bool'

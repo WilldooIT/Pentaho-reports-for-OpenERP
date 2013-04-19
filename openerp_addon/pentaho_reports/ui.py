@@ -2,22 +2,19 @@
 
 import os
 import base64
-import unicodedata
-from tools.translate import _
-from tools.safe_eval import safe_eval
-
-from osv import osv, fields
+from openerp.tools.translate import _
+from openerp.tools.safe_eval import safe_eval
+from openerp.osv import orm, fields
+from openerp.tools import config
 
 import core
+from java_oe import JAVA_MAPPING, check_java_list, PARAM_VALUES
 
-from .java_oe import JAVA_MAPPING, check_java_list, PARAM_VALUES
 
-from tools import config
 ADDONS_PATHS = config['addons_path'].split(",")
 
 
-#
-class report_xml(osv.osv):
+class report_xml(orm.Model):
     _name = "ir.actions.report.xml"
     _inherit = "ir.actions.report.xml"
     _columns = {
@@ -242,7 +239,7 @@ class report_xml(osv.osv):
                 pass
 
         if not path_found:
-            raise osv.except_osv(_('Error'), _('Could not locate path for file %s') % name)
+            raise orm.except_orm(_('Error'), _('Could not locate path for file %s') % name)
 
         path = addons_path + os.sep + name
 
@@ -280,37 +277,37 @@ class report_xml(osv.osv):
                         param_vals[pname] = pdef['default_value']
                 else:
                     if pdef.get('is_mandatory', False):
-                        raise osv.except_osv(_('Error'), _("Report '%s'. No value passed for mandatory report parameter '%s'.") % (report.report_name, pname))
+                        raise orm.except_orm(_('Error'), _("Report '%s'. No value passed for mandatory report parameter '%s'.") % (report.report_name, pname))
                     continue
 
             # Make sure data types match
             value_type = pdef.get('value_type', '')
             java_list, value_type = check_java_list(value_type)
             if not value_type in JAVA_MAPPING:
-                raise osv.except_osv(_('Error'), _("Report '%s', parameter '%s'. Type '%s' not supported.") % (report.report_name, pname, pdef.get('value_type', '')))
+                raise orm.except_orm(_('Error'), _("Report '%s', parameter '%s'. Type '%s' not supported.") % (report.report_name, pname, pdef.get('value_type', '')))
 
             local_type = JAVA_MAPPING[value_type](pdef.get('attributes', {}).get('data-format', False))
 
             param_val = param_vals[pname]
 
             if not local_type in PARAM_VALUES:
-                raise osv.except_osv(_('Error'), _("Report '%s', parameter '%s'. Local type '%s' not supported.") % (report.report_name, pname, local_type))
+                raise orm.except_orm(_('Error'), _("Report '%s', parameter '%s'. Local type '%s' not supported.") % (report.report_name, pname, local_type))
             if not isinstance(param_val, PARAM_VALUES[local_type]['py_types']):
-                raise osv.except_osv(_('Error'), _("Report '%s', parameter '%s'. Passed value is '%s' but must be one of '%s'.") % (report.report_name, pname, param_val.__class__.__name__, PARAM_VALUES[local_type]['py_types']))
+                raise orm.except_orm(_('Error'), _("Report '%s', parameter '%s'. Passed value is '%s' but must be one of '%s'.") % (report.report_name, pname, param_val.__class__.__name__, PARAM_VALUES[local_type]['py_types']))
 
             converter = PARAM_VALUES[local_type].get('convert')
             if converter:
                 try:
                     converter(param_val)
                 except Exception, e:
-                    raise osv.except_osv(_('Error'), _("Report '%s', parameter '%s'. Passed value '%s' failed data conversion to type '%s'.\n%s") % (report.report_name, pname, param_val, local_type, str(e)))
+                    raise orm.except_orm(_('Error'), _("Report '%s', parameter '%s'. Passed value '%s' failed data conversion to type '%s'.\n%s") % (report.report_name, pname, param_val, local_type, str(e)))
 
 
         # Make sure all passed values have a param to go to on the report.
         # This wouldn't raise an error on the Pentaho side but flagging it here
         # might save a lot of development time if a param is misnamed.
         if val_names:
-            raise osv.except_osv(_('Error'), _("Report '%s'. Parameter values not required by report: %s") % (report.report_name, val_names))
+            raise orm.except_orm(_('Error'), _("Report '%s'. Parameter values not required by report: %s") % (report.report_name, val_names))
 
 
     def pentaho_report_action(self, cr, uid, service_name, active_ids=None, param_values=None, context=None):
@@ -330,10 +327,10 @@ class report_xml(osv.osv):
         if report_ids:
             report = self.browse(cr, uid, report_ids[0], context=context)
         if (not report) or (not report.is_pentaho_report):
-            raise osv.except_osv(_('Error'), _("Report '%s' is not a Pentaho report.") % service_name)
+            raise orm.except_orm(_('Error'), _("Report '%s' is not a Pentaho report.") % service_name)
 
         if (not active_ids) and (not param_values):
-            raise osv.except_osv(_('Error'), _("Report '%s' must be passed active ids or parameter values.") % service_name)
+            raise orm.except_orm(_('Error'), _("Report '%s' must be passed active ids or parameter values.") % service_name)
 
         datas = {'model': report.model,
                  'output_type': report.report_type,
