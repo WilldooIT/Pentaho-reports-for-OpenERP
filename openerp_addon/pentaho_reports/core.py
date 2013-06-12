@@ -44,10 +44,14 @@ def get_proxy_args(cr, uid, prpt_content):
 
     proxy_url = config_obj.get_param(cr, uid, 'pentaho.server.url', default='http://localhost:8080/pentaho-reports-for-openerp')
 
+    xml_interface = config_obj.get_param(cr, uid, 'pentaho.openerp.xml.interface', default='localhost') ## Could do something with the old way config["xmlrpc_interface"] or "localhost"
+    xml_port = config_obj.get_param(cr, uid, 'pentaho.openerp.xml.port', default='8069') ## Could do something with the old way str(config["xmlrpc_port"])
+   
+
     proxy_argument = {
                       "prpt_file_content": xmlrpclib.Binary(prpt_content),
-                      "connection_settings" : {'openerp' : {"host": config["xmlrpc_interface"] or "localhost",
-                                                            "port": str(config["xmlrpc_port"]), 
+                      "connection_settings" : {'openerp' : {"host": xml_interface,
+                                                            "port": xml_port, 
                                                             "db": cr.dbname,
                                                             "login": current_user.login,
                                                             "password": current_user.password,
