@@ -32,6 +32,8 @@ import org.pentaho.reporting.engine.classic.core.parameters.ReportParameterDefin
 import org.pentaho.reporting.engine.classic.core.parameters.ReportParameterValidator;
 import org.pentaho.reporting.engine.classic.core.parameters.ValidationMessage;
 import org.pentaho.reporting.engine.classic.core.parameters.ValidationResult;
+import org.pentaho.reporting.engine.classic.core.RootLevelBand;
+import org.pentaho.reporting.engine.classic.core.SubReport;
 import org.pentaho.reporting.engine.classic.core.util.ReportParameterValues;
 import org.pentaho.reporting.engine.classic.extensions.datasources.openerp.OpenERPDataFactory;
 import org.pentaho.reporting.libraries.fonts.LibFontBoot;
@@ -189,6 +191,12 @@ public class PentahoRenderer {
 
 			if(e instanceof Section)
 				fixConfiguration((Section) e, openerp_settings, postgres_settings, parameters);
+			// Fix subreports
+			if (e instanceof RootLevelBand){
+				for (SubReport sub : ((RootLevelBand) e).getSubReports())  
+					fixConfiguration((Section) sub, openerp_settings, postgres_settings, parameters);
+			}
+
 		}
 	}
 
