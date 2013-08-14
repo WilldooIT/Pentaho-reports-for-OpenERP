@@ -4,6 +4,8 @@ import unicodedata
 from tools.translate import _
 from tools.safe_eval import safe_eval
 
+from openerp import SUPERUSER_ID
+
 from osv import osv, fields
 
 import core
@@ -173,7 +175,7 @@ class report_xml(osv.osv):
             if r.created_menu_id:
                 self.delete_menu(cr, uid, r.created_menu_id.id, context=context)
 
-            values_obj.unlink(cr, uid, values_obj.search(cr, uid, [("value", "=", "ir.actions.report.xml,%s" % r.id)]), context=context)
+            values_obj.unlink(cr, SUPERUSER_ID, values_obj.search(cr, uid, [("value", "=", "ir.actions.report.xml,%s" % r.id)]), context=context)
 
         return super(report_xml, self).unlink(cr, uid, ids, context=context)
 
@@ -211,9 +213,9 @@ class report_xml(osv.osv):
                             "value": "ir.actions.report.xml,%s" % report.id
                             }
                     if not values_ids:
-                        values_obj.create(cr, uid, data, context=context)
+                        values_obj.create(cr, SUPERUSER_ID, data, context=context)
                     else:
-                        values_obj.write(cr, uid, values_ids, data, context=context)
+                        values_obj.write(cr, SUPERUSER_ID, values_ids, data, context=context)
                     values_ids = []
 
                 core.register_pentaho_report(report.report_name)
@@ -222,7 +224,7 @@ class report_xml(osv.osv):
                 super(report_xml, self).write(cr, uid, [report.id], {"pentaho_file": False})
 
             if context.get('is_pentaho_report', False) and values_ids:
-                values_obj.unlink(cr, uid, values_ids, context=context)
+                values_obj.unlink(cr, SUPERUSER_ID, values_ids, context=context)
 
         return True
 

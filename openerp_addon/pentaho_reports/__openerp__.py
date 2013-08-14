@@ -24,8 +24,7 @@ Willow IT contributions:
 Report Designer and Java Component
 ----------------------------------
 For notes on installing and running the report designer, refer to:
-
-    http://bit.ly/L4wPoC
+    **http://bit.ly/L4wPoC**
 
 The README document contains instructions relevant to building and running the java component.
 
@@ -60,6 +59,7 @@ formula =NOW() is the only exception, which returns datetime.date.today() as the
 Hidden parameters must obviously receive and work with a default value of some sort. This default can be the \
 Pentaho default, or can be sent to the report in the context in the format:
     **{'pentaho_defaults' : { .... }}**
+
 where the passed dictionary contains the parameter names as keys. See below for guidance on where to set this up.
 
 Pentaho Display Types have been consolidated.  Drop Down, Single Value List, etc, all display as OpenERP selection \
@@ -75,8 +75,7 @@ Setup
 Some parameters may be required in Settings/Customization/System Parameters.
 
 The address of the Pentaho server which is used to render the report is defined with the parameter:
-
-*   pentaho.server.url
+    **pentaho.server.url**
 
 For object based data sources, the Pentaho server will use XML-RPC to connect to the current database using the \
 interface and port as defined in the OpenERP config file, and the reporting user's credentials.
@@ -133,15 +132,13 @@ Disclaimer
 ----------
 This has been developed over time to meet specific requirements as we have needed to meet them. If something is \
 wrong, or you think would make a great feature, please do let us know at:
-
-    support@willowit.com.au
+    **support@willowit.com.au**
 
 
 Library
 -------
 We will be endeavouring to create a library of sample and useful reports. Check at:
-
-    http://www.willowit.com.au/
+    **http://www.willowit.com.au/**
 
 where we will announce when and where this is available. In the meantime, if you develop any reports or templates \
 that you would consider worth sharing, please email them through with some description or details.
