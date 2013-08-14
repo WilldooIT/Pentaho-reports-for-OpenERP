@@ -11,10 +11,14 @@ Australia (Pieter van der Merwe in particular) for the Pentaho reporting system.
 from and/or is inspired by the Jasper Reports addon developed by NaN-tic.
 
 Willow IT contributions:
-    Deepak Seshadri - OpenERP-Pentaho server connector (Java)
-    Richard deMeester - frontend and core functions, automated wizard and action implementation
-    Douglas Parker - additional integration
-    Jon Wilson - inspiration, testing, and whipping
+
+* Deepak Seshadri - OpenERP-Pentaho server connector (Java)
+
+* Richard deMeester - frontend and core functions, automated wizard and action implementation
+
+* Douglas Parker - additional integration
+
+* Jon Wilson - inspiration, testing, and whipping
 
 
 Report Designer and Java Component
@@ -31,11 +35,11 @@ Report Types
 Broadly speaking, two types of data sources can be used to produce the reports. OpenERP object data sources or SQL \
 query data sources.
 
-*   Object data sources have the advantage that they can use OpenERP model columns, even those that are not stored \
+* Object data sources have the advantage that they can use OpenERP model columns, even those that are not stored \
 in the database. This includes functional fields, related fields, properties. They can iterate through one2many \
 and many2many subfields. They also respect OpenERP record rules.
 
-*   SQL data sources have the advantage that they allow greater flexibility in selections, and other SQL features \
+* SQL data sources have the advantage that they allow greater flexibility in selections, and other SQL features \
 like grouping and selective inclusion of sub-queries. It also allows selection where no OpenERP model relationship \
 exists. It does not respect OpenERP record rules, which may be seen as an advantage for creating summary type \
 reports which may be run by users who may not be able to view low-level data. Because of this, you need to be \
@@ -55,7 +59,7 @@ formula =NOW() is the only exception, which returns datetime.date.today() as the
 
 Hidden parameters must obviously receive and work with a default value of some sort. This default can be the \
 Pentaho default, or can be sent to the report in the context in the format:
-    {'pentaho_defaults' : { .... }}
+    **{'pentaho_defaults' : { .... }}**
 where the passed dictionary contains the parameter names as keys. See below for guidance on where to set this up.
 
 Pentaho Display Types have been consolidated.  Drop Down, Single Value List, etc, all display as OpenERP selection \
@@ -79,26 +83,26 @@ interface and port as defined in the OpenERP config file, and the reporting user
 
 For SQL query based data sources, the Pentaho server will use the following parameters:
 
-*   pentaho.postgres.host
-*   pentaho.postgres.port
-*   pentaho.postgres.login
-*   pentaho.postgres.password
+* pentaho.postgres.host
+* pentaho.postgres.port
+* pentaho.postgres.login
+* pentaho.postgres.password
 
 
 Report Actions
 --------------
-Reports are defined to OpenERP under Settings/Customization/Low Level Objects/Actions/Pentaho Reports.
+Reports are defined to OpenERP under **Settings/Technical/Low Level Objects/Actions/Pentaho Reports**.
 
 Reports can be handled by OpenERP in two ways. They can be linked to a menu, or they can be linked to a model.
 
-*   Model linked reports will appear in the right hand toolbar as per standard reports, or they can be \
+* Model linked reports will appear in the right hand toolbar as per standard reports, or they can be \
 specifically called with an action, such as a button. A record or number of records needs to be selected before \
 the action will be invoked, and the ids of the selected records will be passed to the report as a list parameter \
 called "ids". A report invoked this way will not prompt for any additional parameters. A front end custom wizard \
 can be created if desired to invoke the action, but that wizard and the report would be very closely tied and need \
 to be developed in conjunction with one other.
 
-*   Menu linked reports will appear somewhere in a menu. They will pop up a window prompting for a report output \
+* Menu linked reports will appear somewhere in a menu. They will pop up a window prompting for a report output \
 type, and any additional (visible) parameters that are defined. Object ids are not passed to these reports, so \
 selections are probably required if not all data is to be included.
 
