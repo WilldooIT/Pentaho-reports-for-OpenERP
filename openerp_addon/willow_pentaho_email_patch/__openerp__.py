@@ -3,7 +3,7 @@
 {
     "name": "Pentaho Email Patch",
     "version": "1.0",
-    "depends": ["base_willow", "pentaho_reports", "email_template"],
+    "depends": ["pentaho_reports", "email_template"],
     "author": "Richard deMeester",
     "category": "Generic Modules/Base",
     "description": """
