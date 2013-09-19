@@ -1,7 +1,7 @@
 # Pentaho Reports for OpenERP
 
 This project provides an addon for OpenERP that integrates it with
-the Pentaho reporting system. End users of OpenERP can design 
+the Pentaho reporting system. End users of OpenERP can design
 reports using Pentaho report designer v3.9 (instructions on how
 to setup the designer: http://bit.ly/L4wPoC), and install/access
 them from inside the OpenERP interface.
@@ -33,15 +33,26 @@ For testing purposes, a standalone server that listens on port
 
 ## Integrating and Defining reports to OpenERP
 
-The OpenERP module description contains an overview of creating
-report actions and defining and using report parameters.
+The description of the OpenERP module `pentaho reports` contains an overview
+of creating report actions and defining and using report parameters.
 
+## Concurrency issue when using Email Template
+
+When generating a Pentaho report at the same time as parsing the email
+template, OpenERP might raises the following exception:
+
+    TransactionRollbackError: could not serialize access due to concurrent
+    update
+
+The OpenERP module `willow_pentaho_email_patch` works around this
+issue. However, it is not a perfect solution to the problem and we are open
+to suggestions and pull requests.
 
 ## Contributors
 
 This project was developed by Willow IT, using the libraries and
 extensions developed by De Bortoli Wines, Australia (Pieter van der
-Merwe in particular) for the Pentaho reporting system. The OpenERP 
+Merwe in particular) for the Pentaho reporting system. The OpenERP
 addon also derives from and/or is inspired by the Jasper Reports addon
 developed by NaN-tic.
 
