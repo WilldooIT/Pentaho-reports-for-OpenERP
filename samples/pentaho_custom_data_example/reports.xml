@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+	<data>
+		<!-- Define 'ids' report -->	
+		<record id="report_cust_data_example_ids" model="ir.actions.report.xml">
+			<field name="name">Pentaho ids Custom Data Example</field>
+			<field name="report_name">cust.data.example.ids</field>
+			<field name="model">res.partner</field>	<!-- Report will appear on 'Print' menu for partners. -->
+			<field name="auto" eval="False"/> 
+			<field name="rml">pentaho_custom_data_example/custom_data_example_ids.prpt</field> 
+			<field name="is_pentaho_report" eval="True"/>
+			<field name="pentaho_report_model_id" ref="base.model_res_partner"/>
+			<field name="pentaho_report_output_type">pdf</field>
+			<field name="pentaho_filename">pentaho_custom_data_example/custom_data_example_ids.prpt</field>
+			<field name="pentaho_load_file" eval="True"/>
+		</record>
+
+		<!-- Define 'params' report -->	
+		<record id="report_cust_data_example_params" model="ir.actions.report.xml">
+			<field name="name">Pentaho params Custom Data Example</field>
+			<field name="model">x</field>  <!-- model field must be populated but use dummy value here so this report DOESN'T appear on the 'Print' menu for partners -->
+			<field name="report_name">cust.data.example.params</field>
+			<field name="is_pentaho_report" eval="True"/>
+			<field name="pentaho_report_model_id" ref="base.model_res_partner"/>
+			<field name="pentaho_report_output_type">pdf</field>
+			<field name="pentaho_filename">pentaho_custom_data_example/custom_data_example_params.prpt</field>
+			<field name="pentaho_load_file" eval="True"/>
+			<field name="linked_menu_id" ref="base.menu_sales"/> <!-- Add report to Sales / Sales menu. --> 
+		</record>
+	</data>
+</openerp>
