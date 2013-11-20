@@ -1,6 +1,7 @@
 *.prpt
 *.class
 *.pyc
+*~
 *.jar
 .project
 .pydevproject

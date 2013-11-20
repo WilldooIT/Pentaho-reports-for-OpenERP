@@ -4,6 +4,7 @@ from tools.translate import _
 from tools.safe_eval import safe_eval
 
 from osv import osv, fields
+from openerp import SUPERUSER_ID
 
 import core
 
@@ -61,13 +62,13 @@ class report_xml(osv.osv):
                        }
         action_id = self.pool.get('ir.actions.act_window').create(cr, uid, action_vals, context=context)
 
-        result = self.pool.get('ir.ui.menu').create(cr, uid, {'name' : vals.get('name' ,'Pentaho Report'),
-                                                              'sequence' : 10,
-                                                              'parent_id' : vals['linked_menu_id'],
-                                                              'groups_id' : vals.get('groups_id',[]),
-                                                              'icon' : 'STOCK_PRINT',
-                                                              'action' : 'ir.actions.act_window,%d' % (action_id,),
-                                                              }, context=context)
+        result = self.pool.get('ir.ui.menu').create(cr, SUPERUSER_ID, {'name' : vals.get('name' ,'Pentaho Report'),
+                                                                       'sequence' : 10,
+                                                                       'parent_id' : vals['linked_menu_id'],
+                                                                       'groups_id' : vals.get('groups_id',[]),
+                                                                       'icon' : 'STOCK_PRINT',
+                                                                       'action' : 'ir.actions.act_window,%d' % (action_id,),
+                                                                       }, context=context)
 
         return result
 
@@ -76,7 +77,7 @@ class report_xml(osv.osv):
         action = self.pool.get('ir.ui.menu').browse(cr, uid, menu_id, context=context).action
         if action and action._model._name == 'ir.actions.act_window':
             self.pool.get('ir.actions.act_window').unlink(cr, uid, [action.id], context=context)
-        result = self.pool.get('ir.ui.menu').unlink(cr, uid, [menu_id], context=context)
+        result = self.pool.get('ir.ui.menu').unlink(cr, SUPERUSER_ID, [menu_id], context=context)
         return result
 
 
@@ -103,10 +104,10 @@ class report_xml(osv.osv):
                                                                                         'context' : str(new_context),
                                                                                         }, context=context)
 
-                self.pool.get('ir.ui.menu').write(cr, uid, [action_report.created_menu_id.id], {'name' : action_report.name or 'Pentaho Report',
-                                                                                                'parent_id' : action_report.linked_menu_id.id,
-                                                                                                'groups_id' : groups_id,
-                                                                                                }, context=context)
+                self.pool.get('ir.ui.menu').write(cr, SUPERUSER_ID, [action_report.created_menu_id.id], {'name' : action_report.name or 'Pentaho Report',
+                                                                                                         'parent_id' : action_report.linked_menu_id.id,
+                                                                                                         'groups_id' : groups_id,
+                                                                                                         }, context=context)
                 result = action_report.created_menu_id.id
         else:
             result = 0
@@ -171,7 +172,7 @@ class report_xml(osv.osv):
             if r.created_menu_id:
                 self.delete_menu(cr, uid, r.created_menu_id.id, context=context)
 
-            values_obj.unlink(cr, uid, values_obj.search(cr, uid, [("value", "=", "ir.actions.report.xml,%s" % r.id)]), context=context)
+            values_obj.unlink(cr, SUPERUSER_ID, values_obj.search(cr, uid, [("value", "=", "ir.actions.report.xml,%s" % r.id)]), context=context)
 
         return super(report_xml, self).unlink(cr, uid, ids, context=context)
 
@@ -209,9 +210,9 @@ class report_xml(osv.osv):
                             "value": "ir.actions.report.xml,%s" % report.id
                             }
                     if not values_ids:
-                        values_obj.create(cr, uid, data, context=context)
+                        values_obj.create(cr, SUPERUSER_ID, data, context=context)
                     else:
-                        values_obj.write(cr, uid, values_ids, data, context=context)
+                        values_obj.write(cr, SUPERUSER_ID, values_ids, data, context=context)
                     values_ids = []
                 core.register_pentaho_report(report.report_name)
 
@@ -219,7 +220,7 @@ class report_xml(osv.osv):
                 super(report_xml, self).write(cr, uid, [report.id], {"pentaho_file": False})
 
             if context.get('is_pentaho_report', False) and values_ids:
-                values_obj.unlink(cr, uid, values_ids, context=context)
+                values_obj.unlink(cr, SUPERUSER_ID, values_ids, context=context)
 
         return True
 
