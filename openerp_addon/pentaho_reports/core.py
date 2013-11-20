@@ -125,16 +125,16 @@ def get_proxy_args(cr, uid, prpt_content):
     current_user = pool.get("res.users").browse(cr, uid, uid)
     config_obj = pool.get('ir.config_parameter')
 
-    proxy_url = config_obj.get_param(cr, uid, 'pentaho.server.url', default='http://localhost:8090/pentaho-reports-for-openerp')
+    proxy_url = config_obj.get_param(cr, uid, 'pentaho.server.url', default='http://localhost:8080/pentaho-reports-for-openerp')
 
     proxy_argument = {
                       "prpt_file_content": xmlrpclib.Binary(prpt_content),
                       "connection_settings": {'openerp': {"host": config["xmlrpc_interface"] or "localhost",
-                                                            "port": str(config["xmlrpc_port"]),
-                                                            "db": cr.dbname,
-                                                            "login": current_user.login,
-                                                            "password": current_user.password,
-                                                            }},
+                                                          "port": str(config["xmlrpc_port"]),
+                                                          "db": cr.dbname,
+                                                          "login": current_user.login,
+                                                          "password": current_user.password,
+                                                          }},
                       }
 
     postgresconfig_host = config_obj.get_param(cr, uid, 'pentaho.postgres.host', default='localhost')
@@ -144,11 +144,11 @@ def get_proxy_args(cr, uid, prpt_content):
 
     if postgresconfig_host and postgresconfig_port and postgresconfig_login and postgresconfig_password:
         proxy_argument['connection_settings'].update({'postgres': {'host': postgresconfig_host,
-                                                                    'port': postgresconfig_port,
-                                                                    'db': cr.dbname,
-                                                                    'login': postgresconfig_login,
-                                                                    'password': postgresconfig_password,
-                                                                    }})
+                                                                   'port': postgresconfig_port,
+                                                                   'db': cr.dbname,
+                                                                   'login': postgresconfig_login,
+                                                                   'password': postgresconfig_password,
+                                                                   }})
 
     return proxy_url, proxy_argument
 
@@ -276,7 +276,7 @@ class PentahoReportOpenERPInterface(report.interface.report_int):
             aname = eval(attachment, {'object': obj, 'version': str(len(attachment_ids)), 'time': time.strftime('%Y-%m-%d')})
             if aname:
                 try:
-                    name = aname + '.' + output_type
+                    name = '%s%s' % (aname, '' if aname.endswith(output_type) else '.' + output_type)
                     # Remove the default_type entry from the context: this
                     # is for instance used on the account.account_invoices
                     # and is thus not intended for the ir.attachment type
