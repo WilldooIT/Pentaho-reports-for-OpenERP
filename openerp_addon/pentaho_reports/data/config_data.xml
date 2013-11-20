@@ -6,6 +6,16 @@
 			<field name="value">http://localhost:8080/pentaho-reports-for-openerp</field>
 		</record>
 
+		<record id="pentaho_openerp_xml_interface" model="ir.config_parameter">
+			<field name="key">pentaho.openerp.xml.interface</field>
+			<field name="value"> </field>
+		</record>
+
+		<record id="pentaho_openerp_xml_port" model="ir.config_parameter">
+			<field name="key">pentaho.openerp.xml.port</field>
+			<field name="value"> </field>
+		</record>
+
 		<record id="pentaho_postgres_host" model="ir.config_parameter">
 			<field name="key">pentaho.postgres.host</field>
 			<field name="value">localhost</field>
