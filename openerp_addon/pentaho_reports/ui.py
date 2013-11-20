@@ -1,12 +1,12 @@
 import os
 import base64
-import unicodedata
 from tools.translate import _
 from tools.safe_eval import safe_eval
 
 from openerp import SUPERUSER_ID
 
 from osv import osv, fields
+from openerp import SUPERUSER_ID
 
 import core
 
@@ -26,12 +26,12 @@ class report_xml(osv.osv):
             ("xls", "Excel"), ("rtf", "RTF"), ("txt", "Plain text")
         ], "Output format"),
         "pentaho_report_model_id": fields.many2one("ir.model", "Model"),
-        "pentaho_file": fields.binary("File", filters = "*.prpt"),
-        "pentaho_filename": fields.char("Filename", size = 256, required = False),
+        "pentaho_file": fields.binary("File", filters="*.prpt"),
+        "pentaho_filename": fields.char("Filename", size=256, required=False),
         "is_pentaho_report": fields.boolean("Is this a Pentaho report?"),
-        'linked_menu_id' : fields.many2one('ir.ui.menu','Linked menu item', select=True),
-        'created_menu_id' : fields.many2one('ir.ui.menu','Created menu item'),
-        'pentaho_load_file' : fields.boolean('Load prpt file from filename'), # This is not displayed on the client - it is a trigger to indicate that
+        'linked_menu_id': fields.many2one('ir.ui.menu', 'Linked menu item', select=True),
+        'created_menu_id': fields.many2one('ir.ui.menu', 'Created menu item'),
+        'pentaho_load_file': fields.boolean('Load prpt file from filename'),  # This is not displayed on the client - it is a trigger to indicate that
                                                                               # a prpt file needs to be loaded - normally it is loaded by the client interface
                                                                               # In this case, the filename should be specified with a module path.
 
@@ -46,13 +46,12 @@ class report_xml(osv.osv):
         if context is None:
             context = {}
         default = default.copy()
-        default.update({'created_menu_id' : 0})
+        default.update({'created_menu_id': 0})
         return super(report_xml, self).copy(cr, uid, id, default, context=context)
-
 
     def create_menu(self, cr, uid, vals, context=None):
 
-        view_ids=self.pool.get('ir.ui.view').search(cr, uid, [('model', '=', 'ir.actions.report.promptwizard'),('type','=','form')], context=context)
+        view_ids = self.pool.get('ir.ui.view').search(cr, uid, [('model', '=', 'ir.actions.report.promptwizard'), ('type', '=', 'form')], context=context)
 
         action_vals = {'name': vals.get('name','Pentaho Report'),
                        'res_model': 'ir.actions.report.promptwizard',
@@ -65,13 +64,13 @@ class report_xml(osv.osv):
                        }
         action_id = self.pool.get('ir.actions.act_window').create(cr, uid, action_vals, context=context)
 
-        result = self.pool.get('ir.ui.menu').create(cr, uid, {'name' : vals.get('name' ,'Pentaho Report'),
-                                                              'sequence' : 10,
-                                                              'parent_id' : vals['linked_menu_id'],
-                                                              'groups_id' : vals.get('groups_id',[]),
-                                                              'icon' : 'STOCK_PRINT',
-                                                              'action' : 'ir.actions.act_window,%d' % (action_id,),
-                                                              }, context=context)
+        result = self.pool.get('ir.ui.menu').create(cr, SUPERUSER_ID, {'name' : vals.get('name' ,'Pentaho Report'),
+                                                                       'sequence' : 10,
+                                                                       'parent_id' : vals['linked_menu_id'],
+                                                                       'groups_id' : vals.get('groups_id',[]),
+                                                                       'icon' : 'STOCK_PRINT',
+                                                                       'action' : 'ir.actions.act_window,%d' % (action_id,),
+                                                                       }, context=context)
 
         return result
 
@@ -80,7 +79,7 @@ class report_xml(osv.osv):
         action = self.pool.get('ir.ui.menu').browse(cr, uid, menu_id, context=context).action
         if action and action._model._name == 'ir.actions.act_window':
             self.pool.get('ir.actions.act_window').unlink(cr, uid, [action.id], context=context)
-        result = self.pool.get('ir.ui.menu').unlink(cr, uid, [menu_id], context=context)
+        result = self.pool.get('ir.ui.menu').unlink(cr, SUPERUSER_ID, [menu_id], context=context)
         return result
 
 
@@ -107,10 +106,10 @@ class report_xml(osv.osv):
                                                                                         'context' : str(new_context),
                                                                                         }, context=context)
 
-                self.pool.get('ir.ui.menu').write(cr, uid, [action_report.created_menu_id.id], {'name' : action_report.name or 'Pentaho Report',
-                                                                                                'parent_id' : action_report.linked_menu_id.id,
-                                                                                                'groups_id' : groups_id,
-                                                                                                }, context=context)
+                self.pool.get('ir.ui.menu').write(cr, SUPERUSER_ID, [action_report.created_menu_id.id], {'name' : action_report.name or 'Pentaho Report',
+                                                                                                         'parent_id' : action_report.linked_menu_id.id,
+                                                                                                         'groups_id' : groups_id,
+                                                                                                         }, context=context)
                 result = action_report.created_menu_id.id
         else:
             result = 0
@@ -217,7 +216,6 @@ class report_xml(osv.osv):
                     else:
                         values_obj.write(cr, SUPERUSER_ID, values_ids, data, context=context)
                     values_ids = []
-
                 core.register_pentaho_report(report.report_name)
 
             elif report.pentaho_file:
@@ -232,7 +230,6 @@ class report_xml(osv.osv):
     def read_content_from_file(self, name):
 
         path_found = False
-
         for addons_path in ADDONS_PATHS:
             try:
                 os.stat(addons_path + os.sep + name)
@@ -345,7 +342,6 @@ class report_xml(osv.osv):
         if param_values:
             self.pentaho_validate_params(cr, uid, report, param_values, context=context)
             datas['variables'] = param_values
-
         return {
             'type': 'ir.actions.report.xml',
             'report_name': report.report_name,
