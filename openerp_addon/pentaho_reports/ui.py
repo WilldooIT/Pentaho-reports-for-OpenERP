@@ -1,6 +1,5 @@
 import os
 import base64
-import unicodedata
 from tools.translate import _
 from tools.safe_eval import safe_eval
 
@@ -24,12 +23,12 @@ class report_xml(osv.osv):
             ("xls", "Excel"), ("rtf", "RTF"), ("txt", "Plain text")
         ], "Output format"),
         "pentaho_report_model_id": fields.many2one("ir.model", "Model"),
-        "pentaho_file": fields.binary("File", filters = "*.prpt"),
-        "pentaho_filename": fields.char("Filename", size = 256, required = False),
+        "pentaho_file": fields.binary("File", filters="*.prpt"),
+        "pentaho_filename": fields.char("Filename", size=256, required=False),
         "is_pentaho_report": fields.boolean("Is this a Pentaho report?"),
-        'linked_menu_id' : fields.many2one('ir.ui.menu','Linked menu item', select=True),
-        'created_menu_id' : fields.many2one('ir.ui.menu','Created menu item'),
-        'pentaho_load_file' : fields.boolean('Load prpt file from filename'), # This is not displayed on the client - it is a trigger to indicate that
+        'linked_menu_id': fields.many2one('ir.ui.menu', 'Linked menu item', select=True),
+        'created_menu_id': fields.many2one('ir.ui.menu', 'Created menu item'),
+        'pentaho_load_file': fields.boolean('Load prpt file from filename'),  # This is not displayed on the client - it is a trigger to indicate that
                                                                               # a prpt file needs to be loaded - normally it is loaded by the client interface
                                                                               # In this case, the filename should be specified with a module path.
 
@@ -44,13 +43,12 @@ class report_xml(osv.osv):
         if context is None:
             context = {}
         default = default.copy()
-        default.update({'created_menu_id' : 0})
+        default.update({'created_menu_id': 0})
         return super(report_xml, self).copy(cr, uid, id, default, context=context)
-
 
     def create_menu(self, cr, uid, vals, context=None):
 
-        view_ids=self.pool.get('ir.ui.view').search(cr, uid, [('model', '=', 'ir.actions.report.promptwizard'),('type','=','form')], context=context)
+        view_ids = self.pool.get('ir.ui.view').search(cr, uid, [('model', '=', 'ir.actions.report.promptwizard'), ('type', '=', 'form')], context=context)
 
         action_vals = {'name': vals.get('name','Pentaho Report'),
                        'res_model': 'ir.actions.report.promptwizard',
@@ -215,7 +213,6 @@ class report_xml(osv.osv):
                     else:
                         values_obj.write(cr, uid, values_ids, data, context=context)
                     values_ids = []
-
                 core.register_pentaho_report(report.report_name)
 
             elif report.pentaho_file:
@@ -230,7 +227,6 @@ class report_xml(osv.osv):
     def read_content_from_file(self, name):
 
         path_found = False
-
         for addons_path in ADDONS_PATHS:
             try:
                 os.stat(addons_path + os.sep + name)
@@ -343,7 +339,6 @@ class report_xml(osv.osv):
         if param_values:
             self.pentaho_validate_params(cr, uid, report, param_values, context=context)
             datas['variables'] = param_values
-
         return {
             'type': 'ir.actions.report.xml',
             'report_name': report.report_name,
