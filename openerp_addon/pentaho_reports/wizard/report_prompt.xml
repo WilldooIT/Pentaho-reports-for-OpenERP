@@ -12,11 +12,11 @@
 						<!-- Place holder group for where selections will be inserted -->
 						<group colspan="4" string='Selections'/>
 					</group>
-	                <footer>
+					<footer>
 						<button class="oe_highlight" string='Print' name='check_report' type='object' />
 						or
 						<button class="oe_link" string='Cancel' special='cancel'/>
-	                </footer>
+					</footer>
 				</form>
 			</field>
 		</record>

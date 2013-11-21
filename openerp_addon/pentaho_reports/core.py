@@ -1,26 +1,24 @@
+# -*- encoding: utf-8 -*-
 # Todo:
 #    multiple prpt files for one action - allows for alternate formats.
-
 
 import xmlrpclib
 import base64
 
-import netsvc
-import pooler
-import report
-from osv import osv
-from tools.translate import _
+from openerp import netsvc
+from openerp import pooler
+from openerp import report
+from openerp.osv import orm
+from openerp.tools import config
+from openerp.tools.translate import _
 import logging
 import time
+from datetime import datetime
+from openerp.tools import DEFAULT_SERVER_DATE_FORMAT, DEFAULT_SERVER_DATETIME_FORMAT
 
 from .java_oe import JAVA_MAPPING, check_java_list, PARAM_VALUES, RESERVED_PARAMS
 
-from tools import config
-from datetime import datetime
 _logger = logging.getLogger(__name__)
-
-
-from openerp.tools import DEFAULT_SERVER_DATE_FORMAT, DEFAULT_SERVER_DATETIME_FORMAT
 
 SERVICE_NAME_PREFIX = 'report.'
 DEFAULT_OUTPUT_TYPE = 'pdf'
@@ -31,6 +29,7 @@ def get_date_length(date_format=DEFAULT_SERVER_DATE_FORMAT):
 
 
 class _format(object):
+
     def set_value(self, cr, uid, name, object, field, lang_obj):
         self.object = object
         self._field = field
@@ -39,7 +38,6 @@ class _format(object):
 
 
 class _float_format(float, _format):
-
     def __init__(self, value):
         super(_float_format, self).__init__()
         self.val = value or 0.0
@@ -119,25 +117,24 @@ def get_proxy_args(cr, uid, prpt_content):
              includes the connection settings and report definition but does
              not include any report parameter values.
     """
-
     pool = pooler.get_pool(cr.dbname)
 
-    current_user = pool.get("res.users").browse(cr, uid, uid)
+    current_user = pool.get('res.users').browse(cr, uid, uid)
     config_obj = pool.get('ir.config_parameter')
 
     proxy_url = config_obj.get_param(cr, uid, 'pentaho.server.url', default='http://localhost:8080/pentaho-reports-for-openerp')
 
-    xml_interface = config_obj.get_param(cr, uid, 'pentaho.openerp.xml.interface', default='').strip() or config["xmlrpc_interface"] or "localhost"
-    xml_port = config_obj.get_param(cr, uid, 'pentaho.openerp.xml.port', default='').strip() or str(config["xmlrpc_port"])
+    xml_interface = config_obj.get_param(cr, uid, 'pentaho.openerp.xml.interface', default='').strip() or config['xmlrpc_interface'] or 'localhost'
+    xml_port = config_obj.get_param(cr, uid, 'pentaho.openerp.xml.port', default='').strip() or str(config['xmlrpc_port'])
 
     proxy_argument = {
-                      "prpt_file_content": xmlrpclib.Binary(prpt_content),
-                      "connection_settings": {'openerp': {"host": xml_interface,
-                                                          "port": xml_port, 
-                                                          "db": cr.dbname,
-                                                          "login": current_user.login,
-                                                          "password": current_user.password,
-                                                          }},
+                      'prpt_file_content': xmlrpclib.Binary(prpt_content),
+                      'connection_settings': {'openerp': {'host': xml_interface,
+                                                          'port': xml_port,
+                                                          'db': cr.dbname,
+                                                          'login': current_user.login,
+                                                          'password': current_user.password,
+                                                          }}
                       }
 
     postgresconfig_host = config_obj.get_param(cr, uid, 'pentaho.postgres.host', default='localhost')
@@ -169,11 +166,11 @@ class Report(object):
         self.default_output_type = DEFAULT_OUTPUT_TYPE
 
     def setup_report(self):
-        ids = self.pool.get("ir.actions.report.xml").search(self.cr, self.uid, [("report_name", "=", self.name[7:]), ("is_pentaho_report", "=", True)], context=self.context)
+        ids = self.pool.get('ir.actions.report.xml').search(self.cr, self.uid, [('report_name', '=', self.name[7:]), ('is_pentaho_report', '=', True)], context=self.context)
         if not ids:
-            raise osv.except_osv(_('Error'), _("Report service name '%s' is not a Pentaho report.") % self.name[7:])
-        data = self.pool.get("ir.actions.report.xml").read(self.cr, self.uid, ids[0], ["pentaho_report_output_type", "pentaho_file"])
-        self.default_output_type = data["pentaho_report_output_type"] or DEFAULT_OUTPUT_TYPE
+            raise orm.except_orm(_('Error'), _("Report service name '%s' is not a Pentaho report.") % self.name[7:])
+        data = self.pool.get('ir.actions.report.xml').read(self.cr, self.uid, ids[0], ['pentaho_report_output_type', 'pentaho_file'])
+        self.default_output_type = data['pentaho_report_output_type'] or DEFAULT_OUTPUT_TYPE
         self.prpt_content = base64.decodestring(data["pentaho_file"])
 
     def execute(self):
@@ -204,6 +201,7 @@ class Report(object):
                                'output_type': output_type,
                                'report_parameters': dict([(param_name, param_formula(self)) for (param_name, param_formula) in RESERVED_PARAMS.iteritems() if param_formula(self)]),
                                })
+
         if self.data and self.data.get('variables', False):
             proxy_argument['report_parameters'].update(self.data['variables'])
             for parameter in proxy_parameter_info:
@@ -219,12 +217,12 @@ class Report(object):
 
         rendered_report = proxy.report.execute(proxy_argument).data
         if len(rendered_report) == 0:
-            raise osv.except_osv(_('Error'), _("Pentaho returned no data for the report '%s'. Check report definition and parameters.") % self.name[7:])
+            raise orm.except_orm(_('Error'), _("Pentaho returned no data for the report '%s'. Check report definition and parameters.") % self.name[7:])
+
         return (rendered_report, output_type)
 
 
 class PentahoReportOpenERPInterface(report.interface.report_int):
-
     def __init__(self, name):
         if name in netsvc.Service._services:
             del netsvc.Service._services[name]
@@ -300,7 +298,6 @@ class PentahoReportOpenERPInterface(report.interface.report_int):
                     _logger.error('Could not create saved report attachment', exc_info=True)
         return True
 
-
 def check_report_name(report_name):
     """Adds 'report.' prefix to report name if not present already
     Returns: full report name
@@ -311,7 +308,6 @@ def check_report_name(report_name):
         name = report_name
     return name
 
-
 def change_service_name(old_name, new_name):
     """Deletes service with old name and register
     one with new name.
@@ -319,7 +315,6 @@ def change_service_name(old_name, new_name):
     if old_name in netsvc.Service._services:
         del netsvc.Service._services[old_name]
     PentahoReportOpenERPInterface(new_name)
-
 
 def register_pentaho_report(report_name):
     name = check_report_name(report_name)
@@ -341,15 +336,16 @@ def fetch_report_parameters(cr, uid, report_name, context=None):
 
 
 #Following OpenERP's (messed up) naming convention
-class ir_actions_report_xml(osv.osv):
-    _inherit = "ir.actions.report.xml"
+class ir_actions_report_xml(orm.Model):
+    _inherit = 'ir.actions.report.xml'
 
     def register_all(self, cr):
-        cr.execute("SELECT * FROM ir_act_report_xml WHERE is_pentaho_report = 'TRUE' ORDER BY id")
+        cr.execute("""SELECT * FROM ir_act_report_xml
+                        WHERE is_pentaho_report = 'TRUE'
+                        ORDER BY id
+                    """)
         records = cr.dictfetchall()
         for record in records:
-            register_pentaho_report(record["report_name"])
+            register_pentaho_report(record['report_name'])
 
         return super(ir_actions_report_xml, self).register_all(cr)
-
-ir_actions_report_xml()
