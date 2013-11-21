@@ -81,6 +81,11 @@ The address of the Pentaho server which is used to render the report is defined 
 For object based data sources, the Pentaho server will use XML-RPC to connect to the current database using the \
 interface and port as defined in the OpenERP config file, and the reporting user's credentials.
 
+If not defined in the config file, the interface and port can be defined with the parameters:
+
+* pentaho.openerp.xml.interface
+* pentaho.openerp.xml.port
+
 For SQL query based data sources, the Pentaho server will use the following parameters:
 
 * pentaho.postgres.host
@@ -91,7 +96,9 @@ For SQL query based data sources, the Pentaho server will use the following para
 
 Report Actions
 --------------
-Reports are defined to OpenERP under **Settings/Technical/Low Level Objects/Actions/Pentaho Reports**.
+Reports are defined to OpenERP under **Settings/Technical/Low Level Objects/Actions/Reports**.  This is the \
+place where standard OpenERP report actions are defined. Selecting the appropriate checkbox can convert existing \
+report actions to Pentaho Report Actions.
 
 Reports can be handled by OpenERP in two ways. They can be linked to a menu, or they can be linked to a model.
 
