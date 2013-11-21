@@ -37,8 +37,15 @@ class report_xml(osv.osv):
 
     }
     _defaults = {
-        "pentaho_report_output_type": lambda self, cr, uid, context: context and context.get("is_pentaho_report") and "pdf" or False
+        "pentaho_report_output_type": 'pdf'
     }
+
+    def onchange_is_pentaho(self, cr, uid, ids, is_pentaho_report, context=None):
+        result = {'value': {}}
+        if is_pentaho_report:
+            result['value'].update({'auto' : False,
+                                    })
+        return result
 
     def copy(self, cr, uid, id, default=None, context=None):
         if default is None:
@@ -120,14 +127,10 @@ class report_xml(osv.osv):
 
 
     def create(self, cr, uid, vals, context = None):
-        if context is None:
-            context={}
-
-        if context.get("is_pentaho_report",False):
+        if vals.get('is_pentaho_report'):
             vals["model"] = self.pool.get("ir.model").browse(cr, uid, vals["pentaho_report_model_id"], context=context).model
             vals["type"] = "ir.actions.report.xml"
             vals["report_type"] = "pdf"
-            vals["is_pentaho_report"] = True
             vals['auto'] = False
 
         if vals.get('linked_menu_id', False):
@@ -143,15 +146,11 @@ class report_xml(osv.osv):
 
 
     def write(self, cr, uid, ids, vals, context = None):
-        if context is None:
-            context={}
-
-        if context.get("is_pentaho_report", False):
+        if vals.get('is_pentaho_report'):
             if "pentaho_report_model_id" in vals:
                 vals["model"] = self.pool.get("ir.model").browse(cr, uid, vals["pentaho_report_model_id"], context=context).model
             vals["type"] = "ir.actions.report.xml"
             vals["report_type"] = "pdf"
-            vals["is_pentaho_report"] = True
             vals['auto'] = False
 
         res = super(report_xml, self).write(cr, uid, ids, vals, context=context)
@@ -189,40 +188,56 @@ class report_xml(osv.osv):
 
             values_ids = values_obj.search(cr, uid, [("value", "=", "ir.actions.report.xml,%s" % report.id)])
 
-            if report.pentaho_filename:
-                if report.pentaho_load_file:
-                    # if we receive a filename and no content, this has probably been loaded by a process other than the standard client, such as a data import
-                    # in this case, we expect the filename to be a fully specified file within a module from which we load the file data
-                    super(report_xml, self).write(cr, uid, [report.id], {'pentaho_filename' : os.path.basename(report.pentaho_filename), 'pentaho_file' : self.read_content_from_file(report.pentaho_filename), 'pentaho_load_file' : False})
-                    report = self.browse(cr, uid, report.id)
+            if report.is_pentaho_report:
+                if report.pentaho_filename:
+                    if report.pentaho_load_file:
+                        # if we receive a filename and no content, this has probably been loaded by a process other than the standard client, such as a data import
+                        # in this case, we expect the filename to be a fully specified file within a module from which we load the file data
+                        super(report_xml, self).write(cr, uid, [report.id], {'pentaho_filename' : os.path.basename(report.pentaho_filename), 'pentaho_file' : self.read_content_from_file(report.pentaho_filename), 'pentaho_load_file' : False})
+                        report = self.browse(cr, uid, report.id)
 
-#                path = self.save_content_to_file(report.pentaho_filename, report.pentaho_file)
-#                super(report_xml, self).write(cr, uid, [report.id], {"report_rml": path})
+#                    path = self.save_content_to_file(report.pentaho_filename, report.pentaho_file)
+#                    super(report_xml, self).write(cr, uid, [report.id], {"report_rml": path})
 
-                # we are no longer relying on report_rml to contain a name at all - for clarity, though, still store it...
-                super(report_xml, self).write(cr, uid, [report.id], {"report_rml": report.pentaho_filename})
+                    # we are no longer relying on report_rml to contain a name at all - for clarity, though, still store it...
+                    super(report_xml, self).write(cr, uid, [report.id], {"report_rml": report.pentaho_filename})
 
-                if not report.linked_menu_id and report.pentaho_filename.endswith(".prpt"):
-                    data = {
-                            "name": report.name,
-                            "model": report.model,
-                            "key": "action",
-                            "object": True,
-                            "key2": "client_print_multi",
-                            "value": "ir.actions.report.xml,%s" % report.id
-                            }
-                    if not values_ids:
-                        values_obj.create(cr, SUPERUSER_ID, data, context=context)
-                    else:
-                        values_obj.write(cr, SUPERUSER_ID, values_ids, data, context=context)
-                    values_ids = []
-                core.register_pentaho_report(report.report_name)
+                    if not report.linked_menu_id and report.pentaho_filename.endswith(".prpt"):
+                        data = {
+                                "name": report.name,
+                                "model": report.model,
+                                "key": "action",
+                                "object": True,
+                                "key2": "client_print_multi",
+                                "value": "ir.actions.report.xml,%s" % report.id
+                                }
+                        if not values_ids:
+                            values_obj.create(cr, SUPERUSER_ID, data, context=context)
+                        else:
+                            values_obj.write(cr, SUPERUSER_ID, values_ids, data, context=context)
+                        values_ids = []
+                    core.register_pentaho_report(report.report_name)
 
-            elif report.pentaho_file:
-                super(report_xml, self).write(cr, uid, [report.id], {"pentaho_file": False})
+                elif report.pentaho_file:
+                    super(report_xml, self).write(cr, uid, [report.id], {"pentaho_file": False})
 
-            if context.get('is_pentaho_report', False) and values_ids:
-                values_obj.unlink(cr, SUPERUSER_ID, values_ids, context=context)
+                # If this is a pentaho report and there are still "values_ids", it means that
+                # the action is not considered valid - get rid of the values_ids...
+                if values_ids:
+                    values_obj.unlink(cr, SUPERUSER_ID, values_ids, context=context)
+
+            # If this is not a pentaho report, then the action should always have a row in values
+            else:
+                if not values_ids:
+                    values_obj.create(cr, SUPERUSER_ID, {
+                                                         "name": report.name,
+                                                         "model": report.model,
+                                                         "key": "action",
+                                                         "object": True,
+                                                         "key2": "client_print_multi",
+                                                         "value": "ir.actions.report.xml,%s" % report.id
+                                                         },
+                                      context = context)
 
         return True
 

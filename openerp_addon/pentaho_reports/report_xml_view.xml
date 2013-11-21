@@ -7,7 +7,7 @@
 			<field name="inherit_id" ref="base.act_report_xml_view"/>
 			<field name="arch" type="xml">
 				<field name="report_name" position="after">
-					<field name="is_pentaho_report"/>
+					<field name="is_pentaho_report" on_change='onchange_is_pentaho(is_pentaho_report)'/>
 				</field>
 				<field name="model" position='attributes'>
 					<attribute name='attrs'>{'invisible': [('is_pentaho_report', '=', True)]}</attribute>
@@ -26,6 +26,9 @@
 					<field name="pentaho_report_output_type" attrs="{'invisible': [('is_pentaho_report', '!=', True)], 'required': [('is_pentaho_report', '=', True)]}"/>
 					<field name="pentaho_file" filename="pentaho_filename" attrs="{'invisible': [('is_pentaho_report', '!=', True)], 'required': [('is_pentaho_report', '=', True)]}"/>
 					<field name="pentaho_filename" attrs="{'required': [('is_pentaho_report', '=', True)]}" invisible='1'/>
+				</field>
+				<field name="auto" position='attributes'>
+					<attribute name='attrs'>{'invisible': [('is_pentaho_report', '=', True)]}</attribute>
 				</field>
 				<group string="RML Report" position='attributes'>
 					<attribute name='attrs'>{'invisible': [('is_pentaho_report', '=', True)]}</attribute>
