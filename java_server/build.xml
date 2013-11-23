@@ -46,15 +46,18 @@
 	<target name="war" depends="compile">
 		<mkdir dir="${jar.dir}"/>
 
-		<war destfile="${jar.dir}/${ant.project.name}.war" webxml="${src.dir}/metadata/web.xml">
-			<lib dir="${lib.dir}/runtime">
+		<war destfile="${jar.dir}/${ant.project.name}.war" webxml="WebContent/WEB-INF/web.xml">
+		  <lib dir="WebContent/WEB-INF/lib">
 				<exclude name="servlet-api.jar"/>
 				<exclude name="junit.jar"/>
 				<exclude name="xmlunit.jar"/>
 			</lib>
 
-			<classes dir="${classes.dir}" excludes="**/StandaloneReportServer.class"/>
-
+			<classes dir="build/classes" excludes="**/StandaloneReportServer.class"/>
+      <fileset dir="WebContent">
+        <exclude name="WEB-INF/web.xml"/>
+      </fileset>
+      
 			<zipfileset dir="${src.dir}" includes="**/*.properties" prefix="WEB-INF/classes"/>
 		</war>
 	</target>

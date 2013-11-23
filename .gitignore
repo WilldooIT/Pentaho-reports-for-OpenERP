@@ -3,7 +3,6 @@
 *.pyc
 *~
 *.jar
-.project
 .pydevproject
 .settings
 build/
