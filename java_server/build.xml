@@ -46,7 +46,7 @@
 	<target name="war" depends="compile">
 		<mkdir dir="${jar.dir}"/>
 
-		<war destfile="${jar.dir}/${ant.project.name}.war" webxml="${src.dir}/metadata/web.xml">
+		<war destfile="${jar.dir}/${ant.project.name}.war" webxml="WebContent/WEB-INF/web.xml">
 			<lib dir="${lib.dir}/runtime">
 				<exclude name="servlet-api.jar"/>
 				<exclude name="junit.jar"/>
