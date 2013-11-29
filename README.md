@@ -2,7 +2,7 @@
 
 This project provides an addon for OpenERP that integrates it with
 the Pentaho reporting system. End users of OpenERP can design
-reports using Pentaho report designer v3.9 (instructions on how
+reports using Pentaho report designer v5 (instructions on how
 to setup the designer: http://bit.ly/L4wPoC), and install/access
 them from inside the OpenERP interface.
 
@@ -20,6 +20,7 @@ Apache Ant be installed, and also Apache Ivy as it is used to retrieve
 all the dependencies required to compile and run the application.
 
 	$ cd <extracted_path>/java_server
+	$ ant clean
 	$ ant war
 
 If the build completed successfully, the WAR file can be found
