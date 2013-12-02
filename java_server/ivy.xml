@@ -39,5 +39,8 @@
 		<!-- Drivers for SQL access -->
 		<dependency org="postgresql" name="postgresql" rev="8.3-604.jdbc3" conf="runtime -> master(*)"/>
 		
+		<!-- Should be downloaded as a dependent of libfonts (that is a dependent of core, but isn't) -->
+		<dependency org="com.lowagie" name="itext" rev="2.1.7" conf="runtime -> master(*)"/>
+    
 	</dependencies>
 </ivy-module>
