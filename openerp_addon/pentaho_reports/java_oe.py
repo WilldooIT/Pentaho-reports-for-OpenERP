@@ -73,12 +73,18 @@ PARAM_VALUES = {
                             'conv_default': lambda x: datetime.strptime(x.value, '%Y%m%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')},
                 }
 
+
+# functions here will be passed a dictionary to evaluate reserved values. The dictionary should have:
+#    'ids' - object ids in force
+#    'uid' - the applicable user
+#    'context' - the applicable context
+
 RESERVED_PARAMS = {
-                   'ids': lambda s: s.ids,
-                   'context_lang': lambda s: s.context.get('lang'),
-                   'context_tz': lambda s: s.context.get('tz'),
-                   'user_id': lambda s: s.uid,
-                   'user_name': lambda s: s.pool.get('res.users').browse(s.cr, s.uid, s.uid, context=s.context).name,
+                   'ids': lambda s, cr, uid, d: d.get('ids',[]),
+                   'user_id': lambda s, cr, uid, d: d.get('uid', 0),
+                   'user_name': lambda s, cr, uid, d: d.get('uid') and s.pool.get('res.users').browse(cr, uid, d['uid'], context=d.get('context')).name or '',
+                   'context_lang': lambda s, cr, uid, d: d.get('context', {}).get('lang', ''),
+                   'context_tz': lambda s, cr, uid, d: d.get('context', {}).get('tz', ''),
                    }
 
 

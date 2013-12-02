@@ -108,14 +108,15 @@ _fields_process = {
     }
 
 
-def get_proxy_args(cr, uid, prpt_content):
+def get_proxy_args(instance, cr, uid, prpt_content, context_vars={}):
     """Return the arguments needed by Pentaho server proxy.
 
     @return: Tuple with:
         [0]: Has the url for the Pentaho server.
         [1]: Has dict with basic arguments to pass to Pentaho server. This
-             includes the connection settings and report definition but does
-             not include any report parameter values.
+             includes the connection settings and report definition, as well
+             as reserved parameters evaluated according to values in
+             the dictionary "context_vars".
     """
     pool = pooler.get_pool(cr.dbname)
 
@@ -134,7 +135,8 @@ def get_proxy_args(cr, uid, prpt_content):
                                                           'db': cr.dbname,
                                                           'login': current_user.login,
                                                           'password': current_user.password,
-                                                          }}
+                                                          }},
+                      'report_parameters': dict([(param_name, param_formula(instance, cr, uid, context_vars)) for (param_name, param_formula) in RESERVED_PARAMS.iteritems() if param_formula(instance, cr, uid, context_vars)]),
                       }
 
     postgresconfig_host = config_obj.get_param(cr, uid, 'pentaho.postgres.host', default='localhost')
@@ -164,6 +166,11 @@ class Report(object):
         self.pool = pooler.get_pool(self.cr.dbname)
         self.prpt_content = None
         self.default_output_type = DEFAULT_OUTPUT_TYPE
+        self.context_vars = {
+                             'ids': self.ids,
+                             'uid': self.uid,
+                             'context': self.context,
+                             }
 
     def setup_report(self):
         ids = self.pool.get('ir.actions.report.xml').search(self.cr, self.uid, [('report_name', '=', self.name[7:]), ('is_pentaho_report', '=', True)], context=self.context)
@@ -186,21 +193,17 @@ class Report(object):
         """
         self.setup_report()
 
-        proxy_url, proxy_argument = get_proxy_args(self.cr, self.uid, self.prpt_content)
+        proxy_url, proxy_argument = get_proxy_args(self, self.cr, self.uid, self.prpt_content, self.context_vars)
         proxy = xmlrpclib.ServerProxy(proxy_url)
         return proxy.report.getParameterInfo(proxy_argument)
 
     def execute_report(self):
-        proxy_url, proxy_argument = get_proxy_args(self.cr, self.uid, self.prpt_content)
+        proxy_url, proxy_argument = get_proxy_args(self, self.cr, self.uid, self.prpt_content, self.context_vars)
         proxy = xmlrpclib.ServerProxy(proxy_url)
         proxy_parameter_info = proxy.report.getParameterInfo(proxy_argument)
 
         output_type = self.data and self.data.get('output_type', False) or self.default_output_type or DEFAULT_OUTPUT_TYPE
-
-        proxy_argument.update({
-                               'output_type': output_type,
-                               'report_parameters': dict([(param_name, param_formula(self)) for (param_name, param_formula) in RESERVED_PARAMS.iteritems() if param_formula(self)]),
-                               })
+        proxy_argument['output_type'] = output_type
 
         if self.data and self.data.get('variables', False):
             proxy_argument['report_parameters'].update(self.data['variables'])
