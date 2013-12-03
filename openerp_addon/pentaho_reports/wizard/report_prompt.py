@@ -182,8 +182,11 @@ class report_prompt_class(orm.TransientModel):
 
         if not self.paramfile or self.paramfile['report_id'] != report_ids[0] or self.paramfile['prpt_content'] != prpt_content or self.paramfile['context'] != context:
 
-            proxy_url, proxy_argument = get_proxy_args(cr, uid, prpt_content)
-
+            proxy_url, proxy_argument = get_proxy_args(self, cr, uid, prpt_content, {
+                                                                                     'ids': [],           # meaningless in this context, so pass nothing...
+                                                                                     'uid': uid,
+                                                                                     'context': context,
+                                                                                     })
             proxy = xmlrpclib.ServerProxy(proxy_url)
             report_parameters = proxy.report.getParameterInfo(proxy_argument)
 

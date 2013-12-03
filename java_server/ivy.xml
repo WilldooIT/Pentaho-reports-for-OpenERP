@@ -9,23 +9,38 @@
 	<dependencies>
 		<dependency org="javax.servlet" name="servlet-api" rev="2.5"/>
 
-		<dependency org="org.apache.commons" name="commons-lang3" rev="3.1" conf="build -> master(*)"/>
-		<dependency org="org.apache.xmlrpc" name="xmlrpc-server" rev="3.1.3" conf="build -> master(*)"/>
-		<dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-core" rev="5.0-SNAPSHOT" conf="build -> master(*), optional(*)"/>
-		<dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-openerp" rev="5.0-SNAPSHOT" conf="build -> master(*), optional(*)"/>
-		<dependency org="com.debortoliwines.openerp" name="openerp-java-api" rev="1.1.0" conf="build -> master(*)"/>
-
-		<dependency org="com.lowagie" name="itext" rev="2.1.7" force="true" conf="runtime -> master(*)"/>
+		<!-- Pentaho -->
+		<dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-core" rev="5.0-SNAPSHOT"/>
+    <dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions" rev="5.0-SNAPSHOT"/>
+		<dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-toc" rev="5.0-SNAPSHOT"/>
+		<dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-scripting" rev="5.0-SNAPSHOT"/>
+		<dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-drill-down" rev="5.0-SNAPSHOT"/>
+ 		<dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-pmd" rev="5.0-SNAPSHOT">
+ 		    <exclude name="scannotation"/> <!-- Already Included -->
+ 		</dependency>  
+    <dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-wizard-core" rev="5.0-SNAPSHOT"/>
+		<dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-legacy-charts" rev="5.0-SNAPSHOT"/>
+		
+		<!-- Optional Pentaho Dependencies - Saved 6MB (From 63MB to 57MB) -->
+		<dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-kettle" rev="5.0-SNAPSHOT">
+        <exclude name="scannotation"/> <!-- Already Included -->
+    </dependency>
+    <dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-cda" rev="5.0-SNAPSHOT"/>
+    <dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-mondrian" rev="5.0-SNAPSHOT"/>
+    <dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-olap4j" rev="5.0-SNAPSHOT"/>
+    <dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-xpath" rev="5.0-SNAPSHOT"/>
+    
+		<!-- OpenERP Plugin -->
+    <dependency org="org.apache.commons" name="commons-lang3" rev="3.1" conf="build -> master(*)"/>
+    <dependency org="org.apache.xmlrpc" name="xmlrpc-server" rev="3.1.3" conf="build -> master(*)"/>
+    <dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-openerp" rev="5.0-SNAPSHOT"/>
+    <dependency org="com.debortoliwines.openerp" name="openerp-java-api" rev="1.1.0"/>
+				
+		<!-- Drivers for SQL access -->
 		<dependency org="postgresql" name="postgresql" rev="8.3-604.jdbc3" conf="runtime -> master(*)"/>
-		<dependency org="log4j" name="log4j" rev="1.2.14" conf="runtime -> default"/>
-		<dependency org="rhino" name="js" rev="1.7R2" conf="runtime -> default"/>
-
-		<!-- Other Pentaho extensions -->
-		<dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions" rev="5.0-SNAPSHOT" conf="runtime -> default"/>
-		<dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-toc" rev="5.0-SNAPSHOT" conf="runtime -> default"/>
-		<dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-scripting" rev="5.0-SNAPSHOT" conf="runtime -> default"/>
-		<dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-drill-down" rev="5.0-SNAPSHOT" conf="runtime -> default"/>
-		<dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-wizard-core" rev="5.0-SNAPSHOT" conf="runtime -> default"/>
-		<dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-legacy-charts" rev="5.0-SNAPSHOT" conf="runtime -> default"/>
+		
+		<!-- Should be downloaded as a dependent of libfonts (that is a dependent of core, but isn't) -->
+		<dependency org="com.lowagie" name="itext" rev="2.1.7" conf="runtime -> master(*)"/>
+    
 	</dependencies>
 </ivy-module>

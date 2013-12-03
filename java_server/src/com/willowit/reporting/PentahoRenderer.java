@@ -293,6 +293,19 @@ public class PentahoRenderer {
 			MasterReport report = (MasterReport) res.getResource();
 
 			fixConfiguration(report, openerp_settings, postgres_settings, parameters);
+			
+			if (parameters != null){
+			  HashMap<String, Object> parameters_types = getParametersTypes(report);
+			  // Set parameters available
+			  ReportParameterValues values = report.getParameterValues();
+			  for(String parameter_name : parameters.keySet()) {
+			    Object parameter_value = parameters.get(parameter_name);
+  
+			    if(parameters_types.get(parameter_name) != null){
+			      typeCastAndStore(values, ((Class<?>) parameters_types.get(parameter_name)).getName(), parameter_name, parameter_value);
+			    }
+			  }
+			}
 
 			//New stuff
 			ReportParameterDefinition param_def = report.getParameterDefinition();
