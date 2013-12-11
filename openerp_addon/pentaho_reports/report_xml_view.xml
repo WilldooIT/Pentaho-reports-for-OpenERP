@@ -18,7 +18,7 @@
 				<field name="report_file" position='attributes'>
 					<attribute name='attrs'>{'invisible': [('is_pentaho_report', '=', True)]}</attribute>
 				</field>
-				<field name='model' postion='after'>
+				<field name='model' position='after'>
 					<field name="pentaho_report_model_id" attrs="{'invisible': [('is_pentaho_report', '!=', True)], 'required': [('is_pentaho_report', '=', True)]}"/>
 					<field name='linked_menu_id' attrs="{'invisible': [('is_pentaho_report', '!=', True)]}"/>
 				</field>
