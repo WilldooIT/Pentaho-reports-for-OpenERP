@@ -10,7 +10,7 @@
 					<field name="is_pentaho_report" on_change='onchange_is_pentaho(is_pentaho_report)'/>
 				</field>
 				<field name="model" position='attributes'>
-					<attribute name='attrs'>{'invisible': [('is_pentaho_report', '=', True)]}</attribute>
+					<attribute name='attrs'>{'invisible': [('is_pentaho_report', '=', True)], 'required': [('is_pentaho_report', '!=', True)]}</attribute>
 				</field>
 				<field name="report_type" position='attributes'>
 					<attribute name='attrs'>{'invisible': [('is_pentaho_report', '=', True)]}</attribute>
