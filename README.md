@@ -10,11 +10,11 @@ them from inside the OpenERP interface.
 
 At the time of writing, this project was working with version 3.9.1 of the Pentaho report designer, however this version is no longer supported and may stop working at any time. If you wish to use version 3.9.1, please follow the [instructions](http://pvandermpentaho.blogspot.com.au/2012/05/adding-openerp-datasource-to-pentaho.html) to install the required plugin for the report designer. 
 
-Version 5.0 is the latest version of the report designer, and does not require the above steps, as it comes bubndled with the required plugin. 
+Version 5.0 is the latest version of the report designer, and does not require the above steps, as it comes bundled with the required plugin. 
 
 ## Overview
 
-This project encompases two separate components:
+This project encompasses two separate components:
 
 ### The Java component
 
