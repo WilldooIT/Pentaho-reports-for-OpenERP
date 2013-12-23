@@ -1,26 +1,38 @@
 # Pentaho Reports for OpenERP
 
-This project provides an addon for OpenERP that integrates it with
+This project provides a system that integrates OpenERP with
 the Pentaho reporting system. End users of OpenERP can design
 reports using Pentaho report designer v5.0, and install/access
 them from inside the OpenERP interface.
 
-Instructions for setting up the report designer, v3.9, are at
-http://bit.ly/L4wPoC, but these are not relevant for v5.0 onwards
-as the OpenERP components required are now automatically included.
 
-The second component is a Java based report server designed to be
-run as a web application that can be deployed in any standard
-Java servlet container (like Tomcat, Jetty, etc.)
+## A note about about versions
+
+At the time of writing, this project was working with version 3.9.1 of the Pentaho report designer, however this version is no longer supported and may stop working at any time. If you wish to use version 3.9.1, please follow the [instructions](http://pvandermpentaho.blogspot.com.au/2012/05/adding-openerp-datasource-to-pentaho.html) to install the required plugin for the report designer. 
+
+Version 5.0 is the latest version of the report designer, and does not require the above steps, as it comes bubndled with the required plugin. 
+
+## Overview
+
+This project encompases two separate components:
+
+### The Java component
+
+This is a Java web application that can be deployed in a suitable container such as [Apache Tomcat](http://tomcat.apache.org/). This component does the actual rendering of the reports based upon the definitions created in the report designer. The Java Server communicates with OpenERP to retrieve the required data, and works with the OpenERP module (described below) to prompt the user for any required parameters, and provide selections for these parameters.
+
+### The OpenERP Module
+
+The other component in this project is the OpenERP Module. This module allows OpenERP to communicate with the Java Server to render reports created with the Report Designer. For a more detailed explanation, look at the description of the module in OpenERP, or [Here](https://github.com/WillowIT/Pentaho-reports-for-OpenERP/blob/version70/openerp_addon/pentaho_reports/__openerp__.py). 
 
 
-## Building the Java component
+## Building and Installing
 
-The included Ant build file contains a "war" target which
-performs all the necessary tasks to compile the web application and
-create the pentaho-reports-for-openerp.war file. This requires that
-Apache Ant be installed, and also Apache Ivy as it is used to retrieve
-all the dependencies required to compile and run the application.
+### The Java Server
+To build the Java server component, you will need a suitable [Java Development Kit](http://www.oracle.com/technetwork/java/javase/downloads/jdk7-downloads-1880260.html) installed on your system. 
+Additionally, you will need to install and configure [Apache Ant](http://ant.apache.org/) and [Apache Ivy](http://ant.apache.org/ivy/). Ant is the build system, and Ivy downloads all of the required dependencies required when building this component.
+
+Ant uses a build file to define the steps required when building a Java project. The included Ant build file contains a "war" target which performs all the necessary tasks to compile the web application and
+create the pentaho-reports-for-openerp.war file. 
 
 	$ cd <extracted_path>/java_server
 	$ ant clean
@@ -34,13 +46,31 @@ For testing purposes, a standalone server that listens on port
 
 	$ ant launch
 
+For production deployment, however, it is recommended that the server be hosted in an application container. Instructions on how to deploy the war file on tomcat can be found [here](http://tomcat.apache.org/tomcat-6.0-doc/deployer-howto.html#Deploying_using_the_Tomcat_Manager).
 
-## Integrating and Defining reports to OpenERP
+### The OpenERP module
+
+This module is installed like any other OpenERP module. Briefly:
+
+* Place the 'openerp_addon' folder somewhere on your filesystem that is accessible to your openerp server.
+* Update your openerp-server.conf file, and include the full path to this folder on the addons_path line.
+* Restart OpenERP and login as Administrator
+* Go to Settings -> Update Modules List and click Update
+* Click Installed Modules and search for 'pentaho'
+* Install the "Pentaho reports for OpenERP" module. 
+
+Once this has been completed, you will still need configure the module. Refer to the [module description](https://github.com/WillowIT/Pentaho-reports-for-OpenERP/blob/version70/openerp_addon/pentaho_reports/__openerp__.py) for detailed instructions on how to do this. 
+
+
+
+## Appendices
+
+### Integrating and Defining reports to OpenERP
 
 The description of the OpenERP module `pentaho reports` contains an overview
 of creating report actions and defining and using report parameters.
 
-## Concurrency issue when using Email Template
+### Concurrency issue when using Email Template
 
 When generating a Pentaho report at the same time as parsing the email
 template, OpenERP might raises the following exception:
@@ -52,7 +82,7 @@ The OpenERP module `willow_pentaho_email_patch` works around this
 issue. However, it is not a perfect solution to the problem and we are open
 to suggestions and pull requests.
 
-## Contributors
+### Contributors
 
 This project was developed by Willow IT, using the libraries and
 extensions developed by De Bortoli Wines, Australia (Pieter van der
@@ -61,12 +91,12 @@ addon also derives from and/or is inspired by the Jasper Reports addon
 developed by NaN-tic.
 
 Willow IT contributions:
-	Deepak Seshadri - OpenERP-Pentaho server connector (Java)
-	Richard deMeester - frontend and core functions, automated wizard
-						and action implementation
-	Douglas Parker - additional integration
-	Jon Wilson - inspiration, testing, and whipping
 
+* Deepak Seshadri - OpenERP-Pentaho server connector (Java)
+* Richard deMeester - frontend and core functions, automated wizard and action implementation
+* Douglas Parker - additional integration
+* Jon Wilson - inspiration, testing, and whipping
+* Thomas Cook - Documentation
 
 ## Disclaimer
 
