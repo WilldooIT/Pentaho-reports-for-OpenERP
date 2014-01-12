@@ -1,78 +1,92 @@
-<project name="pentaho-reports-for-openerp" basedir="." default="jar" xmlns:ivy="antlib:org.apache.ivy.ant">
-	<property name="src.dir" value="src"/>
-	<property name="build.dir" value="build"/>
-	<property name="lib.dir" value="${build.dir}/lib"/>
-	<property name="ivy.lib.dir" value="${lib.dir}"/>
-	<property name="classes.dir" value="${build.dir}/classes"/>
-	<property name="jar.dir" value="${build.dir}/jar"/>
+<!--===========================================================================
+  This is the build file for the pentaho-reports-for-openerp project.
+  
+  This build file will use the build-res/subfloor.xml file as the default build
+  process and should only override the tasks that need to differ from
+  the common build file.
+  
+  See build-res/subfloor.xml for more details
+============================================================================-->
+<project name="pentaho-reports-for-openerp" basedir="." default="default">
 
-	<property name="main-class" value="com.willowit.application.StandaloneReportServer"/>
+    <property file="${user.home}/.pentaho-reporting-build-settings.properties"
+              description="Per user override settings-file for all pentaho-reporting projects."/>
 
-	<!-- Include all JARs required to compile the project -->
-	<path id="build-classpath">
-		<fileset dir="${lib.dir}/build" includes="**/*.jar"/>
-	</path>
+    <!-- Define the default location of the common build file -->
+    <property name="common.build.file" value="./build-res/subfloor.xml"
+              description="This is the location of the standardized build-res/subfloor.xml file"/>
 
-	<!-- Include all JARs required to run the project -->
-	<path id="runtime-classpath">
-		<fileset dir="${lib.dir}/runtime" includes="**/*.jar"/>
-	</path>
+    <!-- Import the build-res/subfloor.xml file which contains all the default tasks -->
+    <import file="${common.build.file}"/>
 
-	<target name="clean">
-		<delete dir="${build.dir}"/>
-	</target>
+    <!--=======================================================================
+        This project does not have test-cases and users build it from source 
+        so no need to zip up the source
+      ====================================================================-->
+    <target name="build" depends="clean-all,resolve,dist"/>
 
-	<!-- Ivy magic -->
-	<target name="resolve" description="Retrieve project dependencies using Ivy">
-		<ivy:retrieve type="jar" pattern="${ivy.lib.dir}/[conf]/[artifact].[ext]"/>
-	</target>
+    <!--=======================================================================
+        continuous
 
-	<target name="compile" depends="resolve">
-		<mkdir dir="${classes.dir}"/>
-		<javac srcdir="${src.dir}" destdir="${classes.dir}" classpathref="build-classpath"/>
-	</target>
+        Runs a typical continuous integration build including project dist,
+        test, and coverage artifacts
+        ====================================================================-->
+    <target name="continuous-local" depends="build,publish-local"/>
 
-	<target name="jar" depends="compile">
-		<mkdir dir="${jar.dir}"/>
 
-		<jar destfile="${jar.dir}/${ant.project.name}.jar" basedir="${classes.dir}" excludes="**/application/*">
-			<fileset dir="${classes.dir}" includes="**/StandaloneReportServer.class"/>
-			<manifest>
-				<attribute name="Main-Class" value="${main-class}"/>
-			</manifest>
-		</jar>
-	</target>
+    <!--=======================================================================
+        continuous-testless
 
-	<target name="war" depends="compile">
-		<mkdir dir="${jar.dir}"/>
+        Runs a typical continuous integration build including project dist,
+        and coverage artifacts
+        ====================================================================-->
+    <target name="continuous-local-testless" depends="build-testless,publish-local"/>
 
-		<war destfile="${jar.dir}/${ant.project.name}.war" webxml="WebContent/WEB-INF/web.xml">
-			<lib dir="${lib.dir}/runtime">
-				<exclude name="servlet-api.jar"/>
-				<exclude name="junit.jar"/>
-				<exclude name="xmlunit.jar"/>
-			</lib>
+    <!--
+      AS STATED ABOVE, THE ONLY TASKS THAT SHOULD EXIST IN THIS BUILD FILE ARE
+      THE TASKS THAT NEED TO DIFFER FROM THE DEFAULT IMPLEMENTATION OF THE TASKS
+      FOUND IN build-res/subfloor.xml.
+    -->
+    
+    <property name="standalone.server.class}" value="${standalone-server-class}"/>
+    
+    <target name="jar.main" 
+            depends="compile,set-build.id,generate.manifest">
+      <jar destfile="${dist.dir}/${ivy.artifact.id}-${project.revision}.jar" manifest="${dist.manifest.file}" excludes="**/application/*">
+        <fileset dir="${classes.dir}" includes="**/StandaloneReportServer.class, **/PentahoRenderer.class" />
+      </jar>
+    </target>
+  
+    <target name="war" 
+            depends="compile">
+      <war destfile="${dist.dir}/${ivy.artifact.id}-${project.revision}.war" webxml="WebContent/WEB-INF/web.xml">
+        <lib dir="${lib.dir}/internal">
+          <exclude name="servlet-api.jar"/>
+          <exclude name="junit.jar"/>
+          <exclude name="xmlunit.jar"/>
+        </lib>
 
-			<classes dir="${classes.dir}" excludes="**/StandaloneReportServer.class"/>
+        <classes dir="${classes.dir}" excludes="**/StandaloneReportServer.class"/>
 
-			<zipfileset dir="${src.dir}" includes="**/*.properties" prefix="WEB-INF/classes"/>
-		</war>
-	</target>
+        <zipfileset dir="${src.dir}" includes="**/*.properties" prefix="WEB-INF/classes"/>
+      </war>
+    </target>
+    
+    <!-- Build and launch the application -->
+    <target name="launch" depends="jar">
+      <java classname="${standalone-server-class}" fork="true">
+        <classpath>
+          <path refid="classpath" />
+          <path location="${dist.dir}/${ivy.artifact.id}-${project.revision}.jar"/>
+        </classpath>
+      </java>
+    </target>
+    
+    <target name="dist-full" depends="war, jar"
+          description="Creates all the distributable items for this project">
+    </target>
+    
+    <!-- Override default dist target to do a dist-full instead -->
+    <target name="dist" depends="dist-full"/>
 
-	<!-- Build and launch the application -->
-	<target name="launch" depends="jar">
-		<java classname="${main-class}" fork="true">
-			<classpath>
-				<!-- Include classpath defined earlier -->
-				<path refid="runtime-classpath"/>
-				<!-- Include built jar -->
-				<path location="${jar.dir}/${ant.project.name}.jar"/>
-			</classpath>
-		</java>
-	</target>
-
-	<!-- Shortcuts -->
-	<target name="clean-build" depends="clean, jar, war"/>
-
-	<target name="clean-launch" depends="clean, launch"/>
 </project>

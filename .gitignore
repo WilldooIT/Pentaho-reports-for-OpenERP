@@ -6,4 +6,6 @@
 .pydevproject
 .settings
 build/
+dist/
+bin/
 lib/
