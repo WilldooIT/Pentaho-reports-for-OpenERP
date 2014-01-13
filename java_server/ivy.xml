@@ -1,46 +1,64 @@
-<ivy-module version="2.0">
-	<info organisation="com.willowit" module="pentaho-reports-for-openerp"/>
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+  <info organisation="${ivy.artifact.group}" module="${ivy.artifact.id}" revision="${project.revision}"/>
 
-	<configurations>
-		<conf name="build" description="'Small' set of dependencies needed for building the report-server."/>
-		<conf name="runtime" extends="build" description="All dependencies needed at runtime."/>
-	</configurations>
+  <configurations>
+    <conf name="default_internal"/>
+    <conf name="default_external"/>
+    <conf name="default" extends="default_internal, default_external"/>
+    <conf name="test" visibility="private"/>
+    <conf name="source"/>
+  </configurations>
 
-	<dependencies>
-		<dependency org="javax.servlet" name="servlet-api" rev="2.5"/>
+  <publications>
+    <artifact name="${ivy.artifact.id}" type="jar" conf="default"/>
+    <artifact name="${ivy.artifact.id}" m:classifier="sources" type="source" ext="jar" conf="source"/>
+  </publications>
 
-		<!-- Pentaho -->
-		<dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-core" rev="5.0-SNAPSHOT"/>
-    <dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions" rev="5.0-SNAPSHOT"/>
-		<dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-toc" rev="5.0-SNAPSHOT"/>
-		<dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-scripting" rev="5.0-SNAPSHOT"/>
-		<dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-drill-down" rev="5.0-SNAPSHOT"/>
- 		<dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-pmd" rev="5.0-SNAPSHOT">
- 		    <exclude name="scannotation"/> <!-- Already Included -->
- 		</dependency>  
-    <dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-wizard-core" rev="5.0-SNAPSHOT"/>
-		<dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-legacy-charts" rev="5.0-SNAPSHOT"/>
-		
-		<!-- Optional Pentaho Dependencies - Saved 6MB (From 63MB to 57MB) -->
-		<dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-kettle" rev="5.0-SNAPSHOT">
-        <exclude name="scannotation"/> <!-- Already Included -->
-    </dependency>
-    <dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-cda" rev="5.0-SNAPSHOT"/>
-    <dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-mondrian" rev="5.0-SNAPSHOT"/>
-    <dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-olap4j" rev="5.0-SNAPSHOT"/>
-    <dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-xpath" rev="5.0-SNAPSHOT"/>
+  <dependencies defaultconf="default_internal->default">
+    <!-- reporting engine dependencies -->
+    <dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-core"
+                rev="${pentaho-reporting.version}" transitive="true" changing="true"/>
+    <dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions"
+                rev="${pentaho-reporting.version}" transitive="true" changing="true"/>
+    <dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-scripting"
+                rev="${pentaho-reporting.version}" transitive="true" changing="true"/>
+    <dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-drill-down"
+                rev="${pentaho-reporting.version}" transitive="true" changing="true"/>
+    <dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-toc"
+                rev="${pentaho-reporting.version}" transitive="true" changing="true"/>
+    <dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-wizard-core"
+                rev="${pentaho-reporting.version}" transitive="true" changing="true"/>
+    <dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-legacy-charts"
+                rev="${pentaho-reporting.version}" transitive="true" changing="true"/>
     
-		<!-- OpenERP Plugin -->
-    <dependency org="org.apache.commons" name="commons-lang3" rev="3.1" conf="build -> master(*)"/>
-    <dependency org="org.apache.xmlrpc" name="xmlrpc-server" rev="3.1.3" conf="build -> master(*)"/>
-    <dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-openerp" rev="5.0-SNAPSHOT"/>
-    <dependency org="com.debortoliwines.openerp" name="openerp-java-api" rev="1.1.0"/>
-				
-		<!-- Drivers for SQL access -->
-		<dependency org="postgresql" name="postgresql" rev="8.3-604.jdbc3" conf="runtime -> master(*)"/>
-		
-		<!-- Should be downloaded as a dependent of libfonts (that is a dependent of core, but isn't) -->
-		<dependency org="com.lowagie" name="itext" rev="2.1.7" conf="runtime -> master(*)"/>
+    <!-- Optional engine Dependencies
+    <dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-pmd" 
+                rev="${pentaho-reporting.version}" transitive="true" changing="true"/>
+    <dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-kettle" 
+                rev="${pentaho-reporting.version}" transitive="true" changing="true"/>
+    <dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-cda" 
+                rev="${pentaho-reporting.version}" transitive="true" changing="true"/>
+    <dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-mondrian" 
+                rev="${pentaho-reporting.version}" transitive="true" changing="true"/>
+    <dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-olap4j" 
+                rev="${pentaho-reporting.version}" transitive="true" changing="true"/>
+    <dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-xpath" 
+                rev="${pentaho-reporting.version}" transitive="true" changing="true"/>
+    -->
     
-	</dependencies>
+    <!-- OpenERP Plugin Dependencies -->
+    <dependency org="pentaho-reporting-engine" name="pentaho-reporting-engine-classic-extensions-openerp" 
+                rev="${pentaho-reporting.version}" transitive="true" changing="true"/>
+    
+    <dependency org="javax.servlet"      name="servlet-api"   rev="2.5"           transitive="false" />
+    <dependency org="org.apache.xmlrpc"  name="xmlrpc-server" rev="3.1.3"         transitive="false" />
+    <dependency org="org.apache.commons" name="commons-lang3" rev="3.1"           transitive="false" />
+    <dependency org="postgresql"         name="postgresql"    rev="8.3-604.jdbc3" transitive="false"/>
+    
+    <!-- Test Build Dependencies -->
+    <dependency org="junit" name="junit" rev="4.10" transitive="false" conf="test->default"/>
+    <dependency org="org.slf4j" name="slf4j-jcl" rev="1.6.4" transitive="false" conf="test->default"/>
+    <dependency org="org.slf4j" name="slf4j-api" rev="1.6.4" transitive="false" changing="false" conf="test->default"/>
+  </dependencies>
 </ivy-module>

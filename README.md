@@ -39,7 +39,7 @@ create the pentaho-reports-for-openerp.war file.
 	$ ant war
 
 If the build completed successfully, the WAR file can be found
-in the build/jar directory.
+in the dist directory.
 
 For testing purposes, a standalone server that listens on port
 8090 (by default) can be launched using the "launch" target:

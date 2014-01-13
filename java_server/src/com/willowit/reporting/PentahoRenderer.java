@@ -268,7 +268,8 @@ public class PentahoRenderer {
 	}
 
 	//Exported methods
-	public ArrayList<HashMap<String, ?>> getParameterInfo(Hashtable<String, ?> args) throws Exception {
+	@SuppressWarnings("unchecked")
+  public ArrayList<HashMap<String, ?>> getParameterInfo(Hashtable<String, ?> args) throws Exception {
 		ArrayList<HashMap<String, ?>> ret_val = new ArrayList<HashMap<String, ?>>();
 
 		//FIXME: redundant code
@@ -377,7 +378,8 @@ public class PentahoRenderer {
 		}
 	}
 
-	public byte[] execute(Hashtable<String, ?> args) throws Exception {
+	@SuppressWarnings("unchecked")
+  public byte[] execute(Hashtable<String, ?> args) throws Exception {
 		byte[] prpt_file_content = null;
 		String output_type = null;
 
