@@ -24,6 +24,14 @@ This is a Java web application that can be deployed in a suitable container such
 
 The other component in this project is the OpenERP Module. This module allows OpenERP to communicate with the Java Server to render reports created with the Report Designer. For a more detailed explanation, look at the description of the module in OpenERP, or [Here](https://github.com/WillowIT/Pentaho-reports-for-OpenERP/blob/version70/openerp_addon/pentaho_reports/__openerp__.py). 
 
+## Quick Start:
+
+The quickest way to get started is to download a pre-built .war file from [here](http://cloud1.willowit.com.au/dist/pentaho-reports-for-openerp.war). Keep in mind that although this file will be rebuilt and updated on a semi-regular basis, if you require the latest, bleeding edge version, you will have to build it yourself following the instructions [below.](#building-and-installing) 
+
+Once you have the war file, you will need an application container such as [Apache Tomcat](http://tomcat.apache.org/) for it to run in. Installation and deployment on Tomcat or any other application container is beyond the scope of this document, however the tomcat website has very detailed documentation on how to do so. 
+
+The next step is to install the openerp module, which is explained [here.](#the-openerp-module-1)
+
 
 ## Building and Installing
 
