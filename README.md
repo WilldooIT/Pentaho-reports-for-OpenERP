@@ -51,18 +51,14 @@ Finally, you will need to deploy your reports. Instructions for doing this can b
 To build the Java server component, you will need a suitable [Java Development Kit](http://www.oracle.com/technetwork/java/javase/downloads/jdk7-downloads-1880260.html) installed on your system. 
 Additionally, you will need to install and configure [Apache Ant](http://ant.apache.org/) and [Apache Ivy](http://ant.apache.org/ivy/). Ant is the build system, and Ivy downloads all of the required dependencies required when building this component.
 
-Ant uses a build file to define the steps required when building a Java project. The included Ant build file contains a "war" target which performs all the necessary tasks to compile the web application and
-create the pentaho-reports-for-openerp.war file. 
+To build the project execute:
 
 	$ cd <extracted_path>/java_server
-	$ ant clean
-	$ ant war
+	$ ant
 
-If the build completed successfully, the WAR file can be found
-in the dist directory.
+Two files will be generated in the 'dist' directory.  The first file pentaho-reports-for-openerp.war can be deployed uing a servlet engine such as Tomcat.  The second file pentaho-reports-for-openerp.jar is used when running the project's built in standalone test server.  
 
-For testing purposes, a standalone server that listens on port
-8090 (by default) can be launched using the "launch" target:
+The standalone test server running on port 8090 can be started after a successful build using the following command:
 
 	$ ant launch
 
