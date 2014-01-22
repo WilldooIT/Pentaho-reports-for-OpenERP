@@ -73,6 +73,9 @@ class email_template_patch(osv.osv):
                 #       See security rule 'res_partner: read access on my partner'.
                 crtemp = pooler.get_db(cr.dbname).cursor()
 
+                #Remove default_partner_id set by search view that could duplicate user with existing partner!
+                context['default_partner_id'] = None
+
                 user_obj = self.pool.get('res.users')
                 existing_uids = user_obj.search(crtemp, SUPERUSER_ID, [('login', '=', "%s (copy)" % user_obj.browse(crtemp, SUPERUSER_ID, uid, context=context).login)], context=context)
                 if existing_uids:
