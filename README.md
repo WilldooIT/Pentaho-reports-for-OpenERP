@@ -84,7 +84,7 @@ After installation, the module still needs to be configured. Refer to the [modul
 
 The description of the OpenERP module contains an overview of creating report actions, as well as defining and using report parameters.
 
-### Concurrency issue when using Email Template
+### Concurrency Issue When Using Email Template
 
 When generating a Pentaho report at the same time as parsing the email template, OpenERP might raise the following exception:
 
