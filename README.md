@@ -10,7 +10,9 @@ This project provides a system that integrates OpenERP with the Pentaho reportin
 
 _Pentaho Report designer_ is the software separate from this project that is used to design the report templates. You can download the designer [here](http://sourceforge.net/projects/pentaho/files/Report%20Designer/ "Pentaho Report Designer").
 
-We have prepared a number of instructional videos for the designer [here](https://www.youtube.com/user/WillowITMedia "Willow on Youtube"). Keep in mind that while these videos are for version 3.9 of the designer, they are still applicable. 
+We have prepared a number of instructional videos for using this project with OpenERP [here](https://www.youtube.com/user/WillowITMedia "Willow on Youtube"). The videos provide instructions for creating reports based upon SQL and the OpenERP object data sources, and explain how to install them in OpenERP.
+
+Keep in mind that while these videos are for version 3.9 of the designer, they are still applicable. 
 
 ## A Note About Versions
 
