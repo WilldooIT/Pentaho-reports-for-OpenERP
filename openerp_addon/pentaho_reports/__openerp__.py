@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 # v7.0 - Beta.
 {
-    "name": "Pentaho reports for OpenERP",
+    "name": "Pentaho Reports for OpenERP",
     "description": """
 Pentaho - OpenERP Report Integration by Willow IT
 =================================================
