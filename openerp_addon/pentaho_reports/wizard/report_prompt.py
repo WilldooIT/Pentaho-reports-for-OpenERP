@@ -2,6 +2,7 @@
 
 import xmlrpclib
 import base64
+import json
 
 from lxml import etree
 
@@ -19,8 +20,10 @@ from ..core import get_proxy_args, VALID_OUTPUT_TYPES, DEFAULT_OUTPUT_TYPE
 class report_prompt_class(orm.TransientModel):
     _name = 'ir.actions.report.promptwizard'
     _columns = {
-                'report_name': fields.char('Report Name', size=64, readonly=True),
+                'report_action_id': fields.many2one('ir.actions.report.xml', 'Report Name', readonly=True),
+#                'report_name': fields.related('report_action_id', 'name', string='Report Name', type='char', readonly=True),
                 'output_type': fields.selection(VALID_OUTPUT_TYPES, 'Report format', help='Choose the format for the output', required=True),
+                'parameters_dictionary': fields.text('parameter dictionary'),
                 }
 
     def __init__(self, pool, cr):
@@ -41,8 +44,6 @@ class report_prompt_class(orm.TransientModel):
             self._columns[field_name] = fields.date('Date Value')
             field_name = PARAM_XXX_TIME_VALUE % counter
             self._columns[field_name] = fields.datetime('Time Value')
-
-        self.paramfile = False
 
     def _parse_one_report_parameter_default_formula(self, formula, type, context=None):
         """
@@ -153,13 +154,12 @@ class report_prompt_class(orm.TransientModel):
 
                 result.append(self._parse_one_report_parameter(parameter, context=context))
 
-        if len(result) > MAX_PARAMS + 1:
-            raise orm.except_orm(_('Error'), _('Too many report parameters (%d).') % len(self.parameters) + 1)
+        if len(result) > MAX_PARAMS:
+            raise orm.except_orm(_('Error'), _('Too many report parameters (%d).') % len(result))
 
         return result
 
     def _setup_parameters(self, cr, uid, context=None):
-
         if context is None:
             context = {}
 
@@ -173,35 +173,29 @@ class report_prompt_class(orm.TransientModel):
 
         prpt_content = base64.decodestring(report_record.pentaho_file)
 
-        if not self.paramfile or self.paramfile['report_id'] != report_ids[0] or self.paramfile['prpt_content'] != prpt_content or self.paramfile['context'] != context:
+        proxy_url, proxy_argument = get_proxy_args(self, cr, uid, prpt_content, {
+                                                                                 'ids': [],           # meaningless in this context, so pass nothing...
+                                                                                 'uid': uid,
+                                                                                 'context': context,
+                                                                                 })
+        proxy = xmlrpclib.ServerProxy(proxy_url)
+        report_parameters = proxy.report.getParameterInfo(proxy_argument)
 
-            proxy_url, proxy_argument = get_proxy_args(self, cr, uid, prpt_content, {
-                                                                                     'ids': [],           # meaningless in this context, so pass nothing...
-                                                                                     'uid': uid,
-                                                                                     'context': context,
-                                                                                     })
-            proxy = xmlrpclib.ServerProxy(proxy_url)
-            report_parameters = proxy.report.getParameterInfo(proxy_argument)
-
-            self.parameters = self._parse_report_parameters(report_parameters, context=context)
-
-            self.paramfile = {'report_id': report_ids[0],
-                              'prpt_content': prpt_content,
-                              'context': context
-                              }
+        return report_ids[0], self._parse_report_parameters(report_parameters, context=context)
 
     def default_get(self, cr, uid, fields, context=None):
+        report_action_id, parameters = self._setup_parameters(cr, uid, context=context)
+        report_action = self.pool.get('ir.actions.report.xml').browse(cr, uid, report_action_id, context=context)
 
-        self._setup_parameters(cr, uid, context=context)
         result = super(report_prompt_class, self).default_get(cr, uid, fields, context=context)
-
-        result.update({'report_name': self.pool.get('ir.actions.report.xml').browse(cr, uid, self.paramfile['report_id'], context=context).name,
-                       'output_type': self.pool.get('ir.actions.report.xml').browse(cr, uid, self.paramfile['report_id'], context=context).pentaho_report_output_type or DEFAULT_OUTPUT_TYPE,
+        result.update({'report_action_id': report_action_id,
+                       'output_type': report_action.pentaho_report_output_type or DEFAULT_OUTPUT_TYPE,
+                       'parameters_dictionary': json.dumps(parameters),
                        })
 
-        for index in range(0, len(self.parameters)):
-            if self.parameters[index].get('default', False):
-                result[PARAM_VALUES[self.parameters[index]['type']]['value'] % index] = self.parameters[index]['default']
+        for index in range(0, len(parameters)):
+            if parameters[index].get('default', False):
+                result[PARAM_VALUES[parameters[index]['type']]['value'] % index] = parameters[index]['default']
 
         return result
 
@@ -236,12 +230,8 @@ class report_prompt_class(orm.TransientModel):
             for k, v in kwargs.iteritems():
                 sf.set(k, v)
 
-        # this will force a reload of parameters and not use the
-        # cached data - this is important as the available selections
-        # may have changed...
-        self.paramfile = None
-
-        self._setup_parameters(cr, uid, context=context)
+        # reload parameters as selection pull down options can change
+        report_action_id, parameters = self._setup_parameters(cr, uid, context=context)
 
         result = super(report_prompt_class, self).fields_view_get(cr, uid, view_id=view_id, view_type=view_type, context=context, toolbar=toolbar, submenu=submenu)
 
@@ -251,14 +241,14 @@ class report_prompt_class(orm.TransientModel):
 
         first_parameter = True
 
-        for index in range(0, len(self.parameters)):
+        for index in range(0, len(parameters)):
             add_field(result,
-                      PARAM_VALUES[self.parameters[index]['type']]['value'] % index,
-                      selection_options = self.parameters[index].get('selection_options', False),
-                      required = self.parameters[index].get('mandatory', False)
+                      PARAM_VALUES[parameters[index]['type']]['value'] % index,
+                      selection_options = parameters[index].get('selection_options', False),
+                      required = parameters[index].get('mandatory', False)
                       )
 
-            if not self.parameters[index].get('hidden', False):
+            if not parameters[index].get('hidden', False):
                 for sel_group in selection_groups:
                     if first_parameter:
                         add_subelement(sel_group,
@@ -269,10 +259,10 @@ class report_prompt_class(orm.TransientModel):
 
                     add_subelement(sel_group,
                                    'field',
-                                   name = PARAM_VALUES[self.parameters[index]['type']]['value'] % index,
-                                   string = self.parameters[index]['label'],
+                                   name = PARAM_VALUES[parameters[index]['type']]['value'] % index,
+                                   string = parameters[index]['label'],
                                    default_focus = '1' if first_parameter else '0',
-                                   modifiers = '{"required": %s}' % 'true' if self.parameters[index].get('mandatory', False) else 'false',
+                                   modifiers = '{"required": %s}' % 'true' if parameters[index].get('mandatory', False) else 'false',
                                    )
 
                     first_parameter = False
@@ -285,9 +275,10 @@ class report_prompt_class(orm.TransientModel):
 
     def _set_report_variables(self, wizard):
 
+        parameters = json.loads(wizard.parameters_dictionary)
         result = {}
-        for index in range(0, len(self.parameters)):
-            result[self.parameters[index]['variable']] = getattr(wizard, PARAM_VALUES[self.parameters[index]['type']]['value'] % index, False) or PARAM_VALUES[self.parameters[index]['type']]['if_false']
+        for index in range(0, len(parameters)):
+            result[parameters[index]['variable']] = getattr(wizard, PARAM_VALUES[parameters[index]['type']]['value'] % index, False) or PARAM_VALUES[parameters[index]['type']]['if_false']
 
         return result
 
@@ -296,7 +287,6 @@ class report_prompt_class(orm.TransientModel):
         if context is None:
             context = {}
 
-        self._setup_parameters(cr, uid, context=context)
         wizard = self.browse(cr, uid, ids[0], context=context)
 
         data = {
