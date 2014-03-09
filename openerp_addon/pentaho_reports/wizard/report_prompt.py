@@ -21,7 +21,6 @@ class report_prompt_class(orm.TransientModel):
     _name = 'ir.actions.report.promptwizard'
     _columns = {
                 'report_action_id': fields.many2one('ir.actions.report.xml', 'Report Name', readonly=True),
-#                'report_name': fields.related('report_action_id', 'name', string='Report Name', type='char', readonly=True),
                 'output_type': fields.selection(VALID_OUTPUT_TYPES, 'Report format', help='Choose the format for the output', required=True),
                 'parameters_dictionary': fields.text('parameter dictionary'),
                 }

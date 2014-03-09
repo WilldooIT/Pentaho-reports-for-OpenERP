@@ -8,6 +8,7 @@
 				<form string='Pentaho Report Options' version="7.0">
 					<group name='parameters'>
 						<field name="report_action_id" readonly="1"/>
+						<field name="parameters_dictionary" invisible='1'/>
 						<field name="output_type"/>
 						<!-- Place holder group for where selections will be inserted -->
 						<group colspan="4" string='Selections'/>
