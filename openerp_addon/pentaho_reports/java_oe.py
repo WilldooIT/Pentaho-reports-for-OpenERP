@@ -9,6 +9,14 @@ TYPE_NUMBER = 'num'
 TYPE_DATE = 'date'
 TYPE_TIME = 'dtm'
 
+OPENERP_DATA_TYPES = [(TYPE_STRING, 'String'),
+                      (TYPE_BOOLEAN, 'Boolean'),
+                      (TYPE_INTEGER, 'Integer'),
+                      (TYPE_NUMBER, 'Number'),
+                      (TYPE_DATE, 'Date'),
+                      (TYPE_TIME, 'Date Time'),
+                      ]
+
 """
 Define mappings as functions, which can be passed the data format to make them conditional.
 

@@ -21,6 +21,13 @@ from .java_oe import JAVA_MAPPING, check_java_list, PARAM_VALUES, RESERVED_PARAM
 _logger = logging.getLogger(__name__)
 
 SERVICE_NAME_PREFIX = 'report.'
+VALID_OUTPUT_TYPES = [('pdf', 'Portable Document (pdf)'),
+                      ('xls', 'Excel Spreadsheet (xls)'),
+                      ('csv', 'Comma Separated Values (csv)'),
+                      ('rtf', 'Rich Text (rtf)'),
+                      ('html', 'HyperText (html)'),
+                      ('txt', 'Plain Text (txt)'),
+                      ]
 DEFAULT_OUTPUT_TYPE = 'pdf'
 
 

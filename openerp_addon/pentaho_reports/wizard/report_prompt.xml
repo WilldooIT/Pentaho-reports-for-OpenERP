@@ -6,7 +6,7 @@
 			<field name='model'>ir.actions.report.promptwizard</field>
 			<field name='arch' type='xml'>
 				<form string='Pentaho Report Options' version="7.0">
-					<group>
+					<group name='parameters'>
 						<field name="report_name"/>
 						<field name="output_type"/>
 						<!-- Place holder group for where selections will be inserted -->

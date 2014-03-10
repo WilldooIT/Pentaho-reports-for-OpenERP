@@ -13,21 +13,14 @@ from openerp.tools import DEFAULT_SERVER_DATE_FORMAT, DEFAULT_SERVER_DATETIME_FO
 from openerp.tools.translate import _
 
 from ..java_oe import *
-from ..core import get_proxy_args, DEFAULT_OUTPUT_TYPE
+from ..core import get_proxy_args, VALID_OUTPUT_TYPES, DEFAULT_OUTPUT_TYPE
 
 
 class report_prompt_class(orm.TransientModel):
     _name = 'ir.actions.report.promptwizard'
     _columns = {
                 'report_name': fields.char('Report Name', size=64, readonly=True),
-                'output_type': fields.selection(
-                                                [('pdf', 'Portable Document (pdf)'),
-                                                 ('xls', 'Excel Spreadsheet (xls)'),
-                                                 ('csv', 'Comma Separated Values (csv)'),
-                                                 ('rtf', 'Rich Text (rtf)'),
-                                                 ('html', 'HyperText (html)'),
-                                                 ('txt', 'Plain Text (txt)')],
-                                                'Report format', help='Choose the format for the output', required=True),
+                'output_type': fields.selection(VALID_OUTPUT_TYPES, 'Report format', help='Choose the format for the output', required=True),
                 }
 
     def __init__(self, pool, cr):

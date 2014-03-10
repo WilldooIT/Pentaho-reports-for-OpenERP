@@ -73,12 +73,16 @@ class email_template_patch(osv.osv):
                 #       See security rule 'res_partner: read access on my partner'.
                 crtemp = pooler.get_db(cr.dbname).cursor()
 
-                user_obj = self.pool.get('res.users')
-                existing_uids = user_obj.search(crtemp, SUPERUSER_ID, [('login', '=', "%s (copy)" % user_obj.browse(crtemp, SUPERUSER_ID, uid, context=context).login)], context=context)
-                if existing_uids:
-                    self._unlink_user_and_partner(crtemp, uid, existing_uids, context=context)
+                #Remove default_partner_id set by search view that could duplicate user with existing partner!
+                # Use copied context, to ensure we don't affect any processing outside of this method's scope.
+                ctx.pop('default_partner_id', None)
 
-                new_uid = user_obj.copy(crtemp, SUPERUSER_ID, uid, default={}, context=context)
+                user_obj = self.pool.get('res.users')
+                existing_uids = user_obj.search(crtemp, SUPERUSER_ID, [('login', '=', "%s (copy)" % user_obj.browse(crtemp, SUPERUSER_ID, uid, context=ctx).login)], context=ctx)
+                if existing_uids:
+                    self._unlink_user_and_partner(crtemp, uid, existing_uids, context=ctx)
+
+                new_uid = user_obj.copy(crtemp, SUPERUSER_ID, uid, default={}, context=ctx)
                 crtemp.commit()
 
                 service = netsvc.LocalService(report_service)
@@ -88,7 +92,7 @@ class email_template_patch(osv.osv):
 
                 crtemp = pooler.get_db(cr.dbname).cursor()
 
-                self._unlink_user_and_partner(crtemp, uid, [new_uid], context=context)
+                self._unlink_user_and_partner(crtemp, uid, [new_uid], context=ctx)
 
                 crtemp.commit()
                 crtemp.close()
