@@ -53,7 +53,7 @@ PARAM_XXX_2M_VALUE = 'param_%03i_2m_value'
 PARAM_VALUES = {
                 TYPE_STRING: {
                               'value': PARAM_XXX_STRING_VALUE,
-                               'value_list': PARAM_XXX_2M_VALUE,
+                              'value_list': PARAM_XXX_2M_VALUE,
                               'if_false': '',
                               'py_types': (str, unicode)},
                 TYPE_BOOLEAN: {
@@ -67,6 +67,7 @@ PARAM_VALUES = {
                                'py_types': (int, long)},
                 TYPE_NUMBER: {
                               'value': PARAM_XXX_NUMBER_VALUE,
+                              'value_list': PARAM_XXX_2M_VALUE,
                               'if_false': 0.0,
                               'py_types': (float,),
                               'convert': lambda x: float(x)},
@@ -85,11 +86,11 @@ PARAM_VALUES = {
                 }
 
 
-def can_2m(type, multi):
-    return multi and PARAM_VALUES[type].get('value_list', False) and True or False
+def parameter_can_2m(parameters, index):
+    return PARAM_VALUES[parameters[index]['type']].get('value_list', False) and parameters[index].get('multi_select') or False
 
-def resolve_column_name(type, multi, index):
-    return can_2m(type, multi) and PARAM_VALUES[type]['value_list'] % index or PARAM_VALUES[type]['value'] % index
+def parameter_resolve_column_name(parameters, index):
+    return parameter_can_2m(parameters, index) and PARAM_VALUES[parameters[index]['type']]['value_list'] % index or PARAM_VALUES[parameters[index]['type']]['value'] % index
 
 
 # functions here will be passed a dictionary to evaluate reserved values. The dictionary should have:

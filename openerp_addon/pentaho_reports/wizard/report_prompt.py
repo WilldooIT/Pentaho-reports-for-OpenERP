@@ -220,13 +220,13 @@ class report_prompt_class(orm.TransientModel):
 
         for index in range(0, len(parameters)):
             if parameters[index].get('default', False):
-                result[resolve_column_name(parameters[index]['type'], parameters[index].get('multi_select', False), index)] = parameters[index]['default'] # Have to work out format default comes in - is it already a list???
+                result[parameter_resolve_column_name(parameters, index)] = parameters[index]['default'] # Have to work out format default comes in - is it already a list???
 
         x2m_unique_id = False
         mpwiz_obj = self.pool.get('ir.actions.report.multivalues.promptwizard')
 
         for index in range(0, len(parameters)):
-            if can_2m(parameters[index]['type'], parameters[index].get('multi_select', False)) and type(parameters[index].get('selection_options', False)) == list:
+            if parameter_can_2m(parameters, index) and type(parameters[index].get('selection_options', False)) == list:
                 if not x2m_unique_id:
                     mpwiz_ids = mpwiz_obj.search(cr, uid, [('x2m_unique_id', '>', 0)], order='x2m_unique_id desc', limit=1, context=context)
                     if mpwiz_ids:
@@ -239,7 +239,9 @@ class report_prompt_class(orm.TransientModel):
                     mpwiz_obj.create(cr, uid, {'x2m_unique_id': x2m_unique_id, 'entry_num': index, 'selected': False,
                                                'sel_int': item[0] if parameters[index]['type'] == TYPE_INTEGER else False,
                                                'sel_str': item[0] if parameters[index]['type'] == TYPE_STRING else False,
-                                               'name': item[1]}, context=context)
+                                               'sel_num': item[0] if parameters[index]['type'] == TYPE_NUMBER else False,
+                                               'name': item[1],
+                                               }, context=context)
 
         return result
 
@@ -298,8 +300,8 @@ class report_prompt_class(orm.TransientModel):
         first_parameter = True
 
         for index in range(0, len(parameters)):
-            field_name = resolve_column_name(parameters[index]['type'], parameters[index].get('multi_select', False), index)
-            is_2m = can_2m(parameters[index]['type'], parameters[index].get('multi_select', False))
+            field_name = parameter_resolve_column_name(parameters, index)
+            is_2m = parameter_can_2m(parameters, index)
             if is_2m:
                 add_2m_field(result,
                              field_name,
@@ -330,7 +332,6 @@ class report_prompt_class(orm.TransientModel):
                                    modifiers = '{"required": %s}' % 'true' if parameters[index].get('mandatory', False) else 'false',
                                    widget = is_2m and 'many2many_tags' or None,
                                    domain = is_2m and ('[("x2m_unique_id", "=", x2m_unique_id), ("entry_num", "=", %d)]' % index) or None,
-                                   context = is_2m and ('{"entry_num": %d}' % index) or None,
                                    )
 
                     first_parameter = False
@@ -346,10 +347,16 @@ class report_prompt_class(orm.TransientModel):
         parameters = json.loads(wizard.parameters_dictionary)
         result = {}
         for index in range(0, len(parameters)):
-            result[parameters[index]['variable']] = getattr(wizard, resolve_column_name(parameters[index]['type'], parameters[index].get('multi_select', False), index), False) or PARAM_VALUES[parameters[index]['type']]['if_false']
-            if can_2m(parameters[index]['type'], parameters[index].get('multi_select', False)):
-                result[parameters[index]['variable']] = [(x.sel_int if parameters[index]['type'] == TYPE_INTEGER else x.sel_str if parameters[index]['type'] == TYPE_STRING else False) for x in result[parameters[index]['variable']]]
-
+            value = getattr(wizard, parameter_resolve_column_name(parameters, index))
+            if parameter_can_2m(parameters, index):
+                result[parameters[index]['variable']] = value and [(x.sel_int if parameters[index]['type'] == TYPE_INTEGER else \
+                                                                    x.sel_str if parameters[index]['type'] == TYPE_STRING else \
+                                                                    x.sel_num if parameters[index]['type'] == TYPE_NUMBER else \
+                                                                    False) for x in value] \
+                                                            or []
+            else:
+                result[parameters[index]['variable']] = value \
+                                                            or PARAM_VALUES[parameters[index]['type']]['if_false']
         return result
 
     def check_report(self, cr, uid, ids, context=None):
@@ -387,5 +394,6 @@ class report_prompt_m2m(orm.TransientModel):
                 'selected': fields.boolean('Selected'),
                 'sel_int': fields.integer('Selection Integer'),
                 'sel_str': fields.char('Selection String'),
+                'sel_num': fields.float('Selection Number'),
                 'name': fields.char('Selection Value'),
                 }
