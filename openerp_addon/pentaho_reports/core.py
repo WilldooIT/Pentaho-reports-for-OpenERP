@@ -222,7 +222,7 @@ class Report(object):
                         # convert from string types to correct types for reporter
                         proxy_argument['report_parameters'][parameter['name']] = PARAM_VALUES[JAVA_MAPPING[value_type](parameter['attributes'].get('data-format', False))]['convert'](proxy_argument['report_parameters'][parameter['name']])
                     # turn in to list
-                    if java_list:
+                    if java_list and type(proxy_argument['report_parameters'][parameter['name']]) != list:
                         proxy_argument['report_parameters'][parameter['name']] = [proxy_argument['report_parameters'][parameter['name']]]
 
         rendered_report = proxy.report.execute(proxy_argument).data

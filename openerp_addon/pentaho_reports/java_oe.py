@@ -48,10 +48,12 @@ PARAM_XXX_INTEGER_VALUE = 'param_%03i_integer_value'
 PARAM_XXX_NUMBER_VALUE = 'param_%03i_number_value'
 PARAM_XXX_DATE_VALUE = 'param_%03i_date_value'
 PARAM_XXX_TIME_VALUE = 'param_%03i_time_value'
+PARAM_XXX_2M_VALUE = 'param_%03i_2m_value'
 
 PARAM_VALUES = {
                 TYPE_STRING: {
                               'value': PARAM_XXX_STRING_VALUE,
+                               'value_list': PARAM_XXX_2M_VALUE,
                               'if_false': '',
                               'py_types': (str, unicode)},
                 TYPE_BOOLEAN: {
@@ -60,6 +62,7 @@ PARAM_VALUES = {
                                'py_types': (bool,)},
                 TYPE_INTEGER: {
                                'value': PARAM_XXX_INTEGER_VALUE,
+                               'value_list': PARAM_XXX_2M_VALUE,
                                'if_false': 0,
                                'py_types': (int, long)},
                 TYPE_NUMBER: {
@@ -80,6 +83,13 @@ PARAM_VALUES = {
                             'convert': lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M:%S'),
                             'conv_default': lambda x: datetime.strptime(x.value, '%Y%m%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')},
                 }
+
+
+def can_2m(type, multi):
+    return multi and PARAM_VALUES[type].get('value_list', False) and True or False
+
+def resolve_column_name(type, multi, index):
+    return can_2m(type, multi) and PARAM_VALUES[type]['value_list'] % index or PARAM_VALUES[type]['value'] % index
 
 
 # functions here will be passed a dictionary to evaluate reserved values. The dictionary should have:

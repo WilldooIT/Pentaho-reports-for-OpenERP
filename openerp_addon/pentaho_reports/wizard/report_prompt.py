@@ -19,10 +19,30 @@ from ..core import get_proxy_args, VALID_OUTPUT_TYPES, DEFAULT_OUTPUT_TYPE
 
 class report_prompt_class(orm.TransientModel):
     _name = 'ir.actions.report.promptwizard'
+
+    def _multi_select_values(self, cr, uid, ids, field_name, args, context=None):
+        mpwiz_obj = self.pool.get('ir.actions.report.multivalues.promptwizard')
+        res = {}
+        for wiz in self.browse(cr, uid, ids, context=context):
+            mpw_ids = mpwiz_obj.search(cr, uid, [('x2m_unique_id', '=', wiz.x2m_unique_id), ('entry_num', '=', args['entry_num']), ('selected', '=', True)], context=context)
+            res[wiz.id] = mpw_ids
+        return res
+
+    def _multi_select_values_store(self, cr, uid, id, field_name, value, args, context=None):
+        wiz = self.browse(cr, uid, id, context=context)
+        mpwiz_obj = self.pool.get('ir.actions.report.multivalues.promptwizard')
+        mpw_ids = mpwiz_obj.search(cr, uid, [('x2m_unique_id', '=', wiz.x2m_unique_id), ('entry_num', '=', args['entry_num'])], context=context)
+        mpwiz_obj.write(cr, uid, mpw_ids, {'selected': False}, context=context)
+        if type(value) in (list, tuple):
+            if type(value[0]) in (list, tuple) and len(value[0]) == 3 and value[0][0] == 6:
+                mpwiz_obj.write(cr, uid, value[0][2], {'selected': True})
+        return True
+
     _columns = {
                 'report_action_id': fields.many2one('ir.actions.report.xml', 'Report Name', readonly=True),
                 'output_type': fields.selection(VALID_OUTPUT_TYPES, 'Report format', help='Choose the format for the output', required=True),
                 'parameters_dictionary': fields.text('parameter dictionary'),
+                'x2m_unique_id': fields.integer('2M Unique Id'),
                 }
 
     def __init__(self, pool, cr):
@@ -43,6 +63,12 @@ class report_prompt_class(orm.TransientModel):
             self._columns[field_name] = fields.date('Date Value')
             field_name = PARAM_XXX_TIME_VALUE % counter
             self._columns[field_name] = fields.datetime('Time Value')
+            field_name = PARAM_XXX_2M_VALUE % counter
+            self._columns[field_name] = fields.function(self._multi_select_values.im_func,
+                                                        arg={"entry_num": counter},
+                                                        fnct_inv=self._multi_select_values_store.im_func,
+                                                        fnct_inv_arg={"entry_num": counter},
+                                                        method=False, type='many2many', relation='ir.actions.report.multivalues.promptwizard', string='Multi-Select')
 
     def _parse_one_report_parameter_default_formula(self, formula, type, context=None):
         """
@@ -194,7 +220,26 @@ class report_prompt_class(orm.TransientModel):
 
         for index in range(0, len(parameters)):
             if parameters[index].get('default', False):
-                result[PARAM_VALUES[parameters[index]['type']]['value'] % index] = parameters[index]['default']
+                result[resolve_column_name(parameters[index]['type'], parameters[index].get('multi_select', False), index)] = parameters[index]['default'] # Have to work out format default comes in - is it already a list???
+
+        x2m_unique_id = False
+        mpwiz_obj = self.pool.get('ir.actions.report.multivalues.promptwizard')
+
+        for index in range(0, len(parameters)):
+            if can_2m(parameters[index]['type'], parameters[index].get('multi_select', False)) and type(parameters[index].get('selection_options', False)) == list:
+                if not x2m_unique_id:
+                    mpwiz_ids = mpwiz_obj.search(cr, uid, [('x2m_unique_id', '>', 0)], order='x2m_unique_id desc', limit=1, context=context)
+                    if mpwiz_ids:
+                        x2m_unique_id = mpwiz_obj.browse(cr, uid, mpwiz_ids[0], context=context).x2m_unique_id + 1
+                    else:
+                        x2m_unique_id = 1
+                    result['x2m_unique_id'] = x2m_unique_id
+
+                for item in parameters[index]['selection_options']:
+                    mpwiz_obj.create(cr, uid, {'x2m_unique_id': x2m_unique_id, 'entry_num': index, 'selected': False,
+                                               'sel_int': item[0] if parameters[index]['type'] == TYPE_INTEGER else False,
+                                               'sel_str': item[0] if parameters[index]['type'] == TYPE_STRING else False,
+                                               'name': item[1]}, context=context)
 
         return result
 
@@ -224,10 +269,22 @@ class report_prompt_class(orm.TransientModel):
                 result['fields'][field_name]['type'] = 'selection'
                 result['fields'][field_name]['selection'] = selection_options
 
+        def add_2m_field(result, field_name, selection_options=False, required=False):
+            add_field(result, field_name, selection_options=False, required=required)
+
+            result['fields'][field_name].update({
+                                                 'relation': 'ir.actions.report.multivalues.promptwizard',
+                                                 'function': 'self._multi_select_values',
+                                                 'fnct_inv': 'self._multi_select_values_store',
+                                                 'readonly': 0,
+                                                 }
+                                                )
+
         def add_subelement(element, type, **kwargs):
             sf = etree.SubElement(element, type)
             for k, v in kwargs.iteritems():
-                sf.set(k, v)
+                if v is not None:
+                    sf.set(k, v)
 
         # reload parameters as selection pull down options can change
         report_action_id, parameters = self._setup_parameters(cr, uid, context=context)
@@ -241,11 +298,20 @@ class report_prompt_class(orm.TransientModel):
         first_parameter = True
 
         for index in range(0, len(parameters)):
-            add_field(result,
-                      PARAM_VALUES[parameters[index]['type']]['value'] % index,
-                      selection_options = parameters[index].get('selection_options', False),
-                      required = parameters[index].get('mandatory', False)
-                      )
+            field_name = resolve_column_name(parameters[index]['type'], parameters[index].get('multi_select', False), index)
+            is_2m = can_2m(parameters[index]['type'], parameters[index].get('multi_select', False))
+            if is_2m:
+                add_2m_field(result,
+                             field_name,
+                             selection_options = parameters[index].get('selection_options', False),
+                             required = parameters[index].get('mandatory', False),
+                             )
+            else:
+                add_field(result,
+                          field_name,
+                          selection_options = parameters[index].get('selection_options', False),
+                          required = parameters[index].get('mandatory', False),
+                          )
 
             if not parameters[index].get('hidden', False):
                 for sel_group in selection_groups:
@@ -258,10 +324,13 @@ class report_prompt_class(orm.TransientModel):
 
                     add_subelement(sel_group,
                                    'field',
-                                   name = PARAM_VALUES[parameters[index]['type']]['value'] % index,
+                                   name = field_name,
                                    string = parameters[index]['label'],
                                    default_focus = '1' if first_parameter else '0',
                                    modifiers = '{"required": %s}' % 'true' if parameters[index].get('mandatory', False) else 'false',
+                                   widget = is_2m and 'many2many_tags' or None,
+                                   domain = is_2m and ('[("x2m_unique_id", "=", x2m_unique_id), ("entry_num", "=", %d)]' % index) or None,
+                                   context = is_2m and ('{"entry_num": %d}' % index) or None,
                                    )
 
                     first_parameter = False
@@ -277,7 +346,9 @@ class report_prompt_class(orm.TransientModel):
         parameters = json.loads(wizard.parameters_dictionary)
         result = {}
         for index in range(0, len(parameters)):
-            result[parameters[index]['variable']] = getattr(wizard, PARAM_VALUES[parameters[index]['type']]['value'] % index, False) or PARAM_VALUES[parameters[index]['type']]['if_false']
+            result[parameters[index]['variable']] = getattr(wizard, resolve_column_name(parameters[index]['type'], parameters[index].get('multi_select', False), index), False) or PARAM_VALUES[parameters[index]['type']]['if_false']
+            if can_2m(parameters[index]['type'], parameters[index].get('multi_select', False)):
+                result[parameters[index]['variable']] = [(x.sel_int if parameters[index]['type'] == TYPE_INTEGER else x.sel_str if parameters[index]['type'] == TYPE_STRING else False) for x in result[parameters[index]['variable']]]
 
         return result
 
@@ -305,4 +376,16 @@ class report_prompt_class(orm.TransientModel):
                 'type': 'ir.actions.report.xml',
                 'report_name': context.get('service_name', ''),
                 'datas': data,
+                }
+
+
+class report_prompt_m2m(orm.TransientModel):
+    _name = 'ir.actions.report.multivalues.promptwizard'
+    _columns = {
+                'x2m_unique_id': fields.integer('2M Unique Id'),
+                'entry_num': fields.integer('Entry Num'),
+                'selected': fields.boolean('Selected'),
+                'sel_int': fields.integer('Selection Integer'),
+                'sel_str': fields.char('Selection String'),
+                'name': fields.char('Selection Value'),
                 }
