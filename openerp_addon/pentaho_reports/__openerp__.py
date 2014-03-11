@@ -64,7 +64,7 @@ to receive and use them. Reserved parameters currently passed are:
 * *context_tz*: the timezone in effect when the report action is executed.
 
 This list of reserved parameters is available for use is all data sources, even those which return possible
-parameter selections, thereby allow meaningful selections for other parameters.
+parameter selections, therefore allowing meaningful selections for other parameters.
 
 Most Pentaho report parameter types and features have been mapped, where practicable, to something which makes
 sense to an OpenERP environment. This means that a number of Java data types don't necessarily differentiate.
@@ -79,8 +79,9 @@ Pentaho default, or can be sent to the report in the context in the format:
 where the passed dictionary contains the parameter names as keys. See below for guidance on where to set this up.
 
 Pentaho Display Types have been consolidated.  Drop Down, Single Value List, etc, all display as OpenERP selection
-pull downs. Pentaho multi value selection types, such as Multi Value List, Check Box, etc, are implemented as
-single value selection pull downs. Date Picker uses the standard OpenERP date/time widget.
+pull downs. Some Pentaho multi value selection types, such as Check Box, etc, are implemented as single value
+selection pull downs. Date Picker uses the standard OpenERP date/time widget.  Pentaho multi value lists are
+implemented as many2manytag widgets, and support integer, string, and numeric data types.
 
 Other Pentaho parameter features should be considered unsupported, such as Post-Processing Formula, Display Value
 Formula, Visible Items, Validate Values, et al.
