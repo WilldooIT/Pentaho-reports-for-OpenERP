@@ -14,6 +14,14 @@ We have prepared a number of instructional videos for using this project with Op
 
 Keep in mind that while these videos are for version 3.9 of the designer, they are still applicable. 
 
+## A Summary of Recent Changes
+
+* March 2014 - Support for parameters with multi value list selections, implemented as many2manytags widget.
+* December 2013 - Testing and release for Pentaho version 5.0 support.
+* December 2013 - Support reserved variable passing to parameter queries.
+* November 2013 - Pentaho Report Actions better integrated to standard OpenERP Report Actions.
+* January 2013 - Upgrade to support OpenERP version 7.0.
+
 ## A Note About Versions
 
 At the time of writing, this project was working with version 3.9.1 of the Pentaho report designer, however this version is no longer supported and may stop working at any time. If you wish to use version 3.9.1, please follow the [instructions](http://pvandermpentaho.blogspot.com.au/2012/05/adding-openerp-datasource-to-pentaho.html "Pentaho 3.9.1 Plugin") to install the required plugin for the report designer. 

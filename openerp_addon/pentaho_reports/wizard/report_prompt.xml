@@ -7,6 +7,8 @@
 			<field name='arch' type='xml'>
 				<form string='Pentaho Report Options' version="7.0">
 					<group name='parameters'>
+						<field name="id" invisible="1"/>
+						<field name='x2m_unique_id' invisible='1'/>
 						<field name="report_action_id" readonly="1"/>
 						<field name="parameters_dictionary" invisible='1'/>
 						<field name="output_type"/>
