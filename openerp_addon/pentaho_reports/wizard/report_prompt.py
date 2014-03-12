@@ -342,43 +342,65 @@ class report_prompt_class(orm.TransientModel):
         result['arch'] = etree.tostring(doc)
         return result
 
-    def _set_report_variables(self, wizard):
+    def decode_wizard_value(self, cr, uid, parameters, index, value, enc_json=False, context=None):
+        if parameter_can_2m(parameters, index):
+            result = value and [(x.sel_int if parameters[index]['type'] == TYPE_INTEGER else \
+                                 x.sel_str if parameters[index]['type'] == TYPE_STRING else \
+                                 x.sel_num if parameters[index]['type'] == TYPE_NUMBER else \
+                                 False) for x in value] \
+                            or []
+            if enc_json:
+                result = json.dumps(result)
+        else:
+            result = value or PARAM_VALUES[parameters[index]['type']]['if_false']
+        return result
 
+    def encode_wizard_value(self, cr, uid, parameters, index, x2m_unique_id, value, enc_json=False, context=None):
+        mpwiz_obj = self.pool.get('ir.actions.report.multivalues.promptwizard')
+
+        if parameter_can_2m(parameters, index) and enc_json:
+            result = json.loads(value)
+        else:
+            result = value
+
+        if parameter_can_2m(parameters, index):
+            if not type(result) in (list, tuple):
+                result = []
+            sel_ids = []
+            for v in result:
+                v_domain = ('sel_int', '=', v) if parameters[index]['type'] == TYPE_INTEGER else \
+                           ('sel_str', '=', v) if parameters[index]['type'] == TYPE_STRING else \
+                           ('sel_num', '=', v) if parameters[index]['type'] == TYPE_NUMBER else \
+                           False
+                if v_domain:
+                    ids = mpwiz_obj.search(cr, uid, [('x2m_unique_id', '=', x2m_unique_id), ('entry_num', '=', index), v_domain], context=context)
+                    if ids:
+                        sel_ids.append(ids[0])
+            result = [(6, 0, sel_ids)]
+        return result
+
+    def _set_report_variables(self, cr, uid, wizard, context=None):
         parameters = json.loads(wizard.parameters_dictionary)
         result = {}
         for index in range(0, len(parameters)):
-            value = getattr(wizard, parameter_resolve_column_name(parameters, index))
-            if parameter_can_2m(parameters, index):
-                result[parameters[index]['variable']] = value and [(x.sel_int if parameters[index]['type'] == TYPE_INTEGER else \
-                                                                    x.sel_str if parameters[index]['type'] == TYPE_STRING else \
-                                                                    x.sel_num if parameters[index]['type'] == TYPE_NUMBER else \
-                                                                    False) for x in value] \
-                                                            or []
-            else:
-                result[parameters[index]['variable']] = value \
-                                                            or PARAM_VALUES[parameters[index]['type']]['if_false']
+            result[parameters[index]['variable']] = self.decode_wizard_value(cr, uid, parameters, index, getattr(wizard, parameter_resolve_column_name(parameters, index)), context=context)
         return result
 
     def check_report(self, cr, uid, ids, context=None):
-
         if context is None:
             context = {}
-
         wizard = self.browse(cr, uid, ids[0], context=context)
-
         data = {
                 'ids': context.get('active_ids', []),
                 'model': context.get('active_model', 'ir.ui.menu'),
                 'output_type': wizard.output_type,
-                'variables': self._set_report_variables(wizard)
+                'variables': self._set_report_variables(cr, uid, wizard, context=context)
                 }
         return self._print_report(cr, uid, ids, data, context=context)
 
     def _print_report(self, cr, uid, ids, data, context=None):
-
         if context is None:
             context = {}
-
         return {
                 'type': 'ir.actions.report.xml',
                 'report_name': context.get('service_name', ''),
