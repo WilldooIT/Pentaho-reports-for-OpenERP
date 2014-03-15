@@ -245,14 +245,7 @@ class report_prompt_class(orm.TransientModel):
 
         return result
 
-    def fields_view_get(self, cr, uid, view_id=None, view_type='form', context=None, toolbar=False, submenu=False):
-        if context is None:
-            context = {}
-
-        # fields_view_get() is called during module installation, in which case there is no
-        # service_name in the context.
-        if context.get('service_name', '').strip() == '':
-            return super(report_prompt_class, self).fields_view_get(cr, uid, view_id=view_id, view_type=view_type, context=context, toolbar=toolbar, submenu=submenu)
+    def fvg_add_one_parameter(self, cr, uid, result, selection_groups, parameters, index, first_parameter, context=None):
 
         def add_field(result, field_name, selection_options=False, required=False):
 
@@ -288,6 +281,57 @@ class report_prompt_class(orm.TransientModel):
                 if v is not None:
                     sf.set(k, v)
 
+        field_name = parameter_resolve_column_name(parameters, index)
+        is_2m = parameter_can_2m(parameters, index)
+        if is_2m:
+            add_2m_field(result,
+                         field_name,
+                         selection_options = parameters[index].get('selection_options', False),
+                         required = parameters[index].get('mandatory', False),
+                         )
+        else:
+            add_field(result,
+                      field_name,
+                      selection_options = parameters[index].get('selection_options', False),
+                      required = parameters[index].get('mandatory', False),
+                      )
+
+        for sel_group in selection_groups:
+            default_focus = '0'
+            if not first_parameter and not parameters[index].get('hidden', False):
+                add_subelement(sel_group,
+                               'separator',
+                               colspan = sel_group.get('col', '4'),
+                               string = 'Selections',
+                )
+
+                first_parameter.update({'index': index,
+                                        'name': field_name,
+                                        })
+                default_focus = '1'
+
+            add_subelement(sel_group,
+                           'field',
+                           name = field_name,
+                           string = parameters[index]['label'],
+                           default_focus = default_focus,
+                           modifiers = '{"required": %s, "invisible": %s}' % 
+                                            ('true' if parameters[index].get('mandatory', False) else 'false',
+                                             'true' if parameters[index].get('hidden', False) else 'false',
+                                             ),
+                           widget = is_2m and 'many2many_tags' or None,
+                           domain = is_2m and ('[("x2m_unique_id", "=", x2m_unique_id), ("entry_num", "=", %d)]' % index) or None,
+                           )
+
+    def fields_view_get(self, cr, uid, view_id=None, view_type='form', context=None, toolbar=False, submenu=False):
+        if context is None:
+            context = {}
+
+        # fields_view_get() is called during module installation, in which case there is no
+        # service_name in the context.
+        if context.get('service_name', '').strip() == '':
+            return super(report_prompt_class, self).fields_view_get(cr, uid, view_id=view_id, view_type=view_type, context=context, toolbar=toolbar, submenu=submenu)
+
         # reload parameters as selection pull down options can change
         report_action_id, parameters = self._setup_parameters(cr, uid, context=context)
 
@@ -297,44 +341,10 @@ class report_prompt_class(orm.TransientModel):
 
         selection_groups = doc.findall('.//group[@string="Selections"]')
 
-        first_parameter = True
+        first_parameter = {}
 
         for index in range(0, len(parameters)):
-            field_name = parameter_resolve_column_name(parameters, index)
-            is_2m = parameter_can_2m(parameters, index)
-            if is_2m:
-                add_2m_field(result,
-                             field_name,
-                             selection_options = parameters[index].get('selection_options', False),
-                             required = parameters[index].get('mandatory', False),
-                             )
-            else:
-                add_field(result,
-                          field_name,
-                          selection_options = parameters[index].get('selection_options', False),
-                          required = parameters[index].get('mandatory', False),
-                          )
-
-            if not parameters[index].get('hidden', False):
-                for sel_group in selection_groups:
-                    if first_parameter:
-                        add_subelement(sel_group,
-                                       'separator',
-                                       colspan = sel_group.get('col', '4'),
-                                       string = 'Selections',
-                        )
-
-                    add_subelement(sel_group,
-                                   'field',
-                                   name = field_name,
-                                   string = parameters[index]['label'],
-                                   default_focus = '1' if first_parameter else '0',
-                                   modifiers = '{"required": %s}' % 'true' if parameters[index].get('mandatory', False) else 'false',
-                                   widget = is_2m and 'many2many_tags' or None,
-                                   domain = is_2m and ('[("x2m_unique_id", "=", x2m_unique_id), ("entry_num", "=", %d)]' % index) or None,
-                                   )
-
-                    first_parameter = False
+            self.fvg_add_one_parameter(cr, uid, result, selection_groups, parameters, index, first_parameter, context=context)
 
         for sel_group in selection_groups:
             sel_group.set('string', '')
