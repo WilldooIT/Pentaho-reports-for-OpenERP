@@ -345,16 +345,16 @@ class report_prompt_class(orm.TransientModel):
         if context is None:
             context = {}
 
+        result = super(report_prompt_class, self).fields_view_get(cr, uid, view_id=view_id, view_type=view_type, context=context, toolbar=toolbar, submenu=submenu)
+
         # fields_view_get() is called during module installation, in which case there is no
         # service_name in the context.
         if context.get('service_name', '').strip() == '':
-            return super(report_prompt_class, self).fields_view_get(cr, uid, view_id=view_id, view_type=view_type, context=context, toolbar=toolbar, submenu=submenu)
+            return result
 
         # reload parameters as selection pull down options can change
         report_action_id = self._find_report_id(cr, uid, context=context)
         parameters = self._setup_parameters(cr, uid, report_action_id, context=context)
-
-        result = super(report_prompt_class, self).fields_view_get(cr, uid, view_id=view_id, view_type=view_type, context=context, toolbar=toolbar, submenu=submenu)
 
         doc = etree.fromstring(result['arch'])
 
