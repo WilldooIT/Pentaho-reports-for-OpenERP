@@ -6,6 +6,9 @@
 			<field name='model'>ir.actions.report.promptwizard</field>
 			<field name='arch' type='xml'>
 				<form string='Pentaho Report Options' version="7.0">
+					<header>
+						<group name="buttons"/>
+					</header>
 					<group name='parameters'>
 						<field name="id" invisible="1"/>
 						<field name='x2m_unique_id' invisible='1'/>
