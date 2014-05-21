@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+	<data noupdate="0">
+		<record id="group_maintain_selection_sets" model="res.groups">
+			<field name="name">Pentaho Report Selection Set Maintenance</field>
+		</record>
+	</data>
+</openerp>

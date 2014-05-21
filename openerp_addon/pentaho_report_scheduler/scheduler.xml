@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<openerp>
+	<data noupdate="1"> <!-- 'noupdate' means existing data is *not* overwritten when module is updated. Don't update because users may have modified the scheduled interval etc. -->
+		<!-- Add Scheduler -->
+		<record id="ir_cron_scheduled_rpts" model="ir.cron">
+			<field name="name">Report Email Scheduler</field>
+			<field eval="True" name="active" />
+			<field name="user_id" ref="base.user_root"/>
+			<field name="interval_number">1</field>
+			<field name="interval_type">days</field>
+			<field name="nextcall">2000-01-01 00:00:00</field>
+			<field name="numbercall">-1</field>
+			<field eval="False" name="doall" />
+			<field name="model">ir.actions.report.scheduler</field>
+			<field name="function">run_report_email_scheduler</field>
+			<field name="args">([''])</field>
+			<field name="priority">10</field>
+		</record>
+	</data>
+</openerp>

@@ -1,3 +1,18 @@
+## A Summary of Recent Changes
+
+A more detailed description of changes can be found on the [Pentaho Report for OpenERP wiki](https://github.com/WillowIT/Pentaho-reports-for-OpenERP/wiki/Significant-Changes "Pentaho Reports for OpenERP Wiki")
+
+* May 2014 - Report selection sets can be nominated as default selections for users or groups.
+* April 2014 - Function support for default values in report selection sets, including multi value list selections.
+* March 2014 - Report scheduler with ability to run with selection sets.
+* March 2014 - Report email / message scheduler module added.
+* March 2014 - Selection sets creation and recalling.
+* March 2014 - Support for selections with multi value lists, implemented as many2manytags widget.
+* December 2013 - Testing and release for Pentaho version 5.0 support.
+* December 2013 - Support reserved variable passing to parameter queries.
+* November 2013 - Pentaho Report Actions better integrated to standard OpenERP Report Actions.
+* January 2013 - Upgrade to support OpenERP version 7.0.
+
 # Pentaho Reports for OpenERP
 
 This project provides a system that integrates OpenERP with the Pentaho reporting system. End users of OpenERP can design reports using Pentaho report designer v5.0, and install/access them from inside the OpenERP interface. 
@@ -14,19 +29,11 @@ We have prepared a number of instructional videos for using this project with Op
 
 Keep in mind that while these videos are for version 3.9 of the designer, they are still applicable. 
 
-## A Summary of Recent Changes
-
-* March 2014 - Support for parameters with multi value list selections, implemented as many2manytags widget.
-* December 2013 - Testing and release for Pentaho version 5.0 support.
-* December 2013 - Support reserved variable passing to parameter queries.
-* November 2013 - Pentaho Report Actions better integrated to standard OpenERP Report Actions.
-* January 2013 - Upgrade to support OpenERP version 7.0.
-
 ## A Note About Versions
 
 At the time of writing, this project was working with version 3.9.1 of the Pentaho report designer, however this version is no longer supported and may stop working at any time. If you wish to use version 3.9.1, please follow the [instructions](http://pvandermpentaho.blogspot.com.au/2012/05/adding-openerp-datasource-to-pentaho.html "Pentaho 3.9.1 Plugin") to install the required plugin for the report designer. 
 
-Version 5.0 is the latest version of the report designer, and does not require the above steps, as it comes bundled with all required plugins (data sources etc).
+Version 5.0 is the latest version of the report designer.  It comes bundled with all required plugins (data sources etc) and needs no special additional installations.
 
 ## Overview
 

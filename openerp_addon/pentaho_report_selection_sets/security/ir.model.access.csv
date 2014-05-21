@@ -1,0 +1,7 @@
+"id","name","model_id:id","group_id:id","perm_read","perm_write","perm_create","perm_unlink"
+"access_pentaho_selection_set_header_admin","pentaho.selection.set.header.admin","model_ir_actions_report_set_header","base.group_system",1,1,1,1
+"access_pentaho_selection_set_detail_admin","pentaho.selection.set.detail.admin","model_ir_actions_report_set_detail","base.group_system",1,1,1,1
+"access_pentaho_selection_set_header_maint","pentaho.selection.set.header.maint","model_ir_actions_report_set_header","pentaho_report_selection_sets.group_maintain_selection_sets",1,1,1,1
+"access_pentaho_selection_set_detail_maint","pentaho.selection.set.detail.maint","model_ir_actions_report_set_detail","pentaho_report_selection_sets.group_maintain_selection_sets",1,1,1,1
+"access_pentaho_selection_set_header_user","pentaho.selection.set.header.user","model_ir_actions_report_set_header","base.group_user",1,0,0,0
+"access_pentaho_selection_set_detail_user","pentaho.selection.set.detail.user","model_ir_actions_report_set_detail","base.group_user",1,0,0,0

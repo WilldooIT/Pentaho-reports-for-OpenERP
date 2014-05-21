@@ -214,7 +214,10 @@ class report_prompt_class(orm.TransientModel):
 
         for index in range(0, len(parameters)):
             if parameters[index].get('default'):
-                result[parameter_resolve_column_name(parameters, index)] = parameters[index]['default'] # TODO: Needs to be validated for list values - especially for M2M!
+                if parameter_can_2m(parameters, index):
+                    raise orm.except_orm(_('Error'), _('Multi select default values not supported.'))
+                else:
+                    result[parameter_resolve_column_name(parameters, index)] = parameters[index]['default'] # TODO: Needs to be validated for list values - especially for M2M!
 
         mpwiz_obj = self.pool.get('ir.actions.report.multivalues.promptwizard')
         for index in range(0, len(parameters)):
@@ -255,6 +258,19 @@ class report_prompt_class(orm.TransientModel):
         result.update({'report_action_id': report_action_id,
                        'parameters_dictionary': json.dumps(parameters),
                        })
+
+        x2m_unique_id = self.create_x2m_entries(cr, uid, parameters, context=context)
+        if x2m_unique_id:
+            result['x2m_unique_id'] = x2m_unique_id
+
+        result.update(self.report_defaults_dictionary(cr, uid, report_action_id, parameters, x2m_unique_id, context=context))
+        return result
+
+    def default_get_external(self, cr, uid, report_action_id, context=None):
+        parameters = self._setup_parameters(cr, uid, report_action_id, context=context)
+        result = {'report_action_id': report_action_id,
+                  'parameters_dictionary': json.dumps(parameters),
+                  }
 
         x2m_unique_id = self.create_x2m_entries(cr, uid, parameters, context=context)
         if x2m_unique_id:
@@ -371,27 +387,30 @@ class report_prompt_class(orm.TransientModel):
         result['arch'] = etree.tostring(doc)
         return result
 
-    def decode_wizard_value(self, cr, uid, parameters, index, value, enc_json=False, context=None):
+    def decode_wizard_value(self, cr, uid, parameters, index, value, context=None):
         if parameter_can_2m(parameters, index):
+            #
+            # if value comes from the wizard column, it will be a list of browse records
+            # if value comes from a dictionary with a default column value, it will be in the format:
+            #        [(6, 0, [ids])]
+            #
+            if value and type(value[0]) in (list, tuple):
+                value = self.pool.get('ir.actions.report.multivalues.promptwizard').browse(cr, uid, value[0][2], context=context)
             result = value and [(x.sel_int if parameters[index]['type'] == TYPE_INTEGER else \
                                  x.sel_str if parameters[index]['type'] == TYPE_STRING else \
                                  x.sel_num if parameters[index]['type'] == TYPE_NUMBER else \
-                                 False) for x in value] \
-                            or []
-            if enc_json:
-                result = json.dumps(result)
+                                 False
+                                 ) for x in value
+                                ] \
+                     or []
         else:
             result = value or PARAM_VALUES[parameters[index]['type']]['if_false']
         return result
 
-    def encode_wizard_value(self, cr, uid, parameters, index, x2m_unique_id, value, enc_json=False, context=None):
+    def encode_wizard_value(self, cr, uid, parameters, index, x2m_unique_id, value, context=None):
         mpwiz_obj = self.pool.get('ir.actions.report.multivalues.promptwizard')
 
-        if parameter_can_2m(parameters, index) and enc_json:
-            result = json.loads(value)
-        else:
-            result = value
-
+        result = value
         if parameter_can_2m(parameters, index):
             if not type(result) in (list, tuple):
                 result = []

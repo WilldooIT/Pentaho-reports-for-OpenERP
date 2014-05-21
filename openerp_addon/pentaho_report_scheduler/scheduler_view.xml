@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+	<data>
+		<record id="view_sched_form" model="ir.ui.view">
+			<field name="name">view.sched.form</field>
+			<field name="model">ir.actions.report.scheduler</field>
+			<field name="arch" type="xml">
+				<form string="Report Scheduler" version="7.0">
+					<header>
+						<button name="button_run_now" string="Run Now" type="object" icon="STOCK_GO_FORWARD"/>
+					</header>
+					<sheet>
+						<div class="oe_title">
+							<label for="name" class="oe_edit_only"/>
+							<h1><field name="name"/></h1>
+						</div>
+						<field name='action_type'/>
+						<notebook>
+							<page string='Description'>
+								<field name="description" nolabel='1'/>
+							</page>
+							<page string='Reports'>
+								<field name="line_ids" nolabel="1" colspan="4">
+									<tree string='Reports' editable='bottom'>
+										<field name='sequence' widget='handle'/>
+										<field name='report_id' on_change ='onchange_report(report_id)'/>
+										<field name='is_pentaho_report'/>
+										<field name='model'/>
+										<field name='type'/>
+										<field name='report_type'/>
+									</tree>
+								</field>
+							</page>
+							<page string='Users'>
+								<field name="user_list" nolabel="1" colspan="4"/>
+							</page>
+						</notebook>
+					</sheet>
+				</form>
+			</field>
+		</record>
+
+		<record id="view_sched_tree" model="ir.ui.view">
+			<field name="name">view.sched.tree</field>
+			<field name="model">ir.actions.report.scheduler</field>
+			<field name="arch" type="xml">
+				<tree string="Report Scheduler" version="7.0">
+					<field name="name"/>
+					<button name="button_run_now" string="Run Now" type="object" icon="STOCK_GO_FORWARD"/>
+				</tree>
+			</field>
+		</record>
+
+		<record id="action_sched_form" model="ir.actions.act_window">
+			<field name="name">Report Scheduler</field>
+			<field name="res_model">ir.actions.report.scheduler</field>
+			<field name="view_type">form</field>
+			<field name="view_mode">tree,form</field>
+			<field name='view_id' ref='view_sched_tree'/>
+		</record>
+
+		<menuitem id="menu_sched_form" action="action_sched_form" parent="base.menu_ir_cron" sequence="50"/>
+	</data>
+</openerp>
