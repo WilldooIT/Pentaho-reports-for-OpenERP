@@ -6,6 +6,9 @@
 			<field name='model'>ir.actions.report.promptwizard</field>
 			<field name='arch' type='xml'>
 				<form string='Pentaho Report Options' version="7.0">
+					<header>
+						<group name="buttons"/>
+					</header>
 					<group name='parameters'>
 						<field name="id" invisible="1"/>
 						<field name='x2m_unique_id' invisible='1'/>
@@ -16,9 +19,9 @@
 						<group colspan="4" string='Selections'/>
 					</group>
 					<footer>
-						<button class="oe_highlight" string='Print' name='check_report' type='object' />
-						or
-						<button class="oe_link" string='Cancel' special='cancel'/>
+						<button class="oe_highlight" string='_Print' name='check_report' type='object' />
+						<!-- 'or' should be static text, but bug in "wizard on wizard" footers renders this incorrectly, so put 'or' in button -->
+						<button class="oe_link" string='or _Cancel' special='cancel'/>
 					</footer>
 				</form>
 			</field>

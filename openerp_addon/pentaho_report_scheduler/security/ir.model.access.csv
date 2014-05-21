@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_report_scheduler_system,Report Scheduler – System,model_ir_actions_report_scheduler,base.group_system,1,1,1,1
+access_report_scheduler_user,Report Scheduler – User,model_ir_actions_report_scheduler,base.group_user,1,0,0,0
+access_report_scheduler_lines_system,Report Scheduler – System,model_ir_actions_report_scheduler_line,base.group_system,1,1,1,1
+access_report_scheduler_lines_user,Report Scheduler – User,model_ir_actions_report_scheduler_line,base.group_user,1,0,0,0

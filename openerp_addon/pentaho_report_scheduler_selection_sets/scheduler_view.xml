@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+	<data>
+		<record id="view_sched_form_sel_sets" model="ir.ui.view">
+			<field name="name">view.sched.form.sel.sets</field>
+			<field name='inherit_id' ref='pentaho_report_scheduler.view_sched_form'/>
+			<field name="model">ir.actions.report.scheduler</field>
+			<field name="arch" type="xml">
+				<field name='report_id' position='before'>
+					<field name='selectionset_id' on_change ='onchange_selectionset(selectionset_id)'/>
+				</field>
+				<field name='report_id' position='attributes'>
+					<attribute name='on_change'>onchange_report_p(report_id, selectionset_id)</attribute>
+				</field>
+			</field>
+		</record>
+	</data>
+</openerp>

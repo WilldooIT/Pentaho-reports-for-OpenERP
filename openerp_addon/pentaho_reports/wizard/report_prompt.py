@@ -184,17 +184,17 @@ class report_prompt_class(orm.TransientModel):
 
         return result
 
-    def _setup_parameters(self, cr, uid, context=None):
+    def _find_report_id(self, cr, uid, context=None):
+        report_ids = self.pool.get('ir.actions.report.xml').search(cr, uid, [('report_name', '=', context.get('service_name', ''))], context=context)
+        if not report_ids:
+            raise orm.except_orm(_('Error'), _('Invalid report associated with menu item.'))
+        return report_ids[0]
+
+    def _setup_parameters(self, cr, uid, report_id, context=None):
         if context is None:
             context = {}
 
-        ir_actions_obj = self.pool.get('ir.actions.report.xml')
-
-        report_ids = ir_actions_obj.search(cr, uid, [('report_name', '=', context.get('service_name', ''))], context=context)
-        if not report_ids:
-            raise orm.except_orm(_('Error'), _('Invalid report associated with menu item.'))
-
-        report_record = ir_actions_obj.browse(cr, uid, report_ids[0], context=context)
+        report_record = self.pool.get('ir.actions.report.xml').browse(cr, uid, report_id, context=context)
 
         prpt_content = base64.decodestring(report_record.pentaho_file)
 
@@ -206,43 +206,77 @@ class report_prompt_class(orm.TransientModel):
         proxy = xmlrpclib.ServerProxy(proxy_url)
         report_parameters = proxy.report.getParameterInfo(proxy_argument)
 
-        return report_ids[0], self._parse_report_parameters(report_parameters, context=context)
+        return self._parse_report_parameters(report_parameters, context=context)
 
-    def default_get(self, cr, uid, fields, context=None):
-        report_action_id, parameters = self._setup_parameters(cr, uid, context=context)
+    def report_defaults_dictionary(self, cr, uid, report_action_id, parameters, x2m_unique_id, context=None):
         report_action = self.pool.get('ir.actions.report.xml').browse(cr, uid, report_action_id, context=context)
-
-        result = super(report_prompt_class, self).default_get(cr, uid, fields, context=context)
-        result.update({'report_action_id': report_action_id,
-                       'output_type': report_action.pentaho_report_output_type or DEFAULT_OUTPUT_TYPE,
-                       'parameters_dictionary': json.dumps(parameters),
-                       })
+        result = {'output_type': report_action.pentaho_report_output_type or DEFAULT_OUTPUT_TYPE}
 
         for index in range(0, len(parameters)):
-            if parameters[index].get('default', False):
-                result[parameter_resolve_column_name(parameters, index)] = parameters[index]['default'] # Have to work out format default comes in - is it already a list???
+            if parameters[index].get('default'):
+                if parameter_can_2m(parameters, index):
+                    raise orm.except_orm(_('Error'), _('Multi select default values not supported.'))
+                else:
+                    result[parameter_resolve_column_name(parameters, index)] = parameters[index]['default'] # TODO: Needs to be validated for list values - especially for M2M!
 
+        mpwiz_obj = self.pool.get('ir.actions.report.multivalues.promptwizard')
+        for index in range(0, len(parameters)):
+            if parameter_can_2m(parameters, index):
+                mpwiz_obj.write(cr, uid, mpwiz_obj.search(cr, uid, [('x2m_unique_id', '=', x2m_unique_id), ('entry_num', '=', index)], context=context), {'selected': False}, context=context)
+
+        return result
+
+    def create_x2m_entries(self, cr, uid, parameters, context=None):
         x2m_unique_id = False
         mpwiz_obj = self.pool.get('ir.actions.report.multivalues.promptwizard')
-
         for index in range(0, len(parameters)):
-            if parameter_can_2m(parameters, index) and type(parameters[index].get('selection_options', False)) == list:
+            if parameter_can_2m(parameters, index):
                 if not x2m_unique_id:
                     mpwiz_ids = mpwiz_obj.search(cr, uid, [('x2m_unique_id', '>', 0)], order='x2m_unique_id desc', limit=1, context=context)
                     if mpwiz_ids:
                         x2m_unique_id = mpwiz_obj.browse(cr, uid, mpwiz_ids[0], context=context).x2m_unique_id + 1
                     else:
                         x2m_unique_id = 1
-                    result['x2m_unique_id'] = x2m_unique_id
 
-                for item in parameters[index]['selection_options']:
+                selection_options = type(parameters[index].get('selection_options')) in (list, tuple) and parameters[index]['selection_options'] or []
+                for item in selection_options:
                     mpwiz_obj.create(cr, uid, {'x2m_unique_id': x2m_unique_id, 'entry_num': index, 'selected': False,
                                                'sel_int': item[0] if parameters[index]['type'] == TYPE_INTEGER else False,
                                                'sel_str': item[0] if parameters[index]['type'] == TYPE_STRING else False,
                                                'sel_num': item[0] if parameters[index]['type'] == TYPE_NUMBER else False,
                                                'name': item[1],
                                                }, context=context)
+        return x2m_unique_id
 
+    def default_get(self, cr, uid, fields, context=None):
+        if context is None:
+            context={}
+        report_action_id = self._find_report_id(cr, uid, context=context)
+        parameters = self._setup_parameters(cr, uid, report_action_id, context=context)
+
+        result = super(report_prompt_class, self).default_get(cr, uid, fields, context=context)
+        result.update({'report_action_id': report_action_id,
+                       'parameters_dictionary': json.dumps(parameters),
+                       })
+
+        x2m_unique_id = self.create_x2m_entries(cr, uid, parameters, context=context)
+        if x2m_unique_id:
+            result['x2m_unique_id'] = x2m_unique_id
+
+        result.update(self.report_defaults_dictionary(cr, uid, report_action_id, parameters, x2m_unique_id, context=context))
+        return result
+
+    def default_get_external(self, cr, uid, report_action_id, context=None):
+        parameters = self._setup_parameters(cr, uid, report_action_id, context=context)
+        result = {'report_action_id': report_action_id,
+                  'parameters_dictionary': json.dumps(parameters),
+                  }
+
+        x2m_unique_id = self.create_x2m_entries(cr, uid, parameters, context=context)
+        if x2m_unique_id:
+            result['x2m_unique_id'] = x2m_unique_id
+
+        result.update(self.report_defaults_dictionary(cr, uid, report_action_id, parameters, x2m_unique_id, context=context))
         return result
 
     def fvg_add_one_parameter(self, cr, uid, result, selection_groups, parameters, index, first_parameter, context=None):
@@ -327,15 +361,16 @@ class report_prompt_class(orm.TransientModel):
         if context is None:
             context = {}
 
+        result = super(report_prompt_class, self).fields_view_get(cr, uid, view_id=view_id, view_type=view_type, context=context, toolbar=toolbar, submenu=submenu)
+
         # fields_view_get() is called during module installation, in which case there is no
         # service_name in the context.
         if context.get('service_name', '').strip() == '':
-            return super(report_prompt_class, self).fields_view_get(cr, uid, view_id=view_id, view_type=view_type, context=context, toolbar=toolbar, submenu=submenu)
+            return result
 
         # reload parameters as selection pull down options can change
-        report_action_id, parameters = self._setup_parameters(cr, uid, context=context)
-
-        result = super(report_prompt_class, self).fields_view_get(cr, uid, view_id=view_id, view_type=view_type, context=context, toolbar=toolbar, submenu=submenu)
+        report_action_id = self._find_report_id(cr, uid, context=context)
+        parameters = self._setup_parameters(cr, uid, report_action_id, context=context)
 
         doc = etree.fromstring(result['arch'])
 
@@ -352,27 +387,30 @@ class report_prompt_class(orm.TransientModel):
         result['arch'] = etree.tostring(doc)
         return result
 
-    def decode_wizard_value(self, cr, uid, parameters, index, value, enc_json=False, context=None):
+    def decode_wizard_value(self, cr, uid, parameters, index, value, context=None):
         if parameter_can_2m(parameters, index):
+            #
+            # if value comes from the wizard column, it will be a list of browse records
+            # if value comes from a dictionary with a default column value, it will be in the format:
+            #        [(6, 0, [ids])]
+            #
+            if value and type(value[0]) in (list, tuple):
+                value = self.pool.get('ir.actions.report.multivalues.promptwizard').browse(cr, uid, value[0][2], context=context)
             result = value and [(x.sel_int if parameters[index]['type'] == TYPE_INTEGER else \
                                  x.sel_str if parameters[index]['type'] == TYPE_STRING else \
                                  x.sel_num if parameters[index]['type'] == TYPE_NUMBER else \
-                                 False) for x in value] \
-                            or []
-            if enc_json:
-                result = json.dumps(result)
+                                 False
+                                 ) for x in value
+                                ] \
+                     or []
         else:
             result = value or PARAM_VALUES[parameters[index]['type']]['if_false']
         return result
 
-    def encode_wizard_value(self, cr, uid, parameters, index, x2m_unique_id, value, enc_json=False, context=None):
+    def encode_wizard_value(self, cr, uid, parameters, index, x2m_unique_id, value, context=None):
         mpwiz_obj = self.pool.get('ir.actions.report.multivalues.promptwizard')
 
-        if parameter_can_2m(parameters, index) and enc_json:
-            result = json.loads(value)
-        else:
-            result = value
-
+        result = value
         if parameter_can_2m(parameters, index):
             if not type(result) in (list, tuple):
                 result = []

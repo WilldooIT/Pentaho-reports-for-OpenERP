@@ -1,0 +1,20 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<openerp>
+	<data>
+		<record model='ir.ui.view' id='wiz_pentaho_report_prompt_selns'>
+			<field name='name'>Pentaho Report Options with Selection Sets</field>
+			<field name='model'>ir.actions.report.promptwizard</field>
+			<field name='inherit_id' ref='pentaho_reports.wiz_pentaho_report_prompt'/>
+			<field name='arch' type='xml'>
+				<group name='buttons' position='after'>
+					<button name="%(action_store_selections)d" type="action" string="Store Selections" groups="pentaho_report_selection_sets.group_maintain_selection_sets"/>
+				</group>
+				<field name='report_action_id' position='after'>
+					<field name='has_selns' invisible='1'/>
+					<field name='selectionset_id' domain="[('report_action_id', '=', report_action_id)]" attrs="{'invisible': [('has_selns', '!=', True)]}"
+						on_change='onchange_selectionset_id(selectionset_id, parameters_dictionary, x2m_unique_id, context)'/>
+				</field>
+			</field>
+		</record>
+	</data>
+</openerp>
