@@ -1,7 +1,7 @@
-from osv import fields, orm
+from openerp.osv import fields, orm
 import datetime
-from tools.translate import _
-import netsvc
+from openerp.tools.translate import _
+from openerp import netsvc
 import json
 
 from openerp.addons.pentaho_reports.java_oe import parameter_resolve_column_name

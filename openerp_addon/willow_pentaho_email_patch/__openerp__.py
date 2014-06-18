@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# V7.0 - Release
 {
     "name": "Pentaho Email Patch",
     "version": "1.0",

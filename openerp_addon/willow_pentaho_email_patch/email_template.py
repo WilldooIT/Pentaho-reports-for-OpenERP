@@ -1,12 +1,12 @@
 import base64
-import pooler
-import netsvc
-from osv import osv, fields
-import tools
+from openerp import netsvc
+from openerp.osv import orm, fields
+from openerp import tools
 from openerp import SUPERUSER_ID
+import openerp
 
 
-class email_template_patch(osv.osv):
+class email_template_patch(orm.Model):
     _inherit = 'email.template'
 
 
@@ -71,7 +71,7 @@ class email_template_patch(osv.osv):
                 # NOTE: This works HOWEVER, if the temp user is in the in the 'portal' or 'anonymous' security groups
                 #       then rendering the Pentaho report may fail because the user is denied read access to res.partner.
                 #       See security rule 'res_partner: read access on my partner'.
-                crtemp = pooler.get_db(cr.dbname).cursor()
+                crtemp = openerp.registry(cr.dbname).cursor()
 
                 #Remove default_partner_id set by search view that could duplicate user with existing partner!
                 # Use copied context, to ensure we don't affect any processing outside of this method's scope.
@@ -90,7 +90,7 @@ class email_template_patch(osv.osv):
                 crtemp.commit()
                 crtemp.close()
 
-                crtemp = pooler.get_db(cr.dbname).cursor()
+                crtemp = openerp.registry(cr.dbname).cursor()
 
                 self._unlink_user_and_partner(crtemp, uid, [new_uid], context=ctx)
 

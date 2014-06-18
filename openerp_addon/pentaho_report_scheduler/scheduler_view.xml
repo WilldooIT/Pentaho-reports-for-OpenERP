@@ -59,6 +59,12 @@
 			<field name='view_id' ref='view_sched_tree'/>
 		</record>
 
+		<!-- Restructure menu... -->
+		<!-- <menuitem id="menu_ir_cron_act" action="ir_cron_act" parent="base.next_id_6"/> -->
+
+		<menuitem id="base.menu_ir_cron" name="Scheduler" parent="base.next_id_6"/>
+		<menuitem id="base.menu_ir_cron_act" action="base.ir_cron_act" parent="base.menu_ir_cron"/>
+
 		<menuitem id="menu_sched_form" action="action_sched_form" parent="base.menu_ir_cron" sequence="50"/>
 	</data>
 </openerp>
