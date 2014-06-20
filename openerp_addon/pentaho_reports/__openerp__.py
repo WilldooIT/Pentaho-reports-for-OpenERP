@@ -1,5 +1,4 @@
 # -*- encoding: utf-8 -*-
-# v7.0 - Beta.
 {
     "name": "Pentaho Reports for OpenERP",
     "description": """

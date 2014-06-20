@@ -13,6 +13,7 @@ from openerp.tools import config
 from openerp.tools.translate import _
 import logging
 import time
+import openerp
 from datetime import datetime
 from openerp.tools import DEFAULT_SERVER_DATE_FORMAT, DEFAULT_SERVER_DATETIME_FORMAT
 
@@ -180,9 +181,9 @@ class Report(object):
                              }
 
     def setup_report(self):
-        ids = self.pool.get('ir.actions.report.xml').search(self.cr, self.uid, [('report_name', '=', self.name[7:]), ('is_pentaho_report', '=', True)], context=self.context)
+        ids = self.pool.get('ir.actions.report.xml').search(self.cr, self.uid, [('report_name', '=', self.name[len(SERVICE_NAME_PREFIX):]), ('report_type', '=', 'pentaho')], context=self.context)
         if not ids:
-            raise orm.except_orm(_('Error'), _("Report service name '%s' is not a Pentaho report.") % self.name[7:])
+            raise orm.except_orm(_('Error'), _("Report service name '%s' is not a Pentaho report.") % self.name[len(SERVICE_NAME_PREFIX):])
         data = self.pool.get('ir.actions.report.xml').read(self.cr, self.uid, ids[0], ['pentaho_report_output_type', 'pentaho_file'])
         self.default_output_type = data['pentaho_report_output_type'] or DEFAULT_OUTPUT_TYPE
         self.prpt_content = base64.decodestring(data["pentaho_file"])
@@ -227,15 +228,13 @@ class Report(object):
 
         rendered_report = proxy.report.execute(proxy_argument).data
         if len(rendered_report) == 0:
-            raise orm.except_orm(_('Error'), _("Pentaho returned no data for the report '%s'. Check report definition and parameters.") % self.name[7:])
+            raise orm.except_orm(_('Error'), _("Pentaho returned no data for the report '%s'. Check report definition and parameters.") % self.name[len(SERVICE_NAME_PREFIX):])
 
         return (rendered_report, output_type)
 
 
 class PentahoReportOpenERPInterface(report.interface.report_int):
     def __init__(self, name):
-        if name in netsvc.Service._services:
-            del netsvc.Service._services[name]
         super(PentahoReportOpenERPInterface, self).__init__(name)
 
     def create(self, cr, uid, ids, data, context):
@@ -245,7 +244,7 @@ class PentahoReportOpenERPInterface(report.interface.report_int):
         pool = pooler.get_pool(cr.dbname)
         ir_pool = pool.get('ir.actions.report.xml')
         report_xml_ids = ir_pool.search(cr, uid,
-                [('report_name', '=', name[7:])], context=context)
+                [('report_name', '=', name[len(SERVICE_NAME_PREFIX):])], context=context)
 
         rendered_report, output_type = report_instance.execute()
         if report_xml_ids:
@@ -318,20 +317,6 @@ def check_report_name(report_name):
         name = report_name
     return name
 
-def change_service_name(old_name, new_name):
-    """Deletes service with old name and register
-    one with new name.
-    """
-    if old_name in netsvc.Service._services:
-        del netsvc.Service._services[old_name]
-    PentahoReportOpenERPInterface(new_name)
-
-def register_pentaho_report(report_name):
-    name = check_report_name(report_name)
-    if name in netsvc.Service._services:
-        del netsvc.Service._services[name]
-    PentahoReportOpenERPInterface(name)
-
 
 def fetch_report_parameters(cr, uid, report_name, context=None):
     """Return the parameters object for this report.
@@ -345,17 +330,49 @@ def fetch_report_parameters(cr, uid, report_name, context=None):
     return Report(name, cr, uid, [1], {}, context).fetch_report_parameters()
 
 
-#Following OpenERP's (messed up) naming convention
 class ir_actions_report_xml(orm.Model):
     _inherit = 'ir.actions.report.xml'
 
-    def register_all(self, cr):
-        cr.execute("""SELECT * FROM ir_act_report_xml
-                        WHERE is_pentaho_report = 'TRUE'
-                        ORDER BY id
-                    """)
-        records = cr.dictfetchall()
-        for record in records:
-            register_pentaho_report(record['report_name'])
+#     def register_all(self, cr):
+#         cr.execute("""SELECT * FROM ir_act_report_xml
+#                         WHERE report_type = 'pentaho'
+#                         ORDER BY id
+#                     """)
+#         records = cr.dictfetchall()
+#         for record in records:
+#             register_pentaho_report(record['report_name'])
+# 
+#         return super(ir_actions_report_xml, self).register_all(cr)
 
-        return super(ir_actions_report_xml, self).register_all(cr)
+    #
+    # Code appropriated from webkit example...
+    def _lookup_report(self, cr, name):
+        """
+        Look up a report definition.
+        """
+        import operator
+        import os
+        opj = os.path.join
+
+        # First lookup in the deprecated place, because if the report definition
+        # has not been updated, it is more likely the correct definition is there.
+        # Only reports with custom parser specified in Python are still there.
+        if SERVICE_NAME_PREFIX + name in openerp.report.interface.report_int._reports:
+            new_report = openerp.report.interface.report_int._reports[SERVICE_NAME_PREFIX + name]
+            if not isinstance(new_report, PentahoReportOpenERPInterface):
+                new_report = None
+        else:
+            cr.execute("SELECT * FROM ir_act_report_xml WHERE report_name=%s and report_type=%s", (name, 'pentaho'))
+            r = cr.dictfetchone()
+            if r:
+#                 new_report = WebKitParser('report.'+r['report_name'],
+#                     r['model'], opj('addons',r['report_rml'] or '/'),
+#                     header=r['header'], register=False, **kwargs)
+                new_report = PentahoReportOpenERPInterface(SERVICE_NAME_PREFIX+r['report_name'])
+            else:
+                new_report = None
+
+        if new_report:
+            return new_report
+        else:
+            return super(ir_actions_report_xml, self)._lookup_report(cr, name)

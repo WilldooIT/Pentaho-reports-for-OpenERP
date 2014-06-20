@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# v7.0 - Release
 {
     'name': 'Report Scheduler Selection Sets',
     "version": "0.1",

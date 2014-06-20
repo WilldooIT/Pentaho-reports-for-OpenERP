@@ -1,5 +1,4 @@
 # -*- encoding: utf-8 -*-
-# v7.0 - Release
 {
     "name": "Pentaho Report Selections Saving",
     "description": """
