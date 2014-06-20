@@ -62,7 +62,7 @@ class email_template_patch(orm.Model):
 #           service = netsvc.LocalService(report_service)
 #           (result, format) = service.create(cr, uid, [res_id], {'model': template.model}, ctx)
 
-            if not report_xml_pool.browse(cr, uid, template.report_template.id, context).is_pentaho_report:
+            if report_xml_pool.browse(cr, uid, template.report_template.id, context).report_type != 'pentaho':
                 # Standard service call for non-Pentaho reports
                 service = netsvc.LocalService(report_service)
                 (result, format) = service.create(cr, uid, [res_id], {'model': template.model}, ctx)

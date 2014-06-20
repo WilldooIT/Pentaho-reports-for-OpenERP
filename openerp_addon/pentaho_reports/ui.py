@@ -18,13 +18,19 @@ ADDONS_PATHS = config['addons_path'].split(",")
 
 class report_xml(orm.Model):
     _inherit = 'ir.actions.report.xml'
+
+    def __init__(self, pool, cr):
+        if not('pentaho','Pentaho Report') in self._columns['report_type'].selection:
+            self._columns['report_type'].selection.append(('pentaho', 'Pentaho Report'))
+        super(report_xml, self).__init__(pool, cr)
+
     _columns = {
                 'pentaho_report_output_type': fields.selection([("pdf", "PDF"), ("html", "HTML"), ("csv", "CSV"), ("xls", "Excel"), ("rtf", "RTF"), ("txt", "Plain text")],
                                                                'Output format'),
                 'pentaho_report_model_id': fields.many2one('ir.model', 'Model'),
                 'pentaho_file': fields.binary('File', filters='*.prpt'),
                 'pentaho_filename': fields.char('Filename', size=256, required=False),
-                'is_pentaho_report': fields.boolean('Is this a Pentaho report?'),
+#                 'is_pentaho_report': fields.boolean('Is this a Pentaho report?'),
                 'linked_menu_id': fields.many2one('ir.ui.menu', 'Linked menu item', select=True),
                 'created_menu_id': fields.many2one('ir.ui.menu', 'Created menu item'),
                 # This is not displayed on the client - it is a trigger to indicate that
@@ -33,12 +39,22 @@ class report_xml(orm.Model):
                 'pentaho_load_file': fields.boolean('Load prpt file from filename'),
                 }
 
-    def onchange_is_pentaho(self, cr, uid, ids, is_pentaho_report, context=None):
+    def on_change_report_type(self, cr, uid, ids, report_type, model, pentaho_report_model_id, context=None):
+        model_obj = self.pool.get('ir.model')
+
         result = {'value': {}}
-        if is_pentaho_report:
+        if report_type == 'pentaho':
             result['value'].update({'auto' : False,
-                                    'pentaho_report_output_type': 'pdf'
+                                    'pentaho_report_output_type': 'pdf',
                                     })
+            if model:
+                if not pentaho_report_model_id or (model_obj.browse(cr, uid, pentaho_report_model_id, context=context).model != model):
+                    model_ids = model_obj.search(cr, uid, [('model', '=', model)], context=context)
+                    if model_ids:
+                        result['value']['pentaho_report_model_id'] = model_ids[0]
+        else:
+            if pentaho_report_model_id:
+                result['value']['model'] = model_obj.browse(cr, uid, pentaho_report_model_id, context=context).model
         return result
 
     def copy(self, cr, uid, id, default=None, context=None):
@@ -86,7 +102,7 @@ class report_xml(orm.Model):
         if action_report.created_menu_id and not action_report.linked_menu_id:
             self.delete_menu(cr, uid, action_report.created_menu_id.id, context=context)
 
-        if action_report.is_pentaho_report and action_report.linked_menu_id:
+        if action_report.report_type == 'pentaho' and action_report.linked_menu_id:
             groups_id = [(6, 0, map(lambda x: x.id, action_report.groups_id))]
             if not action_report.created_menu_id:
                 result = self.create_menu(cr, uid, {'name': action_report.name,
@@ -115,11 +131,8 @@ class report_xml(orm.Model):
         return result
 
     def create(self, cr, uid, vals, context = None):
-        if vals.get('is_pentaho_report'):
+        if vals.get('report_type','') == 'pentaho':
             vals.update({
-                         'model': self.pool.get('ir.model').browse(cr, uid, vals['pentaho_report_model_id'], context=context).model,
-                         'type': 'ir.actions.report.xml',
-                         'report_type': 'pdf',
                          'auto': False,
                          })
 
@@ -131,12 +144,9 @@ class report_xml(orm.Model):
         return res
 
     def write(self, cr, uid, ids, vals, context = None):
-        if vals.get('is_pentaho_report'):
-            if 'pentaho_report_model_id' in vals:
-                vals['model'] = self.pool.get('ir.model').browse(cr, uid, vals['pentaho_report_model_id'], context=context).model
+        if vals.get('report_type','') == 'pentaho':
             vals.update({
                          'type': 'ir.actions.report.xml',
-                         'report_type': 'pdf',
                          'auto': False,
                          })
 
@@ -166,7 +176,7 @@ class report_xml(orm.Model):
         for report in self.browse(cr, uid, ids):
             values_ids = values_obj.search(cr, uid, [('value', '=', 'ir.actions.report.xml,%s' % report.id)])
 
-            if report.is_pentaho_report:
+            if report.report_type == 'pentaho':
                 if report.pentaho_filename:
                     if report.pentaho_load_file:
                         # if we receive a filename and no content, this has probably been loaded by a process other than the standard client, such as a data import
@@ -197,7 +207,7 @@ class report_xml(orm.Model):
                         else:
                             values_obj.write(cr, SUPERUSER_ID, values_ids, data, context=context)
                         values_ids = []
-                    core.register_pentaho_report(report.report_name)
+#                     core.register_pentaho_report(report.report_name)
 
                 elif report.pentaho_file:
                     super(report_xml, self).write(cr, uid, [report.id], {'pentaho_file': False})
@@ -318,10 +328,10 @@ class report_xml(orm.Model):
         report_ids = self.search(cr, uid, [('report_name', '=', service_name)], context=context)
         if report_ids:
             report = self.browse(cr, uid, report_ids[0], context=context)
-        if (not report) or (not report.is_pentaho_report):
+        if not report or report.report_type != 'pentaho':
             raise orm.except_orm(_('Error'), _("Report '%s' is not a Pentaho report.") % service_name)
 
-        if (not active_ids) and (not param_values):
+        if not active_ids and not param_values:
             raise orm.except_orm(_('Error'), _("Report '%s' must be passed active ids or parameter values.") % service_name)
 
         datas = {'model': report.model,

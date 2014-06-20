@@ -86,7 +86,7 @@ class ReportScheduler(orm.Model):
 
     def _report_variables(self, cr, uid, line, context=None):
         result = {}
-        if line.is_pentaho_report:
+        if line.report_type == 'pentaho':
             # attempt to fill the prompt wizard as if we had gone in to it from a menu and then run.
             promptwizard_obj = self.pool.get('ir.actions.report.promptwizard')
 
@@ -142,41 +142,21 @@ class ReportSchedulerLines(orm.Model):
                                                          ], count=True, context=context
                                                         ) > 0
 
-    def _check_pentaho_values(self, cr, uid, report, pentaho_installed, context=None):
-        if pentaho_installed and report.is_pentaho_report:
-            result = {'is_pentaho_report': True,
-                      'model': report.pentaho_report_model_id.name,
-                      'report_type': report.pentaho_report_output_type,
-                      }
-        else:
-            result = {'is_pentaho_report': False,
-                      'model': report.model,
-                      'report_type': report.report_type,
-                      }
-        return result
-
-    def _action_values(self, cr, uid, ids, name, args, context=None):
-        pentaho_installed = self.check_pentaho_installed(cr, uid, context=context)
-        res = {}
-        for line in self.browse(cr, uid, ids, context=context):
-            res[line.id] = self._check_pentaho_values(cr, uid, line.report_id, pentaho_installed, context=context)
-        return res
-
     _columns = {'scheduler_id': fields.many2one('ir.actions.report.scheduler', 'Scheduler'),
                 'report_id': fields.many2one('ir.actions.report.xml', string='Report', required=True, ondelete='cascade'),
                 'sequence': fields.integer('Sequence'),
-                'is_pentaho_report': fields.function(_action_values, multi='ipr', string='Pentaho', type='boolean', readonly=True),
-                'model': fields.function(_action_values, multi='ipr', string='Object', type='char', readonly=True),
-                'type': fields.related('report_id', 'type', string='Action Type', type='char', readonly=True),
-                'report_type': fields.function(_action_values, multi='ipr', string='Report Type', type='char', readonly=True),
+                'report_type': fields.related('report_id', 'report_type', string='Report Type', readonly=True),
+                'model': fields.related('report_id', 'model', string='Object', readonly=True),
+                'type': fields.related('report_id', 'type', string='Action Type', readonly=True),
                 }
 
     _order='sequence'
 
-    def onchange_report(self, cr, uid, ids, report_id, context=None):
+    def on_change_report(self, cr, uid, ids, report_id, context=None):
         result = {}
         if report_id:
             report = self.pool.get('ir.actions.report.xml').browse(cr, uid, report_id, context=context)
-            result['value'] = self._check_pentaho_values(cr, uid, report, self.check_pentaho_installed(cr, uid, context=context), context=context)
+            result['value']['report_type'] = report.report_type
+            result['value']['model'] = report.model
             result['value']['type'] = report.type
         return result
