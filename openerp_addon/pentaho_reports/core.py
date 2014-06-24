@@ -252,20 +252,8 @@ class PentahoReportOpenERPInterface(report.interface.report_int):
             model = context.get('active_model')
             if report_xml.attachment and model:
                 crtemp = pooler.get_db(cr.dbname).cursor()  # Creating new cursor to prevent TransactionRollbackError
-                                                            # when creating attachments, concurrency update have place otherwise
+                                                            # when creating attachments, avoids concurrency issues
                 self.create_attachment(crtemp, uid, ids, report_xml.attachment, rendered_report, output_type, model, context=context)
-
-                # TODO: Will remodel bellow functionality as its causes a lot of bugs, it returns previous filename
-                # Error in report registration
-
-                # service_name = check_report_name(report_name)
-                # if check_report_name(report_name) != self.name:
-                    # Changing report stored filename
-
-                    # report_xml = ir_pool.browse(crtemp, uid, report_xml_ids[0], context=context)
-                    # report_xml.write({'report_name': report_name})
-                    # change_service_name(self.name, service_name)
-                    # self.name = service_name
 
                 crtemp.commit()  # It means attachment will be created even if error occurs
                 crtemp.close()
