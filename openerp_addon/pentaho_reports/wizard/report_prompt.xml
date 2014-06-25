@@ -20,8 +20,8 @@
 					</group>
 					<footer>
 						<button class="oe_highlight" string='_Print' name='check_report' type='object' />
-						<!-- 'or' should be static text, but bug in "wizard on wizard" footers renders this incorrectly, so put 'or' in button -->
-						<button class="oe_link" string='or _Cancel' special='cancel'/>
+						or
+						<button class="oe_link" string='_Cancel' special='cancel'/>
 					</footer>
 				</form>
 			</field>

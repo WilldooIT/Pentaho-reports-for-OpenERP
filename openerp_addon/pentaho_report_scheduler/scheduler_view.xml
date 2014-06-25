@@ -24,9 +24,9 @@
 									<tree string='Reports' editable='bottom'>
 										<field name='sequence' widget='handle'/>
 										<field name='report_id' on_change ='on_change_report(report_id)'/>
-										<field name='report_type'/>
+<!-- 										<field name='report_type'/> -->
 										<field name='model'/>
-										<field name='type'/>
+<!-- 										<field name='type'/> -->
 									</tree>
 								</field>
 							</page>

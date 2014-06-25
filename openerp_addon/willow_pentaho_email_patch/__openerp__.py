@@ -12,6 +12,8 @@ Resolve Pentaho reports/email concurrency issue
 This works around the OpenERP user concurrency issue when generating a Pentaho report at the same time as parsing the email template.
 
 Creates duplicate user when spawning a Pentaho report from email templates.
+
+This is only needed if the report being emailed is an object based report.  SQL based reports do not have this problem.
 """,
     "data": [
              ],
