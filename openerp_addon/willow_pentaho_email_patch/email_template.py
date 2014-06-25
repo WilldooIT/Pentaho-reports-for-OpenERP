@@ -23,7 +23,6 @@ class ir_actions_report_xml_patch(orm.Model):
 
     def _unlink_user_and_partner(self, cr, uid, user_ids, context=None):
         """Unlink a user and its associated partner.
-        This is used to remove the temporary user/partner created by the patch in generate_email().
         """
         user_obj = self.pool.get('res.users')
         for this_user in user_obj.browse(cr, uid, user_ids, context=context):
@@ -37,6 +36,14 @@ class ir_actions_report_xml_patch(orm.Model):
 
         standard_render = True
         if context.get('pentaho_report_email_patch'):
+
+            # This patch is needed if the report is a Pentaho report, and that Pentaho report is an object
+            # based report, because Pentaho will log in as the passed user.
+
+            # If we are here, then we have not checked if it is a Pentaho report, let along if it is object based.
+            # However, this code does not hurt to be executed in any case, so we do not check those conditions
+            # explicitly.
+
             standard_render = False
 
             crtemp = pooler.get_db(cr.dbname).cursor()

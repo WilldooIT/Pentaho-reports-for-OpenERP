@@ -3,6 +3,7 @@ import datetime
 from openerp.tools.translate import _
 from openerp import netsvc
 import json
+import openerp
 
 from openerp.addons.pentaho_reports.java_oe import parameter_resolve_column_name
 
@@ -116,7 +117,11 @@ class ReportScheduler(orm.Model):
                 datas = {'model': self._name,
                          }
                 datas.update(self._report_variables(cr, uid, line, context=context))
-                content, type = netsvc.LocalService(service_name).create(cr, uid, [], datas, context)
+#                 content, type = netsvc.LocalService(service_name).create(cr, uid, [], datas, context)
+                if report.report_type in ['qweb-html', 'qweb-pdf']:
+                    content, type = self.pool['report'].get_pdf(cr, uid, [], report.report_name, context=context), 'pdf'
+                else:
+                    content, type = openerp.report.render_report(cr, uid, [], report.report_name, datas, context)
                 report_output.append((report.name, content, type))
             if report_output:
                 self._send_reports(cr, uid, sched, report_output, context=context)
@@ -145,9 +150,9 @@ class ReportSchedulerLines(orm.Model):
     _columns = {'scheduler_id': fields.many2one('ir.actions.report.scheduler', 'Scheduler'),
                 'report_id': fields.many2one('ir.actions.report.xml', string='Report', required=True, ondelete='cascade'),
                 'sequence': fields.integer('Sequence'),
-                'report_type': fields.related('report_id', 'report_type', string='Report Type', readonly=True),
-                'model': fields.related('report_id', 'model', string='Object', readonly=True),
-                'type': fields.related('report_id', 'type', string='Action Type', readonly=True),
+                'report_type': fields.related('report_id', 'report_type', type='char', string='Report Type', readonly=True),
+                'model': fields.related('report_id', 'model', type='char', string='Object', readonly=True),
+                'type': fields.related('report_id', 'type', type='char', string='Action Type', readonly=True),
                 }
 
     _order='sequence'
@@ -156,7 +161,8 @@ class ReportSchedulerLines(orm.Model):
         result = {}
         if report_id:
             report = self.pool.get('ir.actions.report.xml').browse(cr, uid, report_id, context=context)
-            result['value']['report_type'] = report.report_type
-            result['value']['model'] = report.model
-            result['value']['type'] = report.type
+            result['value'] = {'report_type': report.report_type,
+                               'model': report.model,
+                               'type': report.type,
+                               }
         return result

@@ -19,7 +19,7 @@ and allows Pentaho reports to be scheduled with pre-entered selections.
 Chosen reports can be either emailed to users or sent to their OpenERP message box as a notification, or both.
 
 A new option is added to the menus:
-    * **Settings / Technical / Scheduler / Report Scheduler**
+    * **Settings / Technical / Actions / Scheduler / Report Scheduler**
 
 From here, a report schedule group can be defined.  The description will be included in the message or email body.
 

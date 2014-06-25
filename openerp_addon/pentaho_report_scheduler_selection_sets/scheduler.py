@@ -26,10 +26,10 @@ class ReportSchedulerLinesSelnSets(orm.Model):
             result['value']={'report_id': self.pool.get('ir.actions.report.set.header').browse(cr, uid, selectionset_id, context=context).report_action_id.id}
         return result
 
-    def onchange_report_p(self, cr, uid, ids, report_id, selectionset_id, context=None):
+    def on_change_report_p(self, cr, uid, ids, report_id, selectionset_id, context=None):
         if selectionset_id:
             selnset = self.pool.get('ir.actions.report.set.header').browse(cr, uid, selectionset_id, context=context)
             if report_id != selnset.report_action_id.id:
                 return {'value': {'report_id': selnset.report_action_id.id}}
 
-        return self.onchange_report(cr, uid, ids, report_id, context=context)
+        return self.on_change_report(cr, uid, ids, report_id, context=context)
