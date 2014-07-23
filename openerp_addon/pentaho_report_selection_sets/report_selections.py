@@ -148,6 +148,11 @@ class report_prompt_with_selection_set(orm.TransientModel):
         for counter in range(0, MAX_PARAMS):
             field_name = PARAM_XXX_FORMULA % counter
             self._columns[field_name] = fields.char('Formula')
+            #
+            # This may be only be needed for a short time...
+            # A change (bug?) in the new API falls over on first install because the column is not yet a field and it tries to put a default value in the physical DB column.
+            # An explicit default gets around things.
+            self._default[field_name] = ''
 
     def default_get(self, cr, uid, fields, context=None):
         if context is None:
