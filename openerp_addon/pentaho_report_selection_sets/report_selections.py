@@ -152,7 +152,7 @@ class report_prompt_with_selection_set(orm.TransientModel):
             # This may be only be needed for a short time...
             # A change (bug?) in the new API falls over on first install because the column is not yet a field and it tries to put a default value in the physical DB column.
             # An explicit default gets around things.
-            self._default[field_name] = ''
+            self._defaults[field_name] = ''
 
     def default_get(self, cr, uid, fields, context=None):
         if context is None:
