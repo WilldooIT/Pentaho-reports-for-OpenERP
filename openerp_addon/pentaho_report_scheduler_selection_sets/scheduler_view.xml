@@ -7,10 +7,7 @@
 			<field name="model">ir.actions.report.scheduler</field>
 			<field name="arch" type="xml">
 				<field name='report_id' position='before'>
-					<field name='selectionset_id' on_change ='onchange_selectionset(selectionset_id)'/>
-				</field>
-				<field name='report_id' position='attributes'>
-					<attribute name='on_change'>on_change_report_p(report_id, selectionset_id)</attribute>
+					<field name='selectionset_id'/>
 				</field>
 			</field>
 		</record>

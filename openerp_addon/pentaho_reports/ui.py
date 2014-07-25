@@ -2,9 +2,9 @@
 
 import os
 import base64
-from openerp.tools.translate import _
 from openerp.tools.safe_eval import safe_eval
-from openerp.osv import orm, fields
+from openerp import models, fields, api, _
+from openerp.exceptions import except_orm
 from openerp.tools import config
 
 from openerp import SUPERUSER_ID
@@ -16,7 +16,7 @@ from java_oe import JAVA_MAPPING, check_java_list, PARAM_VALUES
 ADDONS_PATHS = config['addons_path'].split(",")
 
 
-class report_xml(orm.Model):
+class report_xml(models.Model):
     _inherit = 'ir.actions.report.xml'
 
     def __init__(self, pool, cr):
@@ -24,38 +24,31 @@ class report_xml(orm.Model):
             self._columns['report_type'].selection.append(('pentaho', 'Pentaho Report'))
         super(report_xml, self).__init__(pool, cr)
 
-    _columns = {
-                'pentaho_report_output_type': fields.selection([("pdf", "PDF"), ("html", "HTML"), ("csv", "CSV"), ("xls", "Excel"), ("rtf", "RTF"), ("txt", "Plain text")],
-                                                               'Output format'),
-                'pentaho_report_model_id': fields.many2one('ir.model', 'Model'),
-                'pentaho_file': fields.binary('File', filters='*.prpt'),
-                'pentaho_filename': fields.char('Filename', size=256, required=False),
+    pentaho_report_output_type = fields.Selection([("pdf", "PDF"), ("html", "HTML"), ("csv", "CSV"), ("xls", "Excel"), ("rtf", "RTF"), ("txt", "Plain text")],
+                                                   string = 'Output format')
+    pentaho_report_model_id = fields.Many2one('ir.model', string='Model')
+    pentaho_file = fields.Binary(string='File', filters='*.prpt')
+    pentaho_filename = fields.Char(string='Filename', size=256, required=False)
 #                 'is_pentaho_report': fields.boolean('Is this a Pentaho report?'),
-                'linked_menu_id': fields.many2one('ir.ui.menu', 'Linked menu item', select=True),
-                'created_menu_id': fields.many2one('ir.ui.menu', 'Created menu item'),
-                # This is not displayed on the client - it is a trigger to indicate that
-                # a prpt file needs to be loaded - normally it is loaded by the client interface
-                # In this case, the filename should be specified with a module path.
-                'pentaho_load_file': fields.boolean('Load prpt file from filename'),
-                }
+    linked_menu_id = fields.Many2one('ir.ui.menu', string='Linked menu item', select=True)
+    created_menu_id = fields.Many2one('ir.ui.menu', string='Created menu item')
+    # This is not displayed on the client - it is a trigger to indicate that
+    # a prpt file needs to be loaded - normally it is loaded by the client interface
+    # In this case, the filename should be specified with a module path.
+    pentaho_load_file = fields.Boolean(string='Load prpt file from filename')
 
-    def on_change_report_type(self, cr, uid, ids, report_type, model, pentaho_report_model_id, context=None):
-        model_obj = self.pool.get('ir.model')
+    @api.onchange('report_type')
+    def _onchange_report_type(self):
+        if self.report_type == 'pentaho':
+            self.auto = False
+            self.pentaho_report_output_type = 'pdf'
 
-        result = {'value': {}}
-        if report_type == 'pentaho':
-            result['value'].update({'auto' : False,
-                                    'pentaho_report_output_type': 'pdf',
-                                    })
-            if model:
-                if not pentaho_report_model_id or (model_obj.browse(cr, uid, pentaho_report_model_id, context=context).model != model):
-                    model_ids = model_obj.search(cr, uid, [('model', '=', model)], context=context)
-                    if model_ids:
-                        result['value']['pentaho_report_model_id'] = model_ids[0]
+            if self.model:
+                if not self.pentaho_report_model_id or self.pentaho_report_model_id.model != self.model:
+                    self.pentaho_report_model_id = self.env['ir.model'].search([('model', '=', self.model)])[0]
         else:
-            if pentaho_report_model_id:
-                result['value']['model'] = model_obj.browse(cr, uid, pentaho_report_model_id, context=context).model
-        return result
+            if self.pentaho_report_model_id:
+                self.model = self.pentaho_report_model_id.model
 
     def copy(self, cr, uid, id, default=None, context=None):
         if default is None:
@@ -242,7 +235,7 @@ class report_xml(orm.Model):
                 pass
 
         if not path_found:
-            raise orm.except_orm(_('Error'), _('Could not locate path for file %s') % name)
+            raise except_orm(_('Error'), _('Could not locate path for file %s') % name)
 
         path = addons_path + os.sep + name
 
@@ -280,37 +273,37 @@ class report_xml(orm.Model):
                         param_vals[pname] = pdef['default_value']
                 else:
                     if pdef.get('is_mandatory', False):
-                        raise orm.except_orm(_('Error'), _("Report '%s'. No value passed for mandatory report parameter '%s'.") % (report.report_name, pname))
+                        raise except_orm(_('Error'), _("Report '%s'. No value passed for mandatory report parameter '%s'.") % (report.report_name, pname))
                     continue
 
             # Make sure data types match
             value_type = pdef.get('value_type', '')
             java_list, value_type = check_java_list(value_type)
             if not value_type in JAVA_MAPPING:
-                raise orm.except_orm(_('Error'), _("Report '%s', parameter '%s'. Type '%s' not supported.") % (report.report_name, pname, pdef.get('value_type', '')))
+                raise except_orm(_('Error'), _("Report '%s', parameter '%s'. Type '%s' not supported.") % (report.report_name, pname, pdef.get('value_type', '')))
 
             local_type = JAVA_MAPPING[value_type](pdef.get('attributes', {}).get('data-format', False))
 
             param_val = param_vals[pname]
 
             if not local_type in PARAM_VALUES:
-                raise orm.except_orm(_('Error'), _("Report '%s', parameter '%s'. Local type '%s' not supported.") % (report.report_name, pname, local_type))
+                raise except_orm(_('Error'), _("Report '%s', parameter '%s'. Local type '%s' not supported.") % (report.report_name, pname, local_type))
             if not isinstance(param_val, PARAM_VALUES[local_type]['py_types']):
-                raise orm.except_orm(_('Error'), _("Report '%s', parameter '%s'. Passed value is '%s' but must be one of '%s'.") % (report.report_name, pname, param_val.__class__.__name__, PARAM_VALUES[local_type]['py_types']))
+                raise except_orm(_('Error'), _("Report '%s', parameter '%s'. Passed value is '%s' but must be one of '%s'.") % (report.report_name, pname, param_val.__class__.__name__, PARAM_VALUES[local_type]['py_types']))
 
             converter = PARAM_VALUES[local_type].get('convert')
             if converter:
                 try:
                     converter(param_val)
                 except Exception, e:
-                    raise orm.except_orm(_('Error'), _("Report '%s', parameter '%s'. Passed value '%s' failed data conversion to type '%s'.\n%s") % (report.report_name, pname, param_val, local_type, str(e)))
+                    raise except_orm(_('Error'), _("Report '%s', parameter '%s'. Passed value '%s' failed data conversion to type '%s'.\n%s") % (report.report_name, pname, param_val, local_type, str(e)))
 
 
         # Make sure all passed values have a param to go to on the report.
         # This wouldn't raise an error on the Pentaho side but flagging it here
         # might save a lot of development time if a param is misnamed.
         if val_names:
-            raise orm.except_orm(_('Error'), _("Report '%s'. Parameter values not required by report: %s") % (report.report_name, val_names))
+            raise except_orm(_('Error'), _("Report '%s'. Parameter values not required by report: %s") % (report.report_name, val_names))
 
     def pentaho_report_action(self, cr, uid, service_name, active_ids=None, param_values=None, context=None):
         """Return the action definition to run a Pentaho report.
@@ -329,10 +322,10 @@ class report_xml(orm.Model):
         if report_ids:
             report = self.browse(cr, uid, report_ids[0], context=context)
         if not report or report.report_type != 'pentaho':
-            raise orm.except_orm(_('Error'), _("Report '%s' is not a Pentaho report.") % service_name)
+            raise except_orm(_('Error'), _("Report '%s' is not a Pentaho report.") % service_name)
 
         if not active_ids and not param_values:
-            raise orm.except_orm(_('Error'), _("Report '%s' must be passed active ids or parameter values.") % service_name)
+            raise except_orm(_('Error'), _("Report '%s' must be passed active ids or parameter values.") % service_name)
 
         datas = {'model': report.model,
                  'output_type': report.report_type,

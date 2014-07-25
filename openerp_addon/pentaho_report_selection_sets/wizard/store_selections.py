@@ -2,8 +2,8 @@
 
 import json
 
-from openerp.osv import fields, orm
-from openerp.tools.translate import _
+from openerp import models, fields, api, _
+from openerp.exceptions import except_orm, Warning
 
 from openerp.addons.pentaho_reports.core import VALID_OUTPUT_TYPES
 from openerp.addons.pentaho_reports.java_oe import OPENERP_DATA_TYPES, parameter_resolve_column_name
@@ -11,27 +11,25 @@ from openerp.addons.pentaho_reports.java_oe import OPENERP_DATA_TYPES, parameter
 from ..report_formulae import *
 
 
-class store_selections_wizard(orm.TransientModel):
+class store_selections_wizard(models.TransientModel):
     _name = "ir.actions.store.selections.wiz"
     _description = "Store Report Selections Wizard"
 
-    _columns = {
-                'existing_selectionset_id': fields.many2one('ir.actions.report.set.header', 'Selection Set', ondelete='set null'),
-                'name': fields.char('Selection Set Description', size=64, required=True),
-                'report_action_id': fields.many2one('ir.actions.report.xml', 'Report Name', readonly=True),
-                'output_type': fields.selection(VALID_OUTPUT_TYPES, 'Report format', help='Choose the format for the output'),
-                'parameters_dictionary': fields.text('parameter dictionary'),
-                'detail_ids': fields.one2many('ir.actions.store.selections.detail.wiz', 'header_id', 'Selection Details'),
-                'def_user_ids': fields.many2many('res.users', 'ir_actions_store_selections_def_user_rel', 'header_id', 'user_id', 'Users (Default)'),
-                'def_group_ids': fields.many2many('res.groups', 'ir_actions_store_selections_def_group_rel', 'header_id', 'group_id', 'Groups (Default)'),
-                'passing_wizard_id': fields.many2one('ir.actions.report.promptwizard', 'Screen wizard - kept for "Cancel" button')
-                }
+    existing_selectionset_id = fields.Many2one('ir.actions.report.set.header', string='Selection Set', ondelete='set null')
+    name = fields.Char(string='Selection Set Description', size=64, required=True)
+    report_action_id = fields.Many2one('ir.actions.report.xml', string='Report Name', readonly=True)
+    output_type = fields.Selection(VALID_OUTPUT_TYPES, string='Report format', help='Choose the format for the output')
+    parameters_dictionary = fields.Text(string='parameter dictionary')
+    detail_ids = fields.One2many('ir.actions.store.selections.detail.wiz', 'header_id', string='Selection Details')
+    def_user_ids = fields.Many2many('res.users', 'ir_actions_store_selections_def_user_rel', 'header_id', 'user_id', string='Users (Default)')
+    def_group_ids = fields.Many2many('res.groups', 'ir_actions_store_selections_def_group_rel', 'header_id', 'group_id', string='Groups (Default)')
+    passing_wizard_id = fields.Many2one('ir.actions.report.promptwizard', string='Screen wizard - kept for "Cancel" button')
 
     def default_get(self, cr, uid, fields, context=None):
         if context is None:
             context = {}
         if not context.get('active_id'):
-            raise orm.except_orm(_('Error'), _('No active id passed.'))
+            raise except_orm(_('Error'), _('No active id passed.'))
 
         screen_wizard_obj = self.pool.get('ir.actions.report.promptwizard')
         detail_obj = self.pool.get('ir.actions.report.set.detail')
@@ -81,7 +79,7 @@ class store_selections_wizard(orm.TransientModel):
             clash_ids = header_obj.search(cr, uid, [('name', '=', wizard.name)], context=context)
             if clash_ids and (not replace or len(clash_ids) > 1 or clash_ids[0] != wizard.existing_selectionset_id.id):
                 # We enforce this so that users can uniquely identify a selection set.
-                raise orm.except_orm(_('Error'), _('Selection Sets must have unique names across all reports.'))
+                raise except_orm(_('Error'), _('Selection Sets must have unique names across all reports.'))
 
             vals = {'name': wizard.name,
                     'report_action_id': wizard.report_action_id.id,
@@ -138,26 +136,25 @@ class store_selections_wizard(orm.TransientModel):
                     }
         return {'type': 'ir.actions.act_window_close'}
 
-class store_selections_dets_wizard(orm.TransientModel):
+class store_selections_dets_wizard(models.TransientModel):
     _name = 'ir.actions.store.selections.detail.wiz'
     _description = "Store Report Selections Wizard"
 
-    _columns = {'header_id': fields.many2one('ir.actions.store.selections.wiz', 'Selections Set'),
-                'variable': fields.char('Variable Name', size=64),
-                'label': fields.char('Label', size=64),
-                'counter': fields.integer('Parameter Number'),
-                'type': fields.selection(OPENERP_DATA_TYPES, 'Data Type'),
-                'x2m': fields.boolean('Data List Type'),
-                'display_value': fields.text('Value'),
-                'calc_formula': fields.char('Formula'),
-                }
+    header_id = fields.Many2one('ir.actions.store.selections.wiz', string='Selections Set')
+    variable = fields.Char(string='Variable Name', size=64)
+    label = fields.Char(string='Label', size=64)
+    counter = fields.Integer(string='Parameter Number')
+    type = fields.Selection(OPENERP_DATA_TYPES, string='Data Type')
+    x2m = fields.Boolean(string='Data List Type')
+    display_value = fields.Text(string='Value')
+    calc_formula = fields.Char(string='Formula')
 
     _order = 'counter'
 
-    def onchange_calc_formula(self, cr, uid, ids, calc_formula, expected_type, expected_2m, parameters_dictionary, context=None):
-        result = {}
-        if calc_formula:
-            parameters = json.loads(parameters_dictionary)
+    @api.onchange('calc_formula')
+    def _onchange_calc_formula(self):
+        if self.calc_formula:
+            parameters = json.loads(self.header_id.parameters_dictionary)
             known_variables = {}
             for index in range(0, len(parameters)):
                 known_variables[parameters[index]['variable']] = {'type': parameters[index]['type'],
@@ -165,9 +162,6 @@ class store_selections_dets_wizard(orm.TransientModel):
                                                                   'calculated': False,
                                                                   }
 
-            parsed_formula = self.pool.get('ir.actions.report.set.formula').validate_formula(cr, uid, calc_formula, expected_type, expected_2m, known_variables, context=context)
+            parsed_formula = self.pool.get('ir.actions.report.set.formula').validate_formula(self.env.cr, self.env.uid, self.calc_formula, self.type, self.x2m, known_variables, context=self.env.context)
             if parsed_formula.get('error'):
-                result['warning'] = {'title': _('Formula Validation'),
-                                     'message': parsed_formula['error'],
-                                     }
-        return result
+                raise Warning(parsed_formula['error'])

@@ -21,7 +21,7 @@
 									<field name='type' readonly='1'/>
 									<field name='x2m' readonly='1' invisible='1'/>
 									<field name='display_value' readonly='1'/>
-									<field name='calc_formula' on_change='onchange_calc_formula(calc_formula, type, x2m, parent.parameters_dictionary)'/>
+									<field name='calc_formula'/>
 								</tree>
 							</field>
 						</page>
