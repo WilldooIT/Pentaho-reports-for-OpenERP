@@ -11,8 +11,7 @@
 				</group>
 				<field name='report_action_id' position='after'>
 					<field name='has_selns' invisible='1'/>
-					<field name='selectionset_id' domain="[('report_action_id', '=', report_action_id)]" attrs="{'invisible': [('has_selns', '!=', True)]}"
-						on_change='onchange_selectionset_id(selectionset_id, parameters_dictionary, x2m_unique_id, context)'/>
+					<field name='selectionset_id' domain="[('report_action_id', '=', report_action_id)]" attrs="{'invisible': [('has_selns', '!=', True)]}"/>
 				</field>
 			</field>
 		</record>

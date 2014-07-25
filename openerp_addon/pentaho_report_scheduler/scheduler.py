@@ -1,6 +1,5 @@
-from openerp.osv import fields, orm
+from openerp import models, fields, api, _
 import datetime
-from openerp.tools.translate import _
 from openerp import netsvc
 import json
 import openerp
@@ -8,17 +7,15 @@ import openerp
 from openerp.addons.pentaho_reports.java_oe import parameter_resolve_column_name
 
 
-class ReportScheduler(orm.Model):
+class ReportScheduler(models.Model):
     _name = "ir.actions.report.scheduler"
     _description = "Report Scheduler"
 
-    _columns = {
-                'name': fields.char('Name', size=64, required=True),
-                'description': fields.text('Description'),
-                'action_type' : fields.selection([('email', 'Send Email'), ('notification', 'Send to User Notifications'), ('both', 'Notification and Email')], 'Type', required=True),
-                'line_ids': fields.one2many('ir.actions.report.scheduler.line', 'scheduler_id', string='List of Reports', help="Enter a list of reports to run."),
-                'user_list': fields.many2many('res.users', 'rep_sched_user_rel', 'sched_id', 'user_id', string='List of Users', help="Enter a list of users to receive the reports."),
-                }
+    name = fields.Char(string='Name', size=64, required=True)
+    description = fields.Text(string='Description')
+    action_type = fields.Selection([('email', 'Send Email'), ('notification', 'Send to User Notifications'), ('both', 'Notification and Email')], string='Type', required=True)
+    line_ids = fields.One2many('ir.actions.report.scheduler.line', 'scheduler_id', string='List of Reports', help="Enter a list of reports to run.")
+    user_list = fields.Many2many('res.users', 'rep_sched_user_rel', 'sched_id', 'user_id', string='List of Users', help="Enter a list of users to receive the reports.")
 
     def dt_to_local(self, cr, uid, dt, context=None):
         """Convert a UTC date/time to local.
@@ -136,7 +133,7 @@ class ReportScheduler(orm.Model):
             self._run_one(cr, uid, sched, context=context)
 
 
-class ReportSchedulerLines(orm.Model):
+class ReportSchedulerLines(models.Model):
     _name = "ir.actions.report.scheduler.line"
     _description = "Report Scheduler Lines"
 
@@ -147,22 +144,11 @@ class ReportSchedulerLines(orm.Model):
                                                          ], count=True, context=context
                                                         ) > 0
 
-    _columns = {'scheduler_id': fields.many2one('ir.actions.report.scheduler', 'Scheduler'),
-                'report_id': fields.many2one('ir.actions.report.xml', string='Report', required=True, ondelete='cascade'),
-                'sequence': fields.integer('Sequence'),
-                'report_type': fields.related('report_id', 'report_type', type='char', string='Report Type', readonly=True),
-                'model': fields.related('report_id', 'model', type='char', string='Object', readonly=True),
-                'type': fields.related('report_id', 'type', type='char', string='Action Type', readonly=True),
-                }
+    scheduler_id = fields.Many2one('ir.actions.report.scheduler', string='Scheduler')
+    report_id = fields.Many2one('ir.actions.report.xml', string='Report', required=True, ondelete='cascade')
+    sequence = fields.Integer('Sequence')
+    report_type = fields.Selection(string='Report Type', related='report_id.report_type', readonly=True)
+    model = fields.Char(string='Object', related='report_id.model', readonly=True)
+    type = fields.Char(string='Action Type', related='report_id.type', readonly=True)
 
     _order='sequence'
-
-    def on_change_report(self, cr, uid, ids, report_id, context=None):
-        result = {}
-        if report_id:
-            report = self.pool.get('ir.actions.report.xml').browse(cr, uid, report_id, context=context)
-            result['value'] = {'report_type': report.report_type,
-                               'model': report.model,
-                               'type': report.type,
-                               }
-        return result

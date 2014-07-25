@@ -1,10 +1,9 @@
-from openerp.osv import fields, orm
-from openerp.tools.translate import _
+from openerp import fields, models, api, _
 
 import json
 
 
-class ReportSchedulerSelnSets(orm.Model):
+class ReportSchedulerSelnSets(models.Model):
     _inherit = "ir.actions.report.scheduler"
 
 
@@ -14,22 +13,12 @@ class ReportSchedulerSelnSets(orm.Model):
             result.update(self.pool.get('ir.actions.report.set.header').selections_to_dictionary(cr, uid, line.selectionset_id.id, json.loads(values_so_far.get('parameters_dictionary')), values_so_far.get('x2m_unique_id'), context=context))
         return result
 
-class ReportSchedulerLinesSelnSets(orm.Model):
+class ReportSchedulerLinesSelnSets(models.Model):
     _inherit = "ir.actions.report.scheduler.line"
 
-    _columns = {'selectionset_id': fields.many2one('ir.actions.report.set.header', 'Selections', ondelete='cascade'),
-                }
+    selectionset_id = fields.Many2one('ir.actions.report.set.header', string='Selections', ondelete='cascade')
 
-    def onchange_selectionset(self, cr, uid, ids, selectionset_id, context=None):
-        result = {}
-        if selectionset_id:
-            result['value']={'report_id': self.pool.get('ir.actions.report.set.header').browse(cr, uid, selectionset_id, context=context).report_action_id.id}
-        return result
-
-    def on_change_report_p(self, cr, uid, ids, report_id, selectionset_id, context=None):
-        if selectionset_id:
-            selnset = self.pool.get('ir.actions.report.set.header').browse(cr, uid, selectionset_id, context=context)
-            if report_id != selnset.report_action_id.id:
-                return {'value': {'report_id': selnset.report_action_id.id}}
-
-        return self.on_change_report(cr, uid, ids, report_id, context=context)
+    @api.onchange('selectionset_id')
+    def _onchange_selectionset_id(self):
+        if self.selectionset_id:
+            self.report_id = self.selectionset_id.report_action_id.id

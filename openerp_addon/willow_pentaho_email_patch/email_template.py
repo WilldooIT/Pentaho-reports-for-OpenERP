@@ -1,13 +1,13 @@
 import base64
 from openerp import netsvc
 from openerp import pooler
-from openerp.osv import orm, fields
+from openerp import models, fields
 from openerp import tools
 from openerp import SUPERUSER_ID
 import openerp
 
 
-class email_template_patch(orm.Model):
+class email_template_patch(models.Model):
     _inherit = 'email.template'
 
     def generate_email_batch(self, cr, uid, template_id, res_ids, context=None, fields=None):
@@ -17,7 +17,7 @@ class email_template_patch(orm.Model):
         return super(email_template_patch, self).generate_email_batch(cr, uid, template_id, res_ids, context=context, fields=fields)
 
 
-class ir_actions_report_xml_patch(orm.Model):
+class ir_actions_report_xml_patch(models.Model):
 
     _inherit = 'ir.actions.report.xml'
 

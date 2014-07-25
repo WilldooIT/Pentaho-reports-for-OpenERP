@@ -8,7 +8,8 @@ import base64
 from openerp import netsvc
 from openerp import pooler
 from openerp import report
-from openerp.osv import orm
+from openerp import models
+from openerp.exceptions import except_orm
 from openerp.tools import config
 from openerp.tools.translate import _
 import logging
@@ -183,7 +184,7 @@ class Report(object):
     def setup_report(self):
         ids = self.pool.get('ir.actions.report.xml').search(self.cr, self.uid, [('report_name', '=', self.name[len(SERVICE_NAME_PREFIX):]), ('report_type', '=', 'pentaho')], context=self.context)
         if not ids:
-            raise orm.except_orm(_('Error'), _("Report service name '%s' is not a Pentaho report.") % self.name[len(SERVICE_NAME_PREFIX):])
+            raise except_orm(_('Error'), _("Report service name '%s' is not a Pentaho report.") % self.name[len(SERVICE_NAME_PREFIX):])
         data = self.pool.get('ir.actions.report.xml').read(self.cr, self.uid, ids[0], ['pentaho_report_output_type', 'pentaho_file'])
         self.default_output_type = data['pentaho_report_output_type'] or DEFAULT_OUTPUT_TYPE
         self.prpt_content = base64.decodestring(data["pentaho_file"])
@@ -228,7 +229,7 @@ class Report(object):
 
         rendered_report = proxy.report.execute(proxy_argument).data
         if len(rendered_report) == 0:
-            raise orm.except_orm(_('Error'), _("Pentaho returned no data for the report '%s'. Check report definition and parameters.") % self.name[len(SERVICE_NAME_PREFIX):])
+            raise except_orm(_('Error'), _("Pentaho returned no data for the report '%s'. Check report definition and parameters.") % self.name[len(SERVICE_NAME_PREFIX):])
 
         return (rendered_report, output_type)
 
@@ -260,7 +261,8 @@ class PentahoReportOpenERPInterface(report.interface.report_int):
 
     def getObjects(self, cr, uid, ids, model, context):
         pool = pooler.get_pool(cr.dbname)
-        return pool.get(model).browse(cr, uid, ids, list_class=browse_record_list, context=context, fields_process=_fields_process)
+        return pool.get(model).browse(cr, uid, ids, context=context)
+                                                    #list_class=browse_record_list, context=context, fields_process=_fields_process)
 
     def create_attachment(self, cr, uid, ids, attachment, rendered_report, output_type, model, context):
         """Generates attachment when report is called and links to object it is called from
@@ -317,7 +319,7 @@ def fetch_report_parameters(cr, uid, report_name, context=None):
     return Report(name, cr, uid, [1], {}, context).fetch_report_parameters()
 
 
-class ir_actions_report_xml(orm.Model):
+class ir_actions_report_xml(models.Model):
     _inherit = 'ir.actions.report.xml'
 
 #     def register_all(self, cr):

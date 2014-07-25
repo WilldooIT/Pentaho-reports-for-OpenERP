@@ -7,9 +7,9 @@ import json
 
 from lxml import etree
 
-from openerp.osv import orm, fields
+from openerp import models, fields, api, _
+from openerp.exceptions import except_orm
 from openerp.tools import DEFAULT_SERVER_DATE_FORMAT, DEFAULT_SERVER_DATETIME_FORMAT
-from openerp.tools.translate import _
 
 from openerp.addons.pentaho_reports.java_oe import *
 from openerp.addons.pentaho_reports.core import VALID_OUTPUT_TYPES
@@ -17,19 +17,17 @@ from openerp.addons.pentaho_reports.core import VALID_OUTPUT_TYPES
 from report_formulae import *
 
 
-class selection_set_header(orm.Model):
+class selection_set_header(models.Model):
     _name = 'ir.actions.report.set.header'
     _description = 'Pentaho Report Selection Set Header'
 
-    _columns = {
-                'name': fields.char('Selection Set Description', size=64),
-                'report_action_id': fields.many2one('ir.actions.report.xml', 'Report Name', readonly=True),
-                'output_type': fields.selection(VALID_OUTPUT_TYPES, 'Report format', help='Choose the format for the output'),
-                'parameters_dictionary': fields.text('parameter dictionary'), # Not needed, but helpful if we build a parameter set master view...
-                'detail_ids': fields.one2many('ir.actions.report.set.detail', 'header_id', 'Selection Details'),
-                'def_user_ids': fields.many2many('res.users', 'ir_actions_report_set_def_user_rel', 'header_id', 'user_id', 'Users (Default)'),
-                'def_group_ids': fields.many2many('res.groups', 'ir_actions_report_set_def_group_rel', 'header_id', 'group_id', 'Groups (Default)'),
-                }
+    name = fields.Char(string='Selection Set Description', size=64)
+    report_action_id = fields.Many2one('ir.actions.report.xml', string='Report Name', readonly=True)
+    output_type = fields.Selection(VALID_OUTPUT_TYPES, string='Report format', help='Choose the format for the output')
+    parameters_dictionary = fields.Text(string='parameter dictionary') # Not needed, but helpful if we build a parameter set master view...
+    detail_ids = fields.One2many('ir.actions.report.set.detail', 'header_id', string='Selection Details')
+    def_user_ids = fields.Many2many('res.users', 'ir_actions_report_set_def_user_rel', 'header_id', 'user_id', string='Users (Default)')
+    def_group_ids = fields.Many2many('res.groups', 'ir_actions_report_set_def_group_rel', 'header_id', 'group_id', string='Groups (Default)')
 
     def selections_to_dictionary(self, cr, uid, id, parameters, x2m_unique_id, context=None):
         detail_obj = self.pool.get('ir.actions.report.set.detail')
@@ -105,19 +103,18 @@ class selection_set_header(orm.Model):
         return result
 
 
-class selection_set_detail(orm.Model):
+class selection_set_detail(models.Model):
     _name = 'ir.actions.report.set.detail'
     _description = 'Pentaho Report Selection Set Detail'
 
-    _columns = {'header_id': fields.many2one('ir.actions.report.set.header', 'Selection Set', ondelete='cascade', readonly=True),
-                'variable': fields.char('Variable Name', size=64, readonly=True),
-                'label': fields.char('Label', size=64, readonly=True),
-                'counter': fields.integer('Parameter Number', readonly=True),
-                'type': fields.selection(OPENERP_DATA_TYPES, 'Data Type', readonly=True),
-                'x2m': fields.boolean('Data List Type'),
-                'display_value': fields.text('Value'),
-                'calc_formula': fields.char('Formula'),
-                }
+    header_id = fields.Many2one('ir.actions.report.set.header', string='Selection Set', ondelete='cascade', readonly=True)
+    variable = fields.Char(string='Variable Name', size=64, readonly=True)
+    label = fields.Char(string='Label', size=64, readonly=True)
+    counter = fields.Integer(string='Parameter Number', readonly=True)
+    type = fields.Selection(OPENERP_DATA_TYPES, string='Data Type', readonly=True)
+    x2m = fields.Boolean(string='Data List Type')
+    display_value = fields.Text(string='Value')
+    calc_formula = fields.Char(string='Formula')
 
     _order = 'counter'
 
@@ -131,28 +128,17 @@ class selection_set_detail(orm.Model):
         result = self.pool.get('ir.actions.report.promptwizard').encode_wizard_value(cr, uid, parameters_dictionary, index, x2m_unique_id, result, context=context)
         return result
 
-
-class report_prompt_with_selection_set(orm.TransientModel):
+def formula_parameters(cls):
+    for counter in range(0, MAX_PARAMS):
+        setattr(cls, PARAM_XXX_FORMULA % counter, fields.Char(string="Formula"))
+    return cls
+ 
+@formula_parameters
+class report_prompt_with_selection_set(models.TransientModel):
     _inherit = 'ir.actions.report.promptwizard'
 
-    _columns = {
-                'has_selns': fields.boolean('Has Selection Sets...'),
-                'selectionset_id': fields.many2one('ir.actions.report.set.header', 'Stored Selections', ondelete='set null'),
-                }
-
-    def __init__(self, pool, cr):
-        """ Dynamically add columns."""
-
-        super(report_prompt_with_selection_set, self).__init__(pool, cr)
-
-        for counter in range(0, MAX_PARAMS):
-            field_name = PARAM_XXX_FORMULA % counter
-            self._columns[field_name] = fields.char('Formula')
-            #
-            # This may be only be needed for a short time...
-            # A change (bug?) in the new API falls over on first install because the column is not yet a field and it tries to put a default value in the physical DB column.
-            # An explicit default gets around things.
-            self._defaults[field_name] = ''
+    has_selns = fields.Boolean(string='Has Selection Sets...')
+    selectionset_id = fields.Many2one('ir.actions.report.set.header', string='Stored Selections', ondelete='set null')
 
     def default_get(self, cr, uid, fields, context=None):
         if context is None:
@@ -171,7 +157,7 @@ class report_prompt_with_selection_set(orm.TransientModel):
         if context.get('populate_selectionset_id'):
             selectionset = set_header_obj.browse(cr, uid, context['populate_selectionset_id'], context=context)
             if selectionset.report_action_id.id != result['report_action_id']:
-                raise orm.except_orm(_('Error'), _('Report selections do not match service name called.'))
+                raise except_orm(_('Error'), _('Report selections do not match service name called.'))
 
             # set this and let onchange be triggered and initialise correct values
             result['selectionset_id'] = context.pop('populate_selectionset_id')
@@ -216,9 +202,11 @@ class report_prompt_with_selection_set(orm.TransientModel):
                            modifiers = '{"invisible": true}',
                            )
 
-    def onchange_selectionset_id(self, cr, uid, ids, selectionset_id, parameters_dictionary, x2m_unique_id, context=None):
-        result = {'value': {}}
-        if selectionset_id:
-            parameters = json.loads(parameters_dictionary)
-            result['value'].update(self.pool.get('ir.actions.report.set.header').selections_to_dictionary(cr, uid, selectionset_id, parameters, x2m_unique_id, context=context))
-        return result
+    @api.onchange('selectionset_id')
+    def _onchange_selectionset_id(self):
+        if self.selectionset_id:
+            parameters = json.loads(self.parameters_dictionary)
+            values_dict = self.pool.get('ir.actions.report.set.header').selections_to_dictionary(self.env.cr, self.env.uid, self.selectionset_id.id, parameters, self.x2m_unique_id, context=self.env.context)
+
+            for k, v in values_dict.iteritems():
+                self.__setattr__(k, v)

@@ -5,9 +5,9 @@ from dateutil import parser
 import pytz
 import json
 
-from openerp.osv import orm, fields
+from openerp import models, fields, _
+from openerp.exceptions import except_orm
 from openerp.tools import DEFAULT_SERVER_DATE_FORMAT, DEFAULT_SERVER_DATETIME_FORMAT
-from openerp.tools.translate import _
 
 from openerp.addons.pentaho_reports.java_oe import *
 
@@ -113,7 +113,7 @@ def retrieve_value(s, known_variables):
     return result
 
 
-class selection_set_formula(orm.Model):
+class selection_set_formula(models.Model):
     _name = 'ir.actions.report.set.formula'
     _description = 'Pentaho Report Selection Formulae'
 
@@ -266,7 +266,7 @@ class selection_set_formula(orm.Model):
                         break
                 else:
                     # should NEVER get here as it should have already validated arguments match
-                    raise orm.except_orm(_('Error'), _('Unexpected argument error.'))
+                    raise except_orm(_('Error'), _('Unexpected argument error.'))
 
             variables[index] = retrieve_value(passed_arg[1], known_variables)
             value = 'variables[%s]' % (index,)
