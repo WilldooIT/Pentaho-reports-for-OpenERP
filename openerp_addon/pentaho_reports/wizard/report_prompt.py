@@ -26,10 +26,12 @@ def all_parameters(cls):
         setattr(cls, PARAM_XXX_NUMBER_VALUE % counter, fields.Float(string="Number Value"))
         setattr(cls, PARAM_XXX_DATE_VALUE % counter, fields.Date(string="Date Value"))
         setattr(cls, PARAM_XXX_TIME_VALUE % counter, fields.Datetime(string="Time Value"))
+        # using the intermediate table is a bit of a cludge.
+        # The new api seems to get in a knot when we used compute / inverse when there was no table...  __getattribute__ seemed to reset the other values...
+        # Ideal would be to re-instate compute and inverse functions.
         setattr(cls, PARAM_XXX_2M_VALUE % counter, fields.Many2many("ir.actions.report.multivalues.promptwizard",
+                                                                    "ir_actions_report_mv_pw%03i" % counter, 'aaa', 'bbb',
                                                                     string="Multi Select",
-                                                                    compute="_multi_select_values",
-                                                                    inverse="_multi_select_values_store",
                                                                     ))
     return cls
 
@@ -42,24 +44,23 @@ class report_prompt_class(models.TransientModel):
     parameters_dictionary = fields.Text(string='parameter dictionary')
     x2m_unique_id = fields.Integer(string='2M Unique Id')
 
-    @api.one
-    @api.depends()
-    def _multi_select_values(self):
-        for counter in range(0, MAX_PARAMS):
-            lines = self.env['ir.actions.report.multivalues.promptwizard'].search([('x2m_unique_id', '=', self.x2m_unique_id), ('entry_num', '=', counter), ('selected', '=', True)])
-            self.__setattr__(PARAM_XXX_2M_VALUE % counter, lines)
-
-    @api.one
-    def _multi_select_values_store(self):
-        mpwiz = self.env['ir.actions.report.multivalues.promptwizard'].search([('x2m_unique_id', '=', self.x2m_unique_id)])
-        mpwiz.write({'selected': False})
-
-        import ipdb
-        ipdb.set_trace()
-        for counter in range(0, MAX_PARAMS):
-            mpwiz = self.__getattribute__(PARAM_XXX_2M_VALUE % counter)
-            if mpwiz:
-                mpwiz.write({'selected': True})
+#     @api.one
+#     @api.depends()
+#     def _multi_select_values(self):
+#         for counter in range(0, MAX_PARAMS):
+#             lines = self.env['ir.actions.report.multivalues.promptwizard'].search([('x2m_unique_id', '=', self.x2m_unique_id), ('entry_num', '=', counter), ('selected', '=', True)])
+#             self.__setattr__(PARAM_XXX_2M_VALUE % counter, lines)
+# 
+# 
+#     @api.one
+#     def _multi_select_values_store(self):
+#         mpwiz = self.env['ir.actions.report.multivalues.promptwizard'].search([('x2m_unique_id', '=', self.x2m_unique_id)])
+#         mpwiz.write({'selected': False})
+# 
+#         for counter in range(0, MAX_PARAMS):
+#             mpwiz = self.__getattribute__(PARAM_XXX_2M_VALUE % counter)
+#             if mpwiz:
+#                 mpwiz.write({'selected': True})
 
     def _parse_one_report_parameter_default_formula(self, formula, type, context=None):
         """
