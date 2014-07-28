@@ -129,12 +129,15 @@ class store_selections_wizard(models.TransientModel):
     def button_cancel(self, cr, uid, ids, context=None):
         wizard = self.browse(cr, uid, ids[0], context=context)
         if wizard.passing_wizard_id:
+            new_context = (context or {}).copy()
+            new_context['active_ids'] = []  # DEBUG - client will pass the active_ids on to the report call - This is behaviour we do not want, as the active_ids are from this wizard model.
             return {
                     'view_mode': 'form',
                     'res_model': 'ir.actions.report.promptwizard',
                     'type': 'ir.actions.act_window',
                     'target': 'new',
                     'res_id': wizard.passing_wizard_id.id,
+                    'context': new_context,
                     }
         return {'type': 'ir.actions.act_window_close'}
 
