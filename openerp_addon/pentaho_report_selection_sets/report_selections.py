@@ -10,6 +10,7 @@ from lxml import etree
 from openerp import models, fields, api, _
 from openerp.exceptions import except_orm
 from openerp.tools import DEFAULT_SERVER_DATE_FORMAT, DEFAULT_SERVER_DATETIME_FORMAT
+from openerp.tools.misc import frozendict
 
 from openerp.addons.pentaho_reports.java_oe import *
 from openerp.addons.pentaho_reports.core import VALID_OUTPUT_TYPES
@@ -160,7 +161,14 @@ class report_prompt_with_selection_set(models.TransientModel):
                 raise except_orm(_('Error'), _('Report selections do not match service name called.'))
 
             # set this and let onchange be triggered and initialise correct values
-            result['selectionset_id'] = context.pop('populate_selectionset_id')
+            if type(context) != frozendict:
+                result['selectionset_id'] = context.pop('populate_selectionset_id')
+            else:
+                result['selectionset_id'] = context['populate_selectionset_id']
+            #TODO:
+            # Really, we are finished with the value in context, and should pop it, but the new API seems to not respect the first "popping", and even more bizarrely,
+            # when it calls this routine in "add_missing_values" passes in a frozen dict, and it can't be popped (although it should have been removed the first time!!)
+
         else:
             default_selset_id = False
             for sel_set in set_header_obj.browse(cr, uid, set_header_ids, context=context):

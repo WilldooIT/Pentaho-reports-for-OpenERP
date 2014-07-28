@@ -109,6 +109,8 @@ class store_selections_wizard(models.TransientModel):
 
         new_context = (context or {}).copy()
         new_context['populate_selectionset_id'] = hdr_id
+
+        new_context['active_ids'] = []  # DEBUG - client will pass the active_ids on to the report call - This is behaviour we do not want, as the active_ids are from this wizard model.
         return {
                 'view_mode': 'form',
                 'res_model': 'ir.actions.report.promptwizard',
