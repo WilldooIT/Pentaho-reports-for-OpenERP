@@ -28,6 +28,7 @@ class email_template_patch(osv.osv):
         if context is None:
             context = {}
         report_xml_pool = self.pool.get('ir.actions.report.xml')
+        cr.commit()
         template = self.get_email_template(cr, uid, template_id, res_id, context)
         values = {}
         for field in ['subject', 'body_html', 'email_from',
@@ -86,6 +87,8 @@ class email_template_patch(osv.osv):
                 crtemp.commit()
 
                 service = netsvc.LocalService(report_service)
+                cr.commit()
+                crtemp.commit()
                 (result, format) = service.create(crtemp, new_uid, [res_id], {'model': template.model}, ctx)
                 crtemp.commit()
                 crtemp.close()
