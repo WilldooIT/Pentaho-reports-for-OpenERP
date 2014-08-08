@@ -28,7 +28,6 @@ class email_template_patch(osv.osv):
         if context is None:
             context = {}
         report_xml_pool = self.pool.get('ir.actions.report.xml')
-        cr.commit()
         template = self.get_email_template(cr, uid, template_id, res_id, context)
         values = {}
         for field in ['subject', 'body_html', 'email_from',
@@ -87,8 +86,7 @@ class email_template_patch(osv.osv):
                 crtemp.commit()
 
                 service = netsvc.LocalService(report_service)
-                cr.commit()
-                crtemp.commit()
+                cr.commit() # The following line uses another cursor to do some writing on the partner, but we already have some outstanding writes on this cursor due to the template rendering above triggering the creation of a signup token. We must commit here or we get a deadlock. 
                 (result, format) = service.create(crtemp, new_uid, [res_id], {'model': template.model}, ctx)
                 crtemp.commit()
                 crtemp.close()
