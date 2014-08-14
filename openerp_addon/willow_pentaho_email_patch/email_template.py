@@ -86,6 +86,7 @@ class email_template_patch(osv.osv):
                 crtemp.commit()
 
                 service = netsvc.LocalService(report_service)
+                cr.commit() # The following line uses another cursor to do some writing on the partner, but we already have some outstanding writes on this cursor due to the template rendering above triggering the creation of a signup token. We must commit here or we get a deadlock. 
                 (result, format) = service.create(crtemp, new_uid, [res_id], {'model': template.model}, ctx)
                 crtemp.commit()
                 crtemp.close()
