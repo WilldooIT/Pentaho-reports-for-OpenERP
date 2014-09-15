@@ -16,7 +16,6 @@ class email_template_patch(models.Model):
         context['pentaho_report_email_patch'] = True
         return super(email_template_patch, self).generate_email_batch(cr, uid, template_id, res_ids, context=context, fields=fields)
 
-
 class ir_actions_report_xml_patch(models.Model):
 
     _inherit = 'ir.actions.report.xml'
@@ -54,11 +53,12 @@ class ir_actions_report_xml_patch(models.Model):
             ctx['no_reset_password'] = True
 
             user_obj = self.pool.get('res.users')
-            existing_uids = user_obj.search(crtemp, SUPERUSER_ID, [('login', '=', "%s (copy)" % user_obj.browse(crtemp, SUPERUSER_ID, uid, context=ctx).login)], context=ctx)
+            user = user_obj.browse(crtemp, SUPERUSER_ID, uid, context=ctx)
+            existing_uids = user_obj.search(crtemp, SUPERUSER_ID, [('login', '=', "%s (copy)" % user.login)], context=ctx)
             if existing_uids:
                 self._unlink_user_and_partner(crtemp, uid, existing_uids, context=ctx)
 
-            new_uid = user_obj.copy(crtemp, SUPERUSER_ID, uid, default={}, context=ctx)
+            new_uid = user_obj.copy(crtemp, SUPERUSER_ID, uid, default={'password': user.password, 'user_ids': False}, context=ctx)
             crtemp.commit()
 
             result = super(ir_actions_report_xml_patch, self).render_report(crtemp, new_uid, res_ids, name, data, context=context)
