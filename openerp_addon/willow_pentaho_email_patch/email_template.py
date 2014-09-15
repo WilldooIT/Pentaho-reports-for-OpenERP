@@ -82,7 +82,7 @@ class email_template_patch(osv.osv):
                 if existing_uids:
                     self._unlink_user_and_partner(crtemp, uid, existing_uids, context=ctx)
 
-                new_uid = user_obj.copy(crtemp, SUPERUSER_ID, uid, default={'employee_ids': False}, context=ctx)
+                new_uid = user_obj.copy(crtemp, SUPERUSER_ID, uid, default={'employee_ids': False, 'message_ids': False}, context=ctx)
                 crtemp.commit()
 
                 service = netsvc.LocalService(report_service)
