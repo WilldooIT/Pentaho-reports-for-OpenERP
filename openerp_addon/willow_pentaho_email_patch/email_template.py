@@ -15,11 +15,11 @@ class email_template_patch(osv.osv):
         This is used to remove the temporary user/partner created by the patch in generate_email().
         """
         user_obj = self.pool.get('res.users')
-        for this_user in user_obj.browse(cr, uid, user_ids, context=context):
+        for this_user in user_obj.browse(cr, SUPERUSER_ID, user_ids, context=context):
             partner_id = this_user.partner_id and this_user.partner_id.id or False
             user_obj.unlink(cr, SUPERUSER_ID, [this_user.id], context=context)
             if partner_id:
-                self.pool.get('res.partner').unlink(cr, uid, [partner_id], context=context)
+                self.pool.get('res.partner').unlink(cr, SUPERUSER_ID, [partner_id], context=context)
 
 
     def generate_email(self, cr, uid, template_id, res_id, context=None):
@@ -80,7 +80,7 @@ class email_template_patch(osv.osv):
                 user_obj = self.pool.get('res.users')
                 existing_uids = user_obj.search(crtemp, SUPERUSER_ID, [('login', '=', "%s (copy)" % user_obj.browse(crtemp, SUPERUSER_ID, uid, context=ctx).login)], context=ctx)
                 if existing_uids:
-                    self._unlink_user_and_partner(crtemp, uid, existing_uids, context=ctx)
+                    self._unlink_user_and_partner(crtemp, SUPERUSER_ID, existing_uids, context=ctx)
 
                 new_uid = user_obj.copy(crtemp, SUPERUSER_ID, uid, default={'employee_ids': False, 'message_ids': False}, context=ctx)
                 crtemp.commit()
@@ -92,7 +92,7 @@ class email_template_patch(osv.osv):
 
                 crtemp = pooler.get_db(cr.dbname).cursor()
 
-                self._unlink_user_and_partner(crtemp, uid, [new_uid], context=ctx)
+                self._unlink_user_and_partner(crtemp, SUPERUSER_ID, [new_uid], context=ctx)
 
                 crtemp.commit()
                 crtemp.close()
