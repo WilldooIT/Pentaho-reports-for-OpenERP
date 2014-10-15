@@ -243,6 +243,7 @@ class report_prompt_class(models.TransientModel):
     def default_get(self, cr, uid, fields, context=None):
         if context is None:
             context={}
+
         report_action_id = self._find_report_id(cr, uid, context=context)
         parameters = self._setup_parameters(cr, uid, report_action_id, context=context)
 
