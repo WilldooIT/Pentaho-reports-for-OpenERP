@@ -344,6 +344,25 @@ class report_xml(osv.osv):
             'type': 'ir.actions.report.xml',
             'report_name': report.report_name,
             'datas': datas,
+            # Force active model & ids back into the context.
+            # This is necessary if the report is being rendered via an action
+            # that uses a wizard. e.g.
+            #    1. An action linked to say account.invoice
+            #       displays a wizard.
+            #    2. The wizard captures some additional report parameters
+            #       to allow the user to adjust the report format.
+            #    3. The wizard then calls this method, passing the parameters.
+            #    4. When the wizard calls this method the context contains
+            #       account.invoice as the active model and the ids of the
+            #       selected invoices as the active ids.
+            #    5. However, if these values aren't included explicitly in the
+            #       context of the action returned below then the client will
+            #       replace them with the wizard model and wizard id.
+            'context': {
+                'active_id': context.get('active_id', False),
+                'active_model': context.get('active_model', False),
+                'active_ids': context.get('active_ids', []),
+            },
         }
 
 
