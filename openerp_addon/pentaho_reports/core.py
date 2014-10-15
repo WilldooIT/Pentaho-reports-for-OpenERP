@@ -8,15 +8,15 @@ import base64
 from openerp import netsvc
 from openerp import pooler
 from openerp import report
-from openerp import models
+from openerp import models, fields, _
 from openerp.exceptions import except_orm
 from openerp.tools import config
-from openerp.tools.translate import _
 import logging
 import time
 import openerp
 from datetime import datetime
 from openerp.tools import DEFAULT_SERVER_DATE_FORMAT, DEFAULT_SERVER_DATETIME_FORMAT
+from openerp import SUPERUSER_ID
 
 from .java_oe import JAVA_MAPPING, check_java_list, PARAM_VALUES, RESERVED_PARAMS
 
@@ -32,6 +32,8 @@ VALID_OUTPUT_TYPES = [('pdf', 'Portable Document (pdf)'),
                       ]
 DEFAULT_OUTPUT_TYPE = 'pdf'
 
+PENTAHO_TEMP_USER_PW = 'TempPWPentaho'
+PENTAHO_TEMP_USER_LOGIN = '%s (Pentaho)'
 
 def get_date_length(date_format=DEFAULT_SERVER_DATE_FORMAT):
     return len((datetime.now()).strftime(date_format))
@@ -132,6 +134,8 @@ def get_proxy_args(instance, cr, uid, prpt_content, context_vars={}):
     current_user = pool.get('res.users').browse(cr, uid, uid)
     config_obj = pool.get('ir.config_parameter')
 
+    temp_user_id = pool.get('res.users').pentaho_temp_user_find(cr, uid, uid)
+
     proxy_url = config_obj.get_param(cr, uid, 'pentaho.server.url', default='http://localhost:8080/pentaho-reports-for-openerp')
 
     xml_interface = config_obj.get_param(cr, uid, 'pentaho.openerp.xml.interface', default='').strip() or config['xmlrpc_interface'] or 'localhost'
@@ -142,8 +146,8 @@ def get_proxy_args(instance, cr, uid, prpt_content, context_vars={}):
                       'connection_settings': {'openerp': {'host': xml_interface,
                                                           'port': xml_port,
                                                           'db': cr.dbname,
-                                                          'login': current_user.login,
-                                                          'password': current_user.password,
+                                                          'login': temp_user_id,
+                                                          'password': PENTAHO_TEMP_USER_PW,
                                                           }},
                       'report_parameters': dict([(param_name, param_formula(instance, cr, uid, context_vars)) for (param_name, param_formula) in RESERVED_PARAMS.iteritems() if param_formula(instance, cr, uid, context_vars)]),
                       }
@@ -228,6 +232,10 @@ class Report(object):
                         proxy_argument['report_parameters'][parameter['name']] = [proxy_argument['report_parameters'][parameter['name']]]
 
         rendered_report = proxy.report.execute(proxy_argument).data
+
+        pool = pooler.get_pool(self.cr.dbname)
+        pool.get('res.users').pentaho_temp_users_unlink(self.cr, self.uid, [self.uid])
+
         if len(rendered_report) == 0:
             raise except_orm(_('Error'), _("Pentaho returned no data for the report '%s'. Check report definition and parameters.") % self.name[len(SERVICE_NAME_PREFIX):])
 
@@ -365,3 +373,55 @@ class ir_actions_report_xml(models.Model):
             return new_report
         else:
             return super(ir_actions_report_xml, self)._lookup_report(cr, name)
+
+
+class res_users(models.Model):
+    _inherit = 'res.users'
+
+    def pentaho_temp_user_find(self, cr, uid, id, context=None):
+        user = self.browse(cr, SUPERUSER_ID, id, context=context)
+        temp_uids = self.search(cr, SUPERUSER_ID, [('login', '=', PENTAHO_TEMP_USER_LOGIN % user.login)], context=context)
+        if not temp_uids:
+            return self.pentaho_temp_user_create(cr, uid, id, context=context)
+        return temp_uids[0]
+
+    def pentaho_temp_user_create(self, cr, uid, id, context=None):
+        # Remove default_partner_id set by some search views that could duplicate user with existing partner!
+        # Use copied context, to ensure we don't affect any processing outside of this method's scope.
+        ctx = (context or {}).copy()
+        ctx.pop('default_partner_id', None)
+        ctx['no_reset_password'] = True
+
+        crtemp = pooler.get_db(cr.dbname).cursor()
+        self.pentaho_temp_users_unlink(crtemp, uid, [id], context=context)
+        user = self.browse(cr, SUPERUSER_ID, id, context=context)
+        new_uid = self.copy(crtemp, SUPERUSER_ID, id, default={'login': PENTAHO_TEMP_USER_LOGIN % user.login, 'password': PENTAHO_TEMP_USER_PW,
+                                                               'user_ids': False, 'message_ids': False}, context=ctx)
+        crtemp.commit()
+        crtemp.close()
+        return new_uid
+
+    def pentaho_temp_users_unlink(self, cr, uid, ids, context=None):
+        crtemp = pooler.get_db(cr.dbname).cursor()
+        self._pentaho_temp_users_unlink(crtemp, uid, ids, context=context)
+        crtemp.commit()
+        crtemp.close()
+
+    def _pentaho_temp_users_unlink(self, crtemp, uid, ids, context=None):
+        """Unlink users and associated partners.
+        """
+        if type(ids) in (int, long):
+            ids = [ids]
+        existing_uids = []
+        for user in self.browse(crtemp, SUPERUSER_ID, self.search(crtemp, SUPERUSER_ID, [('id', 'in', ids)], context=context), context=context):
+            existing_uids.extend(self.search(crtemp, SUPERUSER_ID, [('login', '=', PENTAHO_TEMP_USER_LOGIN % user.login)], context=context))
+        existing_partner_ids = [x.partner_id.id for x in self.browse(crtemp, SUPERUSER_ID, existing_uids, context=context) if x.partner_id]
+        self.unlink(crtemp, SUPERUSER_ID, existing_uids, context=context)
+        self.pool.get('res.partner').unlink(crtemp, SUPERUSER_ID, existing_partner_ids, context=context)
+
+    def write(self, cr, uid, ids, values, context=None):
+        #
+        # Crude clean-up code - if something writes to res_users then assume it is OK to clean up temp users...
+        #
+        self.pentaho_temp_users_unlink(cr, uid, ids, context=context)
+        return super(res_users, self).write(cr, uid, ids, values, context=context)
