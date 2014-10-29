@@ -26,8 +26,8 @@ Report Designer and Java Component
 For notes on installing and running the report designer, 3.9, refer to:
     **http://bit.ly/L4wPoC**
 
-Report designer version 5.0 includes the OpenERP datasource. It can be installed and used without the need for
-additional components.
+Report designer version 5.0 and higher includes the OpenERP datasource. It can be installed and used without the
+need for additional components.
 
 The README document contains instructions relevant to building and running the java component.
 
