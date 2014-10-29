@@ -21,7 +21,7 @@ class report_xml(osv.osv):
     _columns = {
         "pentaho_report_output_type": fields.selection([
             ("pdf", "PDF"), ("html", "HTML"), ("csv", "CSV"),
-            ("xls", "Excel"), ("rtf", "RTF"), ("txt", "Plain text")
+            ("xls", "Excel"), ("xlsx", "Excel 2007"), ("rtf", "RTF"), ("txt", "Plain text")
         ], "Output format"),
         "pentaho_report_model_id": fields.many2one("ir.model", "Model"),
         "pentaho_file": fields.binary("File", filters="*.prpt"),

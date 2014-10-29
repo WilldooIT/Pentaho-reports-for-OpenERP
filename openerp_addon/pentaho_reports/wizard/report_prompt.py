@@ -27,7 +27,7 @@ class report_prompt_class(osv.osv_memory):
 
     _columns = {
                 'report_name': fields.char('Report Name', size=64, readonly=True),
-                'output_type' : fields.selection([('pdf', 'Portable Document (pdf)'),('xls', 'Excel Spreadsheet (xls)'),('csv', 'Comma Separated Values (csv)'),\
+                'output_type' : fields.selection([('pdf', 'Portable Document (pdf)'),('xls', 'Excel Spreadsheet (xls)'),('xlsx', 'Excel 2007 Spreadsheet (xlsx)'),('csv', 'Comma Separated Values (csv)'),\
                                                   ('rtf', 'Rich Text (rtf)'), ('html', 'HyperText (html)'), ('txt', 'Plain Text (txt)')],\
                                                   'Report format', help='Choose the format for the output', required=True),
                 }
