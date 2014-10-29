@@ -24,7 +24,7 @@ class report_xml(models.Model):
             self._columns['report_type'].selection.append(('pentaho', 'Pentaho Report'))
         super(report_xml, self).__init__(pool, cr)
 
-    pentaho_report_output_type = fields.Selection([("pdf", "PDF"), ("html", "HTML"), ("csv", "CSV"), ("xls", "Excel"), ("rtf", "RTF"), ("txt", "Plain text")],
+    pentaho_report_output_type = fields.Selection([("pdf", "PDF"), ("html", "HTML"), ("csv", "CSV"), ("xls", "Excel"), ("xlsx", "Excel 2007"), ("rtf", "RTF"), ("txt", "Plain text")],
                                                    string = 'Output format')
     pentaho_report_model_id = fields.Many2one('ir.model', string='Model')
     pentaho_file = fields.Binary(string='File', filters='*.prpt')
