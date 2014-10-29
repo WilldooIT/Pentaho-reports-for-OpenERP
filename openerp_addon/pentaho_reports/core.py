@@ -23,6 +23,7 @@ _logger = logging.getLogger(__name__)
 SERVICE_NAME_PREFIX = 'report.'
 VALID_OUTPUT_TYPES = [('pdf', 'Portable Document (pdf)'),
                       ('xls', 'Excel Spreadsheet (xls)'),
+                      ('xlsx', 'Excel 2007 Spreadsheet (xlsx)'),
                       ('csv', 'Comma Separated Values (csv)'),
                       ('rtf', 'Rich Text (rtf)'),
                       ('html', 'HyperText (html)'),
