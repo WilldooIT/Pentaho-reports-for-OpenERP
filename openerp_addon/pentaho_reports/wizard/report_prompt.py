@@ -23,6 +23,7 @@ class report_prompt_class(orm.TransientModel):
                 'output_type': fields.selection(
                                                 [('pdf', 'Portable Document (pdf)'),
                                                  ('xls', 'Excel Spreadsheet (xls)'),
+                                                 ('xlxs', 'Excel 2007 Spreadsheet (xlsx)'),
                                                  ('csv', 'Comma Separated Values (csv)'),
                                                  ('rtf', 'Rich Text (rtf)'),
                                                  ('html', 'HyperText (html)'),
