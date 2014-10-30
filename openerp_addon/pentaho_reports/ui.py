@@ -50,6 +50,13 @@ class report_xml(models.Model):
             if self.pentaho_report_model_id:
                 self.model = self.pentaho_report_model_id.model
 
+    @api.onchange('pentaho_report_model_id')
+    def _onchange_model_id(self):
+        if self.pentaho_report_model_id:
+            self.model = self.pentaho_report_model_id.model
+        else:
+            self.model = False
+
     def copy(self, cr, uid, id, default=None, context=None):
         if default is None:
             default = {}
