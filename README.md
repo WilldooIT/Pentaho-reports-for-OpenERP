@@ -2,6 +2,7 @@
 
 A more detailed description of changes can be found on the [Pentaho Report for OpenERP wiki](https://github.com/WillowIT/Pentaho-reports-for-OpenERP/wiki/Significant-Changes "Pentaho Reports for OpenERP Wiki")
 
+* October 2014 - Support for Excel 2007 format output (xlsx).
 * October 2014 - Testing with Pentaho version 5.2 - updated war file on Willow website.
 * June 2014 - Upgrade to support Odoo version 8.0.
 * May 2014 - Report selection sets can be nominated as default selections for users or groups.
