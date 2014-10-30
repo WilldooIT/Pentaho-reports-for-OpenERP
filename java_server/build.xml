@@ -61,9 +61,9 @@
             depends="compile">
       <war destfile="${dist.dir}/${ivy.artifact.id}-${project.revision}.war" webxml="WebContent/WEB-INF/web.xml">
         <lib dir="${lib.dir}/internal">
-          <exclude name="servlet-api.jar"/>
-          <exclude name="junit.jar"/>
-          <exclude name="xmlunit.jar"/>
+          <exclude name="servlet-api*.jar"/>
+          <exclude name="junit*.jar"/>
+          <exclude name="xmlunit*.jar"/>
         </lib>
 
         <classes dir="${classes.dir}" excludes="**/StandaloneReportServer.class"/>
