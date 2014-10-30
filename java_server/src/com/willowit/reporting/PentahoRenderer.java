@@ -255,6 +255,8 @@ public class PentahoRenderer {
 			PdfReportUtil.createPDF(report, report_bin_out);
 		else if(output_type.equals("xls"))
 			ExcelReportUtil.createXLS(report, report_bin_out);
+		else if(output_type.equals("xlsx"))
+			ExcelReportUtil.createXLSX(report, report_bin_out);
 		else if(output_type.equals("csv"))
 			CSVReportUtil.createCSV(report, report_bin_out, null);
 		else if(output_type.equals("rtf"))
