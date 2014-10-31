@@ -104,6 +104,7 @@ RESERVED_PARAMS = {
                    'user_name': lambda s, cr, uid, d: d.get('uid') and s.pool.get('res.users').browse(cr, uid, d['uid'], context=d.get('context')).name or '',
                    'context_lang': lambda s, cr, uid, d: d.get('context', {}).get('lang', ''),
                    'context_tz': lambda s, cr, uid, d: d.get('context', {}).get('tz', ''),
+                   'context': lambda s, cr, uid, d: d.get('context', {})
                    }
 
 
