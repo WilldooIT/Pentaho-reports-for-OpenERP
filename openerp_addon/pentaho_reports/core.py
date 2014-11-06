@@ -147,7 +147,7 @@ def get_proxy_args(instance, cr, uid, prpt_content, context_vars={}):
                       'connection_settings': {'openerp': {'host': xml_interface,
                                                           'port': xml_port,
                                                           'db': cr.dbname,
-                                                          'login': temp_user_id,
+                                                          'login': pool.get('res.users').browse(cr, uid, temp_user_id).login,
                                                           'password': PENTAHO_TEMP_USER_PW,
                                                           }},
                       'report_parameters': dict([(param_name, param_formula(instance, cr, uid, context_vars)) for (param_name, param_formula) in RESERVED_PARAMS.iteritems() if param_formula(instance, cr, uid, context_vars)]),
