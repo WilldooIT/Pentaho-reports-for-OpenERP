@@ -135,7 +135,7 @@ def get_proxy_args(instance, cr, uid, prpt_content, context_vars={}):
     current_user = pool.get('res.users').browse(cr, uid, uid)
     config_obj = pool.get('ir.config_parameter')
 
-    temp_user_id = pool.get('res.users').pentaho_temp_user_find(cr, uid, uid)
+    temp_user_login = pool.get('res.users').pentaho_temp_user_find(cr, uid, uid)
 
     proxy_url = config_obj.get_param(cr, uid, 'pentaho.server.url', default='http://localhost:8080/pentaho-reports-for-openerp')
 
@@ -147,7 +147,7 @@ def get_proxy_args(instance, cr, uid, prpt_content, context_vars={}):
                       'connection_settings': {'openerp': {'host': xml_interface,
                                                           'port': xml_port,
                                                           'db': cr.dbname,
-                                                          'login': pool.get('res.users').browse(cr, uid, temp_user_id).login,
+                                                          'login': temp_user_login,
                                                           'password': PENTAHO_TEMP_USER_PW,
                                                           }},
                       'report_parameters': dict([(param_name, param_formula(instance, cr, uid, context_vars)) for (param_name, param_formula) in RESERVED_PARAMS.iteritems() if param_formula(instance, cr, uid, context_vars)]),
@@ -383,8 +383,8 @@ class res_users(models.Model):
         user = self.browse(cr, SUPERUSER_ID, id, context=context)
         temp_uids = self.search(cr, SUPERUSER_ID, [('login', '=', PENTAHO_TEMP_USER_LOGIN % user.login)], context=context)
         if not temp_uids:
-            return self.pentaho_temp_user_create(cr, uid, id, context=context)
-        return temp_uids[0]
+            self.pentaho_temp_user_create(cr, uid, id, context=context)
+        return PENTAHO_TEMP_USER_LOGIN % user.login
 
     def pentaho_temp_user_create(self, cr, uid, id, context=None):
         # Remove default_partner_id set by some search views that could duplicate user with existing partner!
