@@ -78,15 +78,18 @@ class email_template_patch(osv.osv):
                 ctx.pop('default_partner_id', None)
 
                 user_obj = self.pool.get('res.users')
-                existing_uids = user_obj.search(crtemp, SUPERUSER_ID, [('login', '=', "%s (copy)" % user_obj.browse(crtemp, SUPERUSER_ID, uid, context=ctx).login)], context=ctx)
+                user = user_obj.browse(crtemp, SUPERUSER_ID, uid, context=ctx)
+                existing_uids = user_obj.search(crtemp, SUPERUSER_ID, [('login', '=', "%s (copy)" % user.login)], context=ctx)
                 if existing_uids:
                     self._unlink_user_and_partner(crtemp, SUPERUSER_ID, existing_uids, context=ctx)
 
-                new_uid = user_obj.copy(crtemp, SUPERUSER_ID, uid, default={'employee_ids': False, 'message_ids': False}, context=ctx)
+                new_uid = user_obj.copy(crtemp, SUPERUSER_ID, uid, default={'employee_ids': False,
+                                                                            'message_ids': False,
+                                                                            'name': user.name}, context=ctx)
                 crtemp.commit()
 
                 service = netsvc.LocalService(report_service)
-                cr.commit() # The following line uses another cursor to do some writing on the partner, but we already have some outstanding writes on this cursor due to the template rendering above triggering the creation of a signup token. We must commit here or we get a deadlock. 
+                cr.commit() # The following line uses another cursor to do some writing on the partner, but we already have some outstanding writes on this cursor due to the template rendering above triggering the creation of a signup token. We must commit here or we get a deadlock.
                 (result, format) = service.create(crtemp, new_uid, [res_id], {'model': template.model}, ctx)
                 crtemp.commit()
                 crtemp.close()
