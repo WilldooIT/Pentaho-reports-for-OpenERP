@@ -396,8 +396,12 @@ class res_users(models.Model):
         crtemp = pooler.get_db(cr.dbname).cursor()
         self.pentaho_temp_users_unlink(crtemp, uid, [id], context=context)
         user = self.browse(cr, SUPERUSER_ID, id, context=context)
-        new_uid = self.copy(crtemp, SUPERUSER_ID, id, default={'login': PENTAHO_TEMP_USER_LOGIN % user.login, 'password': PENTAHO_TEMP_USER_PW,
-                                                               'user_ids': False, 'message_ids': False}, context=ctx)
+        new_uid = self.copy(crtemp, SUPERUSER_ID, id, default={'login': PENTAHO_TEMP_USER_LOGIN % user.login,
+                                                               'password': PENTAHO_TEMP_USER_PW,
+                                                               'user_ids': False,
+                                                               'message_ids': False,
+                                                               'name': user.name,
+                                                               }, context=ctx)
         crtemp.commit()
         crtemp.close()
         return new_uid
