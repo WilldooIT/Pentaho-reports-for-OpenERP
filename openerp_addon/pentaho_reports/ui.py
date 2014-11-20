@@ -335,7 +335,7 @@ class report_xml(models.Model):
             raise except_orm(_('Error'), _("Report '%s' must be passed active ids or parameter values.") % service_name)
 
         datas = {'model': report.model,
-                 'output_type': report.report_type,
+                 'report_type': report.report_type,
                 }
 
         if active_ids:
