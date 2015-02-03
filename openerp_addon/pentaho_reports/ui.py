@@ -19,11 +19,7 @@ ADDONS_PATHS = config['addons_path'].split(",")
 class report_xml(models.Model):
     _inherit = 'ir.actions.report.xml'
 
-    def __init__(self, pool, cr):
-        if not('pentaho','Pentaho Report') in self._columns['report_type'].selection:
-            self._columns['report_type'].selection.append(('pentaho', 'Pentaho Report'))
-        super(report_xml, self).__init__(pool, cr)
-
+    report_type = fields.Selection(selection_add=[('pentaho','Pentaho Report')])
     pentaho_report_output_type = fields.Selection([("pdf", "PDF"), ("html", "HTML"), ("csv", "CSV"), ("xls", "Excel"), ("xlsx", "Excel 2007"), ("rtf", "RTF"), ("txt", "Plain text")],
                                                    string = 'Output format')
     pentaho_report_model_id = fields.Many2one('ir.model', string='Model')
