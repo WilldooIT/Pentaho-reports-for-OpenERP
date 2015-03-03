@@ -61,6 +61,10 @@ class res_users(models.Model):
                                                              'message_ids': False,
                                                              'name': user.name,
                                                              'groups_id': False,
+                                                             'signature': user.signature,
+                                                             'title': user.title,
+                                                             'lang': user.lang,
+                                                             'tz': user.tz,
                                                              })
             for g in user.groups_id.ids:
                 if not g in new_user.groups_id.ids:
