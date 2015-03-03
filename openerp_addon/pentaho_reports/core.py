@@ -33,8 +33,7 @@ VALID_OUTPUT_TYPES = [('pdf', 'Portable Document (pdf)'),
                       ]
 DEFAULT_OUTPUT_TYPE = 'pdf'
 
-PENTAHO_TEMP_USER_PW = 'TempPWPentaho'
-PENTAHO_TEMP_USER_LOGIN = '%s (Pentaho)'
+from .core_newapi import PENTAHO_TEMP_USER_PW
 
 def get_date_length(date_format=DEFAULT_SERVER_DATE_FORMAT):
     return len((datetime.now()).strftime(date_format))
@@ -375,58 +374,3 @@ class ir_actions_report_xml(models.Model):
         else:
             return super(ir_actions_report_xml, self)._lookup_report(cr, name)
 
-
-class res_users(models.Model):
-    _inherit = 'res.users'
-
-    def pentaho_temp_user_find(self, cr, uid, id, context=None):
-        user = self.browse(cr, SUPERUSER_ID, id, context=context)
-        temp_uids = self.search(cr, SUPERUSER_ID, [('login', '=', PENTAHO_TEMP_USER_LOGIN % user.login)], context=context)
-        if not temp_uids:
-            self.pentaho_temp_user_create(cr, uid, id, context=context)
-        return PENTAHO_TEMP_USER_LOGIN % user.login
-
-    def pentaho_temp_user_create(self, cr, uid, id, context=None):
-        # Remove default_partner_id set by some search views that could duplicate user with existing partner!
-        # Use copied context, to ensure we don't affect any processing outside of this method's scope.
-        ctx = (context or {}).copy()
-        ctx.pop('default_partner_id', None)
-        ctx['no_reset_password'] = True
-
-        crtemp = pooler.get_db(cr.dbname).cursor()
-        self.pentaho_temp_users_unlink(crtemp, uid, [id], context=context)
-        user = self.browse(cr, SUPERUSER_ID, id, context=context)
-        new_uid = self.copy(crtemp, SUPERUSER_ID, id, default={'login': PENTAHO_TEMP_USER_LOGIN % user.login,
-                                                               'password': PENTAHO_TEMP_USER_PW,
-                                                               'user_ids': False,
-                                                               'message_ids': False,
-                                                               'name': user.name,
-                                                               }, context=ctx)
-        crtemp.commit()
-        crtemp.close()
-        return new_uid
-
-    def pentaho_temp_users_unlink(self, cr, uid, ids, context=None):
-        crtemp = pooler.get_db(cr.dbname).cursor()
-        self._pentaho_temp_users_unlink(crtemp, uid, ids, context=context)
-        crtemp.commit()
-        crtemp.close()
-
-    def _pentaho_temp_users_unlink(self, crtemp, uid, ids, context=None):
-        """Unlink users and associated partners.
-        """
-        if type(ids) in (int, long):
-            ids = [ids]
-        existing_uids = []
-        for user in self.browse(crtemp, SUPERUSER_ID, self.search(crtemp, SUPERUSER_ID, [('id', 'in', ids)], context=context), context=context):
-            existing_uids.extend(self.search(crtemp, SUPERUSER_ID, [('login', '=', PENTAHO_TEMP_USER_LOGIN % user.login)], context=context))
-        existing_partner_ids = [x.partner_id.id for x in self.browse(crtemp, SUPERUSER_ID, existing_uids, context=context) if x.partner_id]
-        self.unlink(crtemp, SUPERUSER_ID, existing_uids, context=context)
-        self.pool.get('res.partner').unlink(crtemp, SUPERUSER_ID, existing_partner_ids, context=context)
-
-    def write(self, cr, uid, ids, values, context=None):
-        #
-        # Crude clean-up code - if something writes to res_users then assume it is OK to clean up temp users...
-        #
-        self.pentaho_temp_users_unlink(cr, uid, ids, context=context)
-        return super(res_users, self).write(cr, uid, ids, values, context=context)
