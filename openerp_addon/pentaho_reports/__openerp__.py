@@ -177,7 +177,7 @@ that you would consider worth sharing, please email them through with some descr
     "version": "0.1",
     "author": "WillowIT Pty Ltd",
     "website": "http://www.willowit.com.au/",
-    "depends": ["base"],
+    "depends": ["base", "mail"],
     "category": "Reporting subsystems",
     "data": [
              "report_xml_view.xml",
