@@ -42,13 +42,12 @@ class res_users(models.Model):
                                                       'skip_cleanup': True,
                                                       })
             user = self.with_env(new_env).sudo().browse(self.id)
-            new_user = self.with_env(new_env).sudo().copy(default={'login': PENTAHO_TEMP_USER_LOGIN % user.login,
-                                                                   'password': PENTAHO_TEMP_USER_PW,
-                                                                   'user_ids': False,
-                                                                   'message_ids': False,
-                                                                   'name': user.name,
-                                                                   'groups_id': False,
-                                                                   })
+#             new_user = self.with_env(new_env).sudo().copy(default={'login': PENTAHO_TEMP_USER_LOGIN % user.login,
+#                                                                    'password': PENTAHO_TEMP_USER_PW,
+#                                                                    'user_ids': False,
+#                                                                    'message_ids': False,
+#                                                                    'name': user.name,
+#                                                                    })
             #
             # This next bit of code is awful.  BUT, writing a value to groups_id has an explicit "invalidate_cache".  This
             # nasty generally has no impact on the overall scheme of things, BUT, when the pentaho report is called from
@@ -56,6 +55,13 @@ class res_users(models.Model):
             #
             # This specific insert of securities ensures we don't end up in that rabbit hole
             #
+            new_user = self.with_env(new_env).sudo().create({'login': PENTAHO_TEMP_USER_LOGIN % user.login,
+                                                             'password': PENTAHO_TEMP_USER_PW,
+                                                             'user_ids': False,
+                                                             'message_ids': False,
+                                                             'name': user.name,
+                                                             'groups_id': False,
+                                                             })
             for g in user.groups_id.ids:
                 if not g in new_user.groups_id.ids:
                     new_cr.execute("""INSERT INTO res_groups_users_rel
