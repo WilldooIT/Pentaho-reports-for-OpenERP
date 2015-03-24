@@ -102,6 +102,10 @@ FORMULAE = {'now': {'type': TYPE_TIME,
                                            },
                                           ],
                             },
+            'current_user': {'type': TYPE_INTEGER,
+                             'call': 'uid',
+                             'arguments': [],
+                             }
             }
 
 
