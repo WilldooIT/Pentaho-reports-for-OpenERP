@@ -90,7 +90,10 @@ class res_users(models.Model):
         """
         existing_users = self.sudo().browse()
         existing_partners = self.sudo().env['res.partner']
-        for user in self.sudo().browse(self.ids):
+        #
+        # We may be here during "create", but we are in a separate transaction, so the passed 'id' may not have been written and known about the self record yet...
+        #
+        for user in self.sudo().search([('id', 'in', self.ids)]):
             existing_users += self.sudo().search([('login', '=', PENTAHO_TEMP_USER_LOGIN % user.login)])
         for user in existing_users:
             if user.partner_id:
