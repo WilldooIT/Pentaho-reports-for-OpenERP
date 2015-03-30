@@ -297,7 +297,7 @@ class PentahoReportOpenERPInterface(report.interface.report_int):
                         'res_model': model,
                         'res_name': aname,
                         'res_id': obj.id,
-                        }, context={}
+                        }, context=ctx
                     )
                 except Exception:
                     #TODO: should probably raise a proper osv_except instead, shouldn't we? see LP bug #325632
