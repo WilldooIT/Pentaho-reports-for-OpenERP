@@ -2,6 +2,7 @@
 
 A more detailed description of changes can be found on the [Pentaho Report for OpenERP wiki](https://github.com/WillowIT/Pentaho-reports-for-OpenERP/wiki/Significant-Changes "Pentaho Reports for OpenERP Wiki")
 
+* August 2015 - Remove need for special duplicated "Pentaho user" - a limitation has been introduced for object based reports with password encryption turned on - work-around in pipeline.
 * August 2015 - Testing with Pentaho version 5.4 - updated war file on Willow website.
 * April 2015 - Testing with Pentaho version 5.3 - updated war file on Willow website.
 * October 2014 - Support for Excel 2007 format output (xlsx).
@@ -20,10 +21,10 @@ A more detailed description of changes can be found on the [Pentaho Report for O
 
 # Pentaho Reports for OpenERP
 
-This project provides a system that integrates OpenERP with the Pentaho reporting system. End users of OpenERP can design reports using Pentaho report designer v5.0 through v5.2, and install/access them from inside the OpenERP interface. 
+This project provides a system that integrates OpenERP with the Pentaho reporting system. End users of OpenERP can design reports using Pentaho report designer v5.0 through v5.4, and install/access them from inside the OpenERP interface. 
 
 ### Features:
-* Support for OpenERP 6.1 and 7.0.
+* Support for OpenERP 6.1, 7.0, and 8.0.
 * OpenERP data can be accessed via SQL, objects, custom python procedures, or via "Pentaho Data Integration" tools.
 * Report parameters specified in the designer are automatically prompted for when the report is run from OpenERP.
 * Parameters can be generated dynamically from various data sources. 
@@ -38,7 +39,7 @@ Keep in mind that while these videos are for version 3.9 of the designer, they a
 
 At the time of writing, this project was working with version 3.9.1 of the Pentaho report designer, however this version is no longer supported and may stop working at any time. If you wish to use version 3.9.1, please follow the [instructions](http://pvandermpentaho.blogspot.com.au/2012/05/adding-openerp-datasource-to-pentaho.html "Pentaho 3.9.1 Plugin") to install the required plugin for the report designer. 
 
-Version 5.2 is the latest version of the report designer.  It comes bundled with all required plugins (data sources etc) and needs no special additional installations.
+Version 5.4 is the latest version of the report designer.  It comes bundled with all required plugins (data sources etc) and needs no special additional installations.
 
 ## Overview
 

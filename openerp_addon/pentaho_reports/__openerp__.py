@@ -156,6 +156,13 @@ under Settings/Customization/Low Level Actions/Actions/Window Actions. It will a
 the service_name defined, which should be left intact.
 
 
+Limitations
+-----------
+At the moment, there is one known limitation. Object reports need to log in as another concurrent session with
+the same user who is running the report. If the password encryption feature of Odoo has been enabled (it is
+by default) then the object based report cannot be run.  A fix is in the pipeline.
+
+
 Disclaimer
 ----------
 This has been developed over time to meet specific requirements as we have needed to meet them. If something is

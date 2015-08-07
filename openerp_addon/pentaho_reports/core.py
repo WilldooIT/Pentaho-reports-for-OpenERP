@@ -19,6 +19,7 @@ from openerp.tools import DEFAULT_SERVER_DATE_FORMAT, DEFAULT_SERVER_DATETIME_FO
 from openerp import SUPERUSER_ID
 
 from .java_oe import JAVA_MAPPING, check_java_list, PARAM_VALUES, RESERVED_PARAMS
+from openerp.addons.pentaho_reports.core_newapi import SKIP_DATE
 
 _logger = logging.getLogger(__name__)
 
@@ -32,8 +33,6 @@ VALID_OUTPUT_TYPES = [('pdf', 'Portable Document (pdf)'),
                       ('txt', 'Plain Text (txt)'),
                       ]
 DEFAULT_OUTPUT_TYPE = 'pdf'
-
-from .core_newapi import PENTAHO_TEMP_USER_PW
 
 def get_date_length(date_format=DEFAULT_SERVER_DATE_FORMAT):
     return len((datetime.now()).strftime(date_format))
@@ -134,8 +133,6 @@ def get_proxy_args(instance, cr, uid, prpt_content, context_vars={}):
     current_user = pool.get('res.users').browse(cr, uid, uid)
     config_obj = pool.get('ir.config_parameter')
 
-    temp_user_login = pool.get('res.users').pentaho_temp_user_find(cr, uid, uid)
-
     proxy_url = config_obj.get_param(cr, uid, 'pentaho.server.url', default='http://localhost:8080/pentaho-reports-for-openerp')
 
     xml_interface = config_obj.get_param(cr, uid, 'pentaho.openerp.xml.interface', default='').strip() or config['xmlrpc_interface'] or 'localhost'
@@ -146,8 +143,8 @@ def get_proxy_args(instance, cr, uid, prpt_content, context_vars={}):
                       'connection_settings': {'openerp': {'host': xml_interface,
                                                           'port': xml_port,
                                                           'db': cr.dbname,
-                                                          'login': temp_user_login,
-                                                          'password': PENTAHO_TEMP_USER_PW,
+                                                          'login': current_user.login,
+                                                          'password': '%s%s' % (SKIP_DATE, current_user.password),
                                                           }},
                       'report_parameters': dict([(param_name, param_formula(instance, cr, uid, context_vars)) for (param_name, param_formula) in RESERVED_PARAMS.iteritems() if param_formula(instance, cr, uid, context_vars)]),
                       }
@@ -208,7 +205,8 @@ class Report(object):
 
         proxy_url, proxy_argument = get_proxy_args(self, self.cr, self.uid, self.prpt_content, self.context_vars)
         proxy = xmlrpclib.ServerProxy(proxy_url)
-        return proxy.report.getParameterInfo(proxy_argument)
+        result = proxy.report.getParameterInfo(proxy_argument)
+        return result
 
     def execute_report(self):
         proxy_url, proxy_argument = get_proxy_args(self, self.cr, self.uid, self.prpt_content, self.context_vars)
@@ -232,9 +230,6 @@ class Report(object):
                         proxy_argument['report_parameters'][parameter['name']] = [proxy_argument['report_parameters'][parameter['name']]]
 
         rendered_report = proxy.report.execute(proxy_argument).data
-
-        pool = pooler.get_pool(self.cr.dbname)
-        pool.get('res.users').pentaho_temp_users_unlink(self.cr, self.uid, [self.uid])
 
         if len(rendered_report) == 0:
             raise except_orm(_('Error'), _("Pentaho returned no data for the report '%s'. Check report definition and parameters.") % self.name[len(SERVICE_NAME_PREFIX):])
