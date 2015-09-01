@@ -2,6 +2,7 @@
 
 A more detailed description of changes can be found on the [Pentaho Report for OpenERP wiki](https://github.com/WillowIT/Pentaho-reports-for-OpenERP/wiki/Significant-Changes "Pentaho Reports for OpenERP Wiki")
 
+* September 2015 - Overcome previous limitation - Now works with the auth_crypt module turned on.
 * August 2015 - Remove need for special duplicated "Pentaho user" - a limitation has been introduced for object based reports with password encryption turned on - work-around in pipeline.
 * August 2015 - Testing with Pentaho version 5.4 - updated war file on Willow website.
 * April 2015 - Testing with Pentaho version 5.3 - updated war file on Willow website.
