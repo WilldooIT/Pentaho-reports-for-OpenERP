@@ -15,16 +15,36 @@ _logger = logging.getLogger(__name__)
 class res_users(models.Model):
     _inherit = 'res.users'
 
-    def check_credentials(self, cr, uid, password):
+    @api.multi
+    def pentaho_pass_token(self):
+        return '%s%s' % (SKIP_DATE, self.decide_on_password())
+
+    @api.multi
+    def pentaho_undo_token(self, token):
+        if token[0:len(SKIP_DATE)] == SKIP_DATE:
+            self.reverse_password(token.replace(SKIP_DATE, ''))
+
+    def decide_on_password(self):
+        return self.password
+
+    def reverse_password(self, password):
+        pass
+
+    @api.model
+    def strip_password(self, password):
         if password[0:len(SKIP_DATE)] == SKIP_DATE:
             password = password.replace(SKIP_DATE, '')
+        return password
+
+    def check_credentials(self, cr, uid, password):
+        password = self.strip_password(cr, uid, password)
         return super(res_users, self).check_credentials(cr, uid, password)
 
     def _login(self, db, login, password):
         if not password:
             return False
         if password == SKIP_DATE:
-            _logger.error('*** Pentaho Object Reports can not be run with encrypted passwords! ***')
+            _logger.error('*** Install pentaho_reports_auth_crypt to run with encrypted passwords. ***')
             return False
         user_id = False
         cr = self.pool.cursor()
