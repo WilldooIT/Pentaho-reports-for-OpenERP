@@ -262,12 +262,7 @@ class PentahoReportOpenERPInterface(report.interface.report_int):
         if report_xml_ids:
             report_xml = ir_pool.browse(cr, uid, report_xml_ids[0], context=context)
             if report_xml.attachment:
-                crtemp = pooler.get_db(cr.dbname).cursor()  # Creating new cursor to prevent TransactionRollbackError
-                                                            # when creating attachments, avoids concurrency issues
-                self.create_attachment(crtemp, uid, ids, report_xml.attachment, rendered_report, output_type, report_xml.pentaho_report_model_id.model, context=context)
-
-                crtemp.commit()  # It means attachment will be created even if error occurs
-                crtemp.close()
+                self.create_attachment(cr, uid, ids, report_xml.attachment, rendered_report, output_type, report_xml.pentaho_report_model_id.model, context=context)
         return rendered_report, output_type
 
     def getObjects(self, cr, uid, ids, model, context):
