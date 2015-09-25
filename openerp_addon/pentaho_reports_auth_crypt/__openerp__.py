@@ -15,6 +15,7 @@ This module provides support for Pentaho Reports where the auth_crypt (password 
 module has been installed.
     """,
     'data': [
+            "security/ir.model.access.csv",
             ],
     'demo': [],
     'test': [],
