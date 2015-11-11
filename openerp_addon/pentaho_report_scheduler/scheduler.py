@@ -26,7 +26,7 @@ class ReportScheduler(models.Model):
         """
         # Returns 'NONE' if user has no tz defined or tz not passed
         # in the context.
-        return fields.datetime.context_timestamp(cr, uid, timestamp=dt, context=context)
+        return fields.Datetime.context_timestamp(cr, uid, timestamp=dt, context=context)
 
     def _send_reports(self, cr, uid, sched, reports, context=None):
         run_on = datetime.datetime.now()
