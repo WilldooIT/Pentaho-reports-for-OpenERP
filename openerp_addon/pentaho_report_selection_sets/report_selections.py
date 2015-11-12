@@ -30,12 +30,13 @@ class selection_set_header(models.Model):
     def_user_ids = fields.Many2many('res.users', 'ir_actions_report_set_def_user_rel', 'header_id', 'user_id', string='Users (Default)')
     def_group_ids = fields.Many2many('res.groups', 'ir_actions_report_set_def_group_rel', 'header_id', 'group_id', string='Groups (Default)')
 
-    def selections_to_dictionary(self, cr, uid, id, parameters, x2m_unique_id, context=None):
-        detail_obj = self.pool.get('ir.actions.report.set.detail')
-        formula_obj = self.pool.get('ir.actions.report.set.formula')
+    @api.multi
+    def selections_to_dictionary(self, parameters, x2m_unique_id):
+        self.ensure_one()
 
-        selections_to_load = self.browse(cr, uid, id, context=context)
-        result = {'output_type': selections_to_load.output_type}
+        formula_obj = self.env['ir.actions.report.set.formula']
+
+        result = {'output_type': self.output_type}
 
         arbitrary_force_calc = None
         known_variables = {}
@@ -50,7 +51,7 @@ class selection_set_header(models.Model):
             still_needed_dependent_values = []
             for index in range(0, len(parameters)):
                 if not known_variables[parameters[index]['variable']]['calculated']:
-                    for detail in selections_to_load.detail_ids:
+                    for detail in self.detail_ids:
                         if detail.variable == parameters[index]['variable']:
                             expected_type = parameters[index]['type']
                             expected_2m = parameter_can_2m(parameters, index)
@@ -60,7 +61,7 @@ class selection_set_header(models.Model):
                             use_value_this_time = True
 
                             if detail.calc_formula:
-                                formula = formula_obj.validate_formula(cr, uid, detail.calc_formula, expected_type, expected_2m, known_variables, context=context)
+                                formula = formula_obj.validate_formula(detail.calc_formula, expected_type, expected_2m, known_variables)
                                 #
                                 # if there is an error, we want to ignore the formula and use standard processing of the value...
                                 # if we are arbitrarily forcing a value, then also use standard processing of the value...
@@ -77,16 +78,15 @@ class selection_set_header(models.Model):
 
                             if calculate_formula_this_time or use_value_this_time:
                                 if calculate_formula_this_time:
-                                    display_value = json.dumps(formula_obj.evaluate_formula(cr, uid, formula, expected_type, expected_2m, known_variables, context=context))
+                                    display_value = json.dumps(formula_obj.evaluate_formula(formula, expected_type, expected_2m, known_variables))
                                 else:
                                     display_value = detail.display_value
-                                result[parameter_resolve_column_name(parameters, index)] = detail_obj.display_value_to_wizard(cr, uid, display_value, parameters, index, x2m_unique_id, context=context) 
+                                result[parameter_resolve_column_name(parameters, index)] = detail.display_value_to_wizard(display_value, parameters, index, x2m_unique_id)
                                 result[parameter_resolve_formula_column_name(parameters, index)] = detail.calc_formula
 
                                 known_variables[parameters[index]['variable']].update({'calculated': True,
-                                                                                       'calced_value': detail_obj.wizard_value_to_display(cr, uid,
-                                                                                                                                          result[parameter_resolve_column_name(parameters, index)],
-                                                                                                                                          parameters, index, context=context),
+                                                                                       'calced_value': detail.wizard_value_to_display(result[parameter_resolve_column_name(parameters, index)],
+                                                                                                                                      parameters, index),
                                                                                        })
                                 any_calculated_this_time = True
                             break
@@ -214,7 +214,7 @@ class report_prompt_with_selection_set(models.TransientModel):
     def _onchange_selectionset_id(self):
         if self.selectionset_id:
             parameters = json.loads(self.parameters_dictionary)
-            values_dict = self.pool.get('ir.actions.report.set.header').selections_to_dictionary(self.env.cr, self.env.uid, self.selectionset_id.id, parameters, self.x2m_unique_id, context=self.env.context)
+            values_dict = self.selectionset_id.selections_to_dictionary(parameters, self.x2m_unique_id)
 
             for k, v in values_dict.iteritems():
                 self.__setattr__(k, v)
