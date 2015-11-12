@@ -1,16 +1,16 @@
 from openerp import fields, models, api, _
+from openerp.exceptions import Warning
 
 import json
-
 
 class ReportSchedulerSelnSets(models.Model):
     _inherit = "ir.actions.report.scheduler"
 
-
-    def _check_overriding_values(self, cr, uid, line, values_so_far, context=None):
-        result = super(ReportSchedulerSelnSets, self)._check_overriding_values(cr, uid, line, values_so_far, context=context)
+    @api.model
+    def _check_overriding_values(self, line, values_so_far):
+        result = super(ReportSchedulerSelnSets, self)._check_overriding_values(line, values_so_far)
         if line.selectionset_id and values_so_far:
-            result.update(self.pool.get('ir.actions.report.set.header').selections_to_dictionary(cr, uid, line.selectionset_id.id, json.loads(values_so_far.get('parameters_dictionary')), values_so_far.get('x2m_unique_id'), context=context))
+            result.update(line.selectionset_id.selections_to_dictionary(json.loads(values_so_far.get('parameters_dictionary')), values_so_far.get('x2m_unique_id')))
         return result
 
 class ReportSchedulerLinesSelnSets(models.Model):
