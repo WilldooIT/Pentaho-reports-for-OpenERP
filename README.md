@@ -2,6 +2,7 @@
 
 A more detailed description of changes can be found on the [Pentaho Report for OpenERP wiki](https://github.com/WillowIT/Pentaho-reports-for-OpenERP/wiki/Significant-Changes "Pentaho Reports for OpenERP Wiki")
 
+* February 2016 - Upgrade to support Odoo version 9.0.
 * September 2015 - Overcome previous limitation - Now works with the auth_crypt module turned on.
 * August 2015 - Remove need for special duplicated "Pentaho user" - a limitation has been introduced for object based reports with password encryption turned on - work-around in pipeline.
 * August 2015 - Testing with Pentaho version 5.4 - updated war file on Willow website.
@@ -25,7 +26,7 @@ A more detailed description of changes can be found on the [Pentaho Report for O
 This project provides a system that integrates OpenERP with the Pentaho reporting system. End users of OpenERP can design reports using Pentaho report designer v5.0 through v5.4, and install/access them from inside the OpenERP interface. 
 
 ### Features:
-* Support for OpenERP 6.1, 7.0, and 8.0.
+* Support for OpenERP 6.1, 7.0, 8.0, and 9.0.
 * OpenERP data can be accessed via SQL, objects, custom python procedures, or via "Pentaho Data Integration" tools.
 * Report parameters specified in the designer are automatically prompted for when the report is run from OpenERP.
 * Parameters can be generated dynamically from various data sources. 

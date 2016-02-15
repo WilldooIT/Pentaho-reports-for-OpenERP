@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<odoo>
+<data>
+    <record id="act_report_xml_view_pent" model="ir.ui.view">
+        <field name="name">ir.actions.report.xml.pentaho.reports</field>
+        <field name="model">ir.actions.report.xml</field>
+        <field name="inherit_id" ref="base.act_report_xml_view"/>
+        <field name="arch" type="xml">
+            <field name="model" position='attributes'>
+                <attribute name='attrs'>{'invisible': [('report_type', '=', 'pentaho')]}</attribute>
+            </field>
+            <field name='model' position='after'>
+                <field name="pentaho_report_model_id" attrs="{'invisible': [('report_type', '!=', 'pentaho')], 'required': [('report_type', '=', 'pentaho')]}"/>
+                <field name='linked_menu_id' attrs="{'invisible': [('report_type', '!=', 'pentaho')]}"/>
+            </field>
+            <field name='report_type' position='after'>
+                <field name="pentaho_report_output_type" attrs="{'invisible': [('report_type', '!=', 'pentaho')], 'required': [('report_type', '=', 'pentaho')]}"/>
+                <field name="pentaho_file" filename="pentaho_filename" attrs="{'invisible': [('report_type', '!=', 'pentaho')], 'required': [('report_type', '=', 'pentaho')]}"/>
+                <field name="pentaho_filename" attrs="{'required': [('report_type', '=', 'pentaho')]}" invisible='1'/>
+            </field>
+        </field>
+    </record>
+
+    <record id="act_report_xml_search_view_pent" model="ir.ui.view">
+        <field name="name">ir.actions.report.xml.search.pentaho</field>
+        <field name="model">ir.actions.report.xml</field>
+        <field name="inherit_id" ref="base.act_report_xml_search_view"/>
+        <field name="arch" type="xml">
+            <search position='inside'>
+                <filter string="Pentaho Reports" name="pentaho_reports" domain="[('report_type', '=', 'pentaho')]"/>
+            </search>
+        </field>
+    </record>
+
+</data>
+</odoo>

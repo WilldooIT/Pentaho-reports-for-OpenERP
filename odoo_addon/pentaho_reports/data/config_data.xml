@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+<data noupdate="1">  <!-- 'noupdate' means existing data is *not* overwritten when module is updated -->
+    <record id="pentaho_server_url" model="ir.config_parameter">
+        <field name="key">pentaho.server.url</field>
+        <field name="value">http://localhost:8080/pentaho-reports-for-openerp</field>
+    </record>
+
+    <record id="pentaho_openerp_xml_interface" model="ir.config_parameter">
+        <field name="key">pentaho.openerp.xml.interface</field>
+        <field name="value"> </field>
+    </record>
+
+    <record id="pentaho_openerp_xml_port" model="ir.config_parameter">
+        <field name="key">pentaho.openerp.xml.port</field>
+        <field name="value"> </field>
+    </record>
+
+    <record id="pentaho_postgres_host" model="ir.config_parameter">
+        <field name="key">pentaho.postgres.host</field>
+        <field name="value">localhost</field>
+    </record>
+
+    <record id="pentaho_postgres_port" model="ir.config_parameter">
+        <field name="key">pentaho.postgres.port</field>
+        <field name="value">5432</field>
+    </record>
+
+    <record id="pentaho_postgres_login" model="ir.config_parameter">
+        <field name="key">pentaho.postgres.login</field>
+        <field name="value">openerp</field>
+    </record>
+
+    <record id="pentaho_postgres_password" model="ir.config_parameter">
+        <field name="key">pentaho.postgres.password</field>
+        <field name="value">openerp</field>
+    </record>
+</data>
+</odoo>

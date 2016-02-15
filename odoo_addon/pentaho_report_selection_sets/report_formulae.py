@@ -5,8 +5,8 @@ from dateutil import parser
 import pytz
 import json
 
-from openerp import models, fields, _
-from openerp.exceptions import except_orm
+from openerp import models, fields, _, api
+from openerp.exceptions import ValidationError
 from openerp.tools import DEFAULT_SERVER_DATE_FORMAT, DEFAULT_SERVER_DATETIME_FORMAT
 
 from openerp.addons.pentaho_reports.java_oe import *
@@ -121,7 +121,7 @@ class selection_set_formula(models.Model):
                 }
 
 
-    def check_formula_arguments(self, cr, uid, definition_args, passed_args, known_variables, function_name, context=None):
+    def check_formula_arguments(self, definition_args, passed_args, known_variables, function_name):
 
         def find_last_positional(definition_args):
             for x in range(len(definition_args), 0, -1):
@@ -155,7 +155,7 @@ class selection_set_formula(models.Model):
                 return _('Argument mismatch for formula "%s" %s: %s is %s') % (function_name, passed_args[index][0] and ('"%s"' % (passed_args[index][0],)) or ('argument %s' % (index+1,)), passed_args[index][1], value_gives_list and _('a list') or _('not a list'))
         return None
 
-    def split_formula(self, cr, uid, formula_str, known_variables, context=None):
+    def split_formula(self, formula_str, known_variables):
         """
         returns a list of operands.
         each operand is a dictionary:
@@ -225,7 +225,7 @@ class selection_set_formula(models.Model):
 
                     if not operand_dictionary.get('error'):
                         if function_name.lower() in FORMULAE:
-                            operand_dictionary['error'] = self.check_formula_arguments(cr, uid, FORMULAE[function_name]['arguments'], operand_dictionary['function_args'], known_variables, function_name, context=context)
+                            operand_dictionary['error'] = self.check_formula_arguments(FORMULAE[function_name]['arguments'], operand_dictionary['function_args'], known_variables, function_name)
                         else:
                             operand_dictionary['error'] = _('Formula undefined or restricted: "%s"') % (function_name,)
 
@@ -234,11 +234,11 @@ class selection_set_formula(models.Model):
 
         result.append(operand_dictionary)
         if formula_str:
-            result.extend(self.split_formula(cr, uid, formula_str, known_variables, context=context))
+            result.extend(self.split_formula(formula_str, known_variables))
 
         return result
 
-    def operand_type_check(self, cr, uid, operand_dictionary, valid_operators, valid_types, valid_types_2m, eval_to_type, context=None):
+    def operand_type_check(self, operand_dictionary, valid_operators, valid_types, valid_types_2m, eval_to_type):
         if not operand_dictionary['error']:
             if not operand_dictionary['returns'] in valid_types:
                 operand_dictionary['error'] = _('Operand "%s", type "%s", not permitted for parameter of type "%s".') % (operand_dictionary.get('value') or operand_dictionary.get('function_name'), find_type_display_name(operand_dictionary['returns']), find_type_display_name(eval_to_type))
@@ -247,7 +247,7 @@ class selection_set_formula(models.Model):
             elif not operand_dictionary['operator'] in valid_operators:
                 operand_dictionary['error'] = _('Operator "%s", at operand "%s", not permitted for parameter of type "%s".') % (operand_dictionary['operator'], operand_dictionary.get('value') or operand_dictionary.get('function_name'), find_type_display_name(eval_to_type))
 
-    def eval_operand(self, cr, uid, operand_dictionary, known_variables, context=None):
+    def eval_operand(self, operand_dictionary, known_variables):
 
         if operand_dictionary.get('value'):
             return operand_dictionary['operator'], operand_dictionary['returns'], operand_dictionary['returns_2m'], retrieve_value(operand_dictionary['value'], known_variables)
@@ -266,7 +266,7 @@ class selection_set_formula(models.Model):
                         break
                 else:
                     # should NEVER get here as it should have already validated arguments match
-                    raise except_orm(_('Error'), _('Unexpected argument error.'))
+                    raise ValidationError(_('Unexpected argument error.'))
 
             variables[index] = retrieve_value(passed_arg[1], known_variables)
             value = 'variables[%s]' % (index,)
@@ -284,13 +284,13 @@ class selection_set_formula(models.Model):
 
         return operand_dictionary['operator'], operand_dictionary['returns'], operand_dictionary['returns_2m'], eval(eval_string)
 
-    def check_string_formula(self, cr, uid, expected_type, operands, context=None):
+    def check_string_formula(self, expected_type, operands):
         # every operator must be a '+'
         # every standard operand type can be accepted as they will be converted to strings, and appended...
         for operand_dictionary in operands:
-            self.operand_type_check(cr, uid, operand_dictionary, '+', (TYPE_STRING, TYPE_BOOLEAN, TYPE_INTEGER, TYPE_NUMBER, TYPE_DATE, TYPE_TIME), (False, True), expected_type, context=context)
+            self.operand_type_check(operand_dictionary, '+', (TYPE_STRING, TYPE_BOOLEAN, TYPE_INTEGER, TYPE_NUMBER, TYPE_DATE, TYPE_TIME), (False, True), expected_type)
 
-    def eval_string_formula(self, cr, uid, expected_type, operands, known_variables, context=None):
+    def eval_string_formula(self, expected_type, operands, known_variables):
         def to_string(value, op_type, op_2m):
             if op_2m:
                 return json.dumps(value)
@@ -298,72 +298,72 @@ class selection_set_formula(models.Model):
 
         result_string = ''
         for operand_dictionary in operands:
-            op_op, op_type, op_2m, op_result = self.eval_operand(cr, uid, operand_dictionary, known_variables, context=context)
+            op_op, op_type, op_2m, op_result = self.eval_operand(operand_dictionary, known_variables)
             result_string += to_string(op_result, op_type, op_2m)
         return result_string
 
-    def check_boolean_formula(self, cr, uid, expected_type, operands, context=None):
+    def check_boolean_formula(self, expected_type, operands):
         # only 1 operand allowed
         # must be a '+'
         # every standard operand type can be accepted as they will be converted to booleans using standard Python boolean rules
-        self.operand_type_check(cr, uid, operands[0], '+', (TYPE_STRING, TYPE_BOOLEAN, TYPE_INTEGER, TYPE_NUMBER, TYPE_DATE, TYPE_TIME), (False,), expected_type, context=context)
+        self.operand_type_check(operands[0], '+', (TYPE_STRING, TYPE_BOOLEAN, TYPE_INTEGER, TYPE_NUMBER, TYPE_DATE, TYPE_TIME), (False,), expected_type)
         for operand_dictionary in operands[1:]:
             operand_dictionary['error'] = _('Excess operands not permitted for for this type of parameter: %s') % (operand_dictionary.get('value') or operand_dictionary.get('function_name'),)
 
-    def eval_boolean_formula(self, cr, uid, expected_type, operands, known_variables, context=None):
+    def eval_boolean_formula(self, expected_type, operands, known_variables):
         def to_boolean(value, op_type, op_2m):
             return op_type in (TYPE_BOOLEAN) and value or bool(value)
 
-        op_op, op_type, op_2m, op_result = self.eval_operand(cr, uid, operands[0], known_variables, context=context)
+        op_op, op_type, op_2m, op_result = self.eval_operand(operands[0], known_variables)
         result_bool += to_boolean(op_result, op_type, op_2m)
         return result_bool
 
-    def check_numeric_formula(self, cr, uid, expected_type, operands, context=None):
+    def check_numeric_formula(self, expected_type, operands):
         # every operator type is fine
         # only integers and numerics can be accepted
         for operand_dictionary in operands:
-            self.operand_type_check(cr, uid, operand_dictionary, '+-*/', (TYPE_INTEGER, TYPE_NUMBER), (False,), expected_type, context=context)
+            self.operand_type_check(operand_dictionary, '+-*/', (TYPE_INTEGER, TYPE_NUMBER), (False,), expected_type)
 
-    def eval_numeric_formula(self, cr, uid, expected_type, operands, known_variables, context=None):
+    def eval_numeric_formula(self, expected_type, operands, known_variables):
         # all operands have been validated as integers or numbers already, so this is redundant.
         def to_number(value, op_type, op_2m):
             return op_type in (TYPE_INTEGER, TYPE_NUMBER) and value or float(value)
 
         result_num = 0.0
         for operand_dictionary in operands:
-            op_op, op_type, op_2m, op_result = self.eval_operand(cr, uid, operand_dictionary, known_variables, context=context)
+            op_op, op_type, op_2m, op_result = self.eval_operand(operand_dictionary, known_variables)
             result_num = eval('result_num %s to_number(op_result, op_type, op_2m)' % (op_op,))
         return expected_type == TYPE_INTEGER and int(result_num) or result_num
 
-    def check_date_formula(self, cr, uid, expected_type, operands, context=None):
+    def check_date_formula(self, expected_type, operands):
         # first operand must be a date or datetime and a '+' operator
-        self.operand_type_check(cr, uid, operands[0], '+', (TYPE_DATE, TYPE_TIME), (False,), expected_type, context=context)
+        self.operand_type_check(operands[0], '+', (TYPE_DATE, TYPE_TIME), (False,), expected_type)
         # others must be all time_deltas
         for operand_dictionary in operands[1:]:
-            self.operand_type_check(cr, uid, operand_dictionary, '+-', (FTYPE_TIMEDELTA,), (False,), expected_type, context=context)
+            self.operand_type_check(operand_dictionary, '+-', (FTYPE_TIMEDELTA,), (False,), expected_type)
 
-    def eval_date_formula(self, cr, uid, expected_type, operands, known_variables, context=None):
+    def eval_date_formula(self, expected_type, operands, known_variables):
         # all operands have been validated as correct type, so these are redundant - if it errors, then we have a coding problem in the formula checks...
         def to_date(value, op_type, op_2m):
             return op_type in (TYPE_DATE, TYPE_TIME) and value or datetime.now()
         def to_timedelta(value, op_type, op_2m):
             return op_type in (FTYPE_TIMEDELTA) and value or timedelta()
 
-        op_op, op_type, op_2m, op_result = self.eval_operand(cr, uid, operands[0], known_variables, context=context)
+        op_op, op_type, op_2m, op_result = self.eval_operand(operands[0], known_variables)
         result_dtm = op_result
         result_dtm_type = op_type
         for operand_dictionary in operands[1:]:
-            op_op, op_type, op_2m, op_result = self.eval_operand(cr, uid, operand_dictionary, known_variables, context=context)
+            op_op, op_type, op_2m, op_result = self.eval_operand(operand_dictionary, known_variables)
             result_dtm = eval('result_dtm %s to_timedelta(op_result, op_type, op_2m)' % (op_op,))
         # OpenERP will assume datetimes are UTC, but here they are local!
         if result_dtm_type == TYPE_TIME:
             result_dtm = result_dtm.astimezone(pytz.timezone('UTC'))
         elif expected_type == TYPE_TIME:
-            if context and context.get('tz'):
-                result_dtm = pytz.timezone(context['tz']).localize(datetime.combine(result_dtm,datetime.min.time()), is_dst=False).astimezone(pytz.timezone('UTC'))
+            if self.env.context.get('tz'):
+                result_dtm = pytz.timezone(self.env.context['tz']).localize(datetime.combine(result_dtm,datetime.min.time()), is_dst=False).astimezone(pytz.timezone('UTC'))
         return expected_type == TYPE_DATE and result_dtm.strftime(DEFAULT_SERVER_DATE_FORMAT) or result_dtm.strftime(DEFAULT_SERVER_DATETIME_FORMAT)
 
-    def validate_formula(self, cr, uid, formula_str, expected_type, expected_2m, known_variables, context=None):
+    def validate_formula(self, formula_str, expected_type, expected_2m, known_variables):
         """
         returns a dictionary
             error:            string of one error in formula
@@ -388,7 +388,7 @@ class selection_set_formula(models.Model):
                     while formula_str:
                         one_list_value = search_string_to_next(formula_str, ',', 0)
                         formula_str = formula_str.replace(one_list_value,'',1).strip()
-                        one_list_formula = self.validate_formula(cr, uid, one_list_value, expected_type, False, known_variables, context=context)
+                        one_list_formula = self.validate_formula(one_list_value, expected_type, False, known_variables)
                         result['error'] = result['error'] or one_list_formula['error']
                         if not one_list_formula.get('operands'):
                             if not result['error']:
@@ -406,17 +406,17 @@ class selection_set_formula(models.Model):
             if not formula_str or not formula_str[0:1] in FORMULA_OPERATORS:
                 formula_str = '+' + formula_str
 
-            operands = self.split_formula(cr, uid, formula_str, known_variables, context=context)
+            operands = self.split_formula(formula_str, known_variables)
             result['operands'] = operands
 
             if expected_type == TYPE_STRING:
-                self.check_string_formula(cr, uid, expected_type, operands, context=context)
+                self.check_string_formula(expected_type, operands)
             if expected_type == TYPE_BOOLEAN:
-                self.check_boolean_formula(cr, uid, expected_type, operands, context=context)
+                self.check_boolean_formula(expected_type, operands)
             if expected_type in (TYPE_INTEGER, TYPE_NUMBER):
-                self.check_numeric_formula(cr, uid, expected_type, operands, context=context)
+                self.check_numeric_formula(expected_type, operands)
             if expected_type in (TYPE_DATE, TYPE_TIME):
-                self.check_date_formula(cr, uid, expected_type, operands, context=context)
+                self.check_date_formula(expected_type, operands)
 
             for operand in operands:
                 if operand['error']:
@@ -438,7 +438,7 @@ class selection_set_formula(models.Model):
 
         return result
 
-    def evaluate_formula(self, cr, uid, formula_dict, expected_type, expected_2m, known_variables, context=None):
+    def evaluate_formula(self, formula_dict, expected_type, expected_2m, known_variables):
         result = None
 
         # for x2m results, operands is a list of lists
@@ -447,20 +447,21 @@ class selection_set_formula(models.Model):
             for one_set_operands in formula_dict['operands']:
                 single_value_dict = formula_dict.copy()
                 single_value_dict['operands'] = one_set_operands
-                result.append(self.evaluate_formula(cr, uid, single_value_dict, expected_type, False, known_variables, context=context))
+                result.append(self.evaluate_formula(single_value_dict, expected_type, False, known_variables))
             return result
 
         if expected_type == TYPE_STRING:
-            result = self.eval_string_formula(cr, uid, expected_type, formula_dict['operands'], known_variables, context=context)
+            result = self.eval_string_formula(expected_type, formula_dict['operands'], known_variables)
         if expected_type == TYPE_BOOLEAN:
-            result = self.eval_boolean_formula(cr, uid, expected_type, formula_dict['operands'], known_variables, context=context)
+            result = self.eval_boolean_formula(expected_type, formula_dict['operands'], known_variables)
         if expected_type in (TYPE_INTEGER, TYPE_NUMBER):
-            result = self.eval_numeric_formula(cr, uid, expected_type, formula_dict['operands'], known_variables, context=context)
+            result = self.eval_numeric_formula(expected_type, formula_dict['operands'], known_variables)
         if expected_type in (TYPE_DATE, TYPE_TIME):
-            result = self.eval_date_formula(cr, uid, expected_type, formula_dict['operands'], known_variables, context=context)
+            result = self.eval_date_formula(expected_type, formula_dict['operands'], known_variables)
         return result
 
-    def localise(self, cr, uid, value, context=None):
-        if context and context.get('tz'):
-            value = pytz.timezone('UTC').localize(value, is_dst=False).astimezone(pytz.timezone(context['tz']))
+    @api.model
+    def localise(self, value):
+        if self.env.context.get('tz'):
+            value = pytz.timezone('UTC').localize(value, is_dst=False).astimezone(pytz.timezone(self.env.context['tz']))
         return value
