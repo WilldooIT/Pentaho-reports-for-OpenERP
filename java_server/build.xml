@@ -71,7 +71,22 @@
         <zipfileset dir="${src.dir}" includes="**/*.properties" prefix="WEB-INF/classes"/>
       </war>
     </target>
-    
+
+    <target name="docker"
+            depends="war">
+      <copy file="Dockerfile.in" tofile="${dist.dir}/Dockerfile" filtering="true">
+        <filterset>
+          <filter token="war_file" value="${ivy.artifact.id}-${project.revision}.war" />
+        </filterset>
+      </copy>
+      <exec executable="docker" failonerror="true">
+        <arg value="build"/>
+        <arg value="-t"/>
+        <arg value="${ivy.artifact.id}:${project.revision}"/>
+        <arg value="dist"/>
+      </exec>
+    </target>
+
     <!-- Build and launch the application -->
     <target name="launch" depends="jar">
       <java classname="${standalone-server-class}" fork="true">
