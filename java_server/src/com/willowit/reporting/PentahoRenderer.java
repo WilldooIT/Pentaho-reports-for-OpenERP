@@ -1,6 +1,8 @@
 package com.willowit.reporting;
 
 import java.io.ByteArrayOutputStream;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -42,6 +44,7 @@ import org.pentaho.reporting.libraries.resourceloader.Resource;
 import org.pentaho.reporting.libraries.resourceloader.ResourceManager;
 
 import com.debortoliwines.openerp.reporting.di.OpenERPFilterInfo;
+import com.willowit.application.PentahoResourceChecker;
 
 public class PentahoRenderer {
 	private static Log logger = LogFactory.getLog(PentahoRenderer.class);
@@ -138,7 +141,17 @@ public class PentahoRenderer {
 
 		String jdbc_url = "jdbc:postgresql://" + postgres_host + ":" + postgres_port + "/" + postgres_db;
 
-		new_settings = new DriverConnectionProvider();
+		new_settings = new DriverConnectionProvider() {
+			private static final long serialVersionUID = 1L;
+
+			@Override
+			public Connection createConnection(String user, String password)
+					throws SQLException {
+				Connection conn = super.createConnection(user, password);
+				PentahoResourceChecker.registerConnection(conn);
+				return conn;
+			}
+		};
 		new_settings.setDriver("org.postgresql.Driver");
 		new_settings.setUrl(jdbc_url);
 		new_settings.setProperty("user", postgres_login);
