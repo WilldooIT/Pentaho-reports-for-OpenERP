@@ -250,6 +250,21 @@ class PentahoReportOpenERPInterface(report.interface.report_int):
         super(PentahoReportOpenERPInterface, self).__init__(name)
 
     def create(self, cr, uid, ids, data, context):
+        for id in ids:
+            name = self.name
+            report_instance = Report(name, cr, uid, [id], data, context)
+
+            pool = pooler.get_pool(cr.dbname)
+            ir_pool = pool.get('ir.actions.report.xml')
+            report_xml_ids = ir_pool.search(cr, uid,
+                    [('report_name', '=', name[len(SERVICE_NAME_PREFIX):])], context=context)
+
+            rendered_report, output_type = report_instance.execute()
+            if report_xml_ids:
+                report_xml = ir_pool.browse(cr, uid, report_xml_ids[0], context=context)
+                if report_xml.attachment:
+                    self.create_attachment(cr, uid, id, report_xml.attachment, rendered_report, output_type, report_xml.pentaho_report_model_id.model, context=context)
+
         name = self.name
         report_instance = Report(name, cr, uid, ids, data, context)
 
@@ -259,10 +274,12 @@ class PentahoReportOpenERPInterface(report.interface.report_int):
                 [('report_name', '=', name[len(SERVICE_NAME_PREFIX):])], context=context)
 
         rendered_report, output_type = report_instance.execute()
-        if report_xml_ids:
-            report_xml = ir_pool.browse(cr, uid, report_xml_ids[0], context=context)
-            if report_xml.attachment:
-                self.create_attachment(cr, uid, ids, report_xml.attachment, rendered_report, output_type, report_xml.pentaho_report_model_id.model, context=context)
+
+        #if report_xml_ids:
+        #   report_xml = ir_pool.browse(cr, uid, report_xml_ids[0], context=context)
+        #if report_xml.attachment:
+        #    self.create_attachment(cr, uid, ids, report_xml.attachment, rendered_report, output_type, report_xml.pentaho_report_model_id.model, context=context)
+
         return rendered_report, output_type
 
     def getObjects(self, cr, uid, ids, model, context):

@@ -25,7 +25,7 @@ class res_users(models.Model):
             self.reverse_password(token.replace(SKIP_DATE, ''))
 
     def decide_on_password(self):
-        return self.sudo().password
+        return self.password
 
     def reverse_password(self, password):
         pass
