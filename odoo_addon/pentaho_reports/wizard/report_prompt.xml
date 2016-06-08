@@ -1,0 +1,29 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<odoo>
+<data>
+    <record model='ir.ui.view' id='wiz_pentaho_report_prompt'>
+        <field name='name'>Pentaho Report Options</field>
+        <field name='model'>ir.actions.report.promptwizard</field>
+        <field name='arch' type='xml'>
+            <form string='Pentaho Report Options'>
+                <header>
+                    <group name="buttons"/>
+                </header>
+                <field name="id" invisible="1"/>
+                <field name="report_action_id" invisible='1' readonly="1"/>
+                <field name='x2m_unique_id' invisible='1'/>
+                <field name="parameters_dictionary" invisible='1'/>
+                <group name='parameters'>
+                    <field name="output_type"/>
+                </group>
+                <group string='Selections'/>
+                <footer>
+                    <button class="oe_highlight" string='_Print' name='check_report' type='object' />
+                    or
+                    <button class="oe_link" string='_Cancel' special='cancel'/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</data>
+</odoo>

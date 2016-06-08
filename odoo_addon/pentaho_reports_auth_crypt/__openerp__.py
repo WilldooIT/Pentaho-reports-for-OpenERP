@@ -14,8 +14,7 @@ Pentaho For Encrypted Passwords
 This module provides support for Pentaho Reports where the auth_crypt (password encryption)
 module has been installed.
     """,
-    'data': [
-            "security/ir.model.access.csv",
+    'data': ['security/ir.model.access.csv',
             ],
     'demo': [],
     'test': [],

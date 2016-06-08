@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
 
@@ -26,23 +28,23 @@ FUNCTION_TYPES = OPENERP_DATA_TYPES + [(FTYPE_TIMEDELTA, 'Time Delta')]
 
 
 FORMULAE = {'now': {'type': TYPE_TIME,
-                    'call': 'self.localise(cr, uid, datetime.now(), context=context)',
+                    'call': 'self.localise(datetime.now())',
                     'arguments': [],
                     },
             'today': {'type': TYPE_DATE,
-                      'call': 'self.localise(cr, uid, datetime.now(), context=context).date()',
+                      'call': 'self.localise(datetime.now()).date()',
                       'arguments': [],
                       },
             'start_of_month': {'type': TYPE_DATE,
-                               'call': 'self.localise(cr, uid, datetime.now(), context=context).date() + relativedelta(day=1)',
+                               'call': 'self.localise(datetime.now()).date() + relativedelta(day=1)',
                                'arguments': [],
                                },
             'start_of_year': {'type': TYPE_DATE,
-                              'call': 'self.localise(cr, uid, datetime.now(), context=context).date() + relativedelta(day=1, month=1)',
+                              'call': 'self.localise(datetime.now()).date() + relativedelta(day=1, month=1)',
                               'arguments': [],
                               },
             'last_dow': {'type': TYPE_DATE,
-                         'call': 'self.localise(cr, uid, datetime.now(), context=context).date() - relativedelta(days=7) + dow_offset(%1)',
+                         'call': 'self.localise(datetime.now()).date() - relativedelta(days=7) + dow_offset(%1)',
                          'arguments': [{'types': (TYPE_STRING,),
                                         'lists': (False,),
                                         'insert_at': 1,
@@ -50,8 +52,8 @@ FORMULAE = {'now': {'type': TYPE_TIME,
                                         }],
                          },
             'next_dow': {'type': TYPE_DATE,
-                         'call': 'self.localise(cr, uid, datetime.now(), context=context).date() + relativedelta(days=1) + dow_offset(%1)',
-                         'arguments': [{'types': (TYPE_STRING),
+                         'call': 'self.localise(datetime.now()).date() + relativedelta(days=1) + dow_offset(%1)',
+                         'arguments': [{'types': (TYPE_STRING,),
                                         'lists': (False,),
                                         'insert_at': 1,
                                         'insert_as': 'dow_name'
@@ -103,7 +105,7 @@ FORMULAE = {'now': {'type': TYPE_TIME,
                                           ],
                             },
             'current_user': {'type': TYPE_INTEGER,
-                             'call': 'uid',
+                             'call': 'self.env.uid',
                              'arguments': [],
                              }
             }

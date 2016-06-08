@@ -3,7 +3,7 @@
 # As code is written in the new_api structure, it should go in here and be removed from core.py
 
 from openerp import models, fields, api, _
-from openerp.exceptions import except_orm, AccessDenied
+from openerp.exceptions import AccessDenied
 
 from openerp import sql_db, SUPERUSER_ID
 

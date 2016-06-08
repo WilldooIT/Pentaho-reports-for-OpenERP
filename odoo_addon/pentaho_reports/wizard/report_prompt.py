@@ -10,9 +10,9 @@ from datetime import date, datetime
 import pytz
 
 from openerp import models, fields, api, _
+from openerp.exceptions import UserError, ValidationError
 
 from openerp.tools import DEFAULT_SERVER_DATE_FORMAT, DEFAULT_SERVER_DATETIME_FORMAT
-from openerp.exceptions import except_orm, Warning
 
 from ..java_oe import *
 from ..core import get_proxy_args, clean_proxy_args, VALID_OUTPUT_TYPES, DEFAULT_OUTPUT_TYPE
@@ -43,24 +43,6 @@ class report_prompt_class(models.TransientModel):
     output_type = fields.Selection(VALID_OUTPUT_TYPES, string='Report format', help='Choose the format for the output', required=True)
     parameters_dictionary = fields.Text(string='parameter dictionary')
     x2m_unique_id = fields.Integer(string='2M Unique Id')
-
-#     @api.one
-#     @api.depends()
-#     def _multi_select_values(self):
-#         for counter in range(0, MAX_PARAMS):
-#             lines = self.env['ir.actions.report.multivalues.promptwizard'].search([('x2m_unique_id', '=', self.x2m_unique_id), ('entry_num', '=', counter), ('selected', '=', True)])
-#             self.__setattr__(PARAM_XXX_2M_VALUE % counter, lines)
-# 
-# 
-#     @api.one
-#     def _multi_select_values_store(self):
-#         mpwiz = self.env['ir.actions.report.multivalues.promptwizard'].search([('x2m_unique_id', '=', self.x2m_unique_id)])
-#         mpwiz.write({'selected': False})
-# 
-#         for counter in range(0, MAX_PARAMS):
-#             mpwiz = self.__getattribute__(PARAM_XXX_2M_VALUE % counter)
-#             if mpwiz:
-#                 mpwiz.write({'selected': True})
 
     def _parse_one_report_parameter_default_formula(self, formula, type, context=None):
         """
@@ -110,10 +92,10 @@ class report_prompt_class(models.TransientModel):
         java_list, value_type = check_java_list(value_type)
 
         if not value_type in JAVA_MAPPING:
-            raise except_orm(_('Error'), _('Unhandled parameter type (%s).') % parameter.get('value_type', ''))
+            raise ValidationError(_('Unhandled parameter type (%s).') % parameter.get('value_type', ''))
 
         if not parameter.get('name', False):
-            raise except_orm(_('Error'), _('Unnamed parameter encountered.'))
+            raise ValidationError(_('Unnamed parameter encountered.'))
 
         result = {'variable': parameter['name'],
                   'label': parameter['attributes'].get('label', '')
@@ -162,119 +144,99 @@ class report_prompt_class(models.TransientModel):
         return result
 
     def _parse_report_parameters(self, report_parameters, context=None):
-
         result = []
         for parameter in report_parameters:
             if not parameter.get('name') in RESERVED_PARAMS.keys():
                 if not parameter.get('attributes',{}):
-                    raise except_orm(_('Error'), _('Parameter received with no attributes.'))
+                    raise ValidationError(_('Parameter received with no attributes.'))
 
                 result.append(self._parse_one_report_parameter(parameter, context=context))
 
         if len(result) > MAX_PARAMS:
-            raise except_orm(_('Error'), _('Too many report parameters (%d).') % len(result))
+            raise ValidationError(_('Too many report parameters (%d).') % len(result))
 
         return result
 
-    def _find_report_id(self, cr, uid, context=None):
-        report_ids = self.pool.get('ir.actions.report.xml').search(cr, uid, [('report_name', '=', context.get('service_name', ''))], context=context)
-        if not report_ids:
-            raise except_orm(_('Error'), _('Invalid report associated with menu item.'))
-        return report_ids[0]
+    def _find_report_action_from_context(self):
+        report_action = self.env['ir.actions.report.xml'].search([('report_name', '=', self.env.context.get('service_name', ''))], limit=1)
+        if not report_action:
+            raise UserError(_('Invalid report associated with menu item.'))
+        return report_action
 
-    def _setup_parameters(self, cr, uid, report_id, context=None):
-        if context is None:
-            context = {}
-
-        report_record = self.pool.get('ir.actions.report.xml').browse(cr, uid, report_id, context=context)
-
-        prpt_content = base64.decodestring(report_record.pentaho_file)
-
-        proxy_url, proxy_argument = get_proxy_args(self, cr, uid, prpt_content, {
-                                                                                 'ids': [],           # meaningless in this context, so pass nothing...
-                                                                                 'uid': uid,
-                                                                                 'context': context,
-                                                                                 })
+    def _setup_parameters(self, report_action):
+        prpt_content = base64.decodestring(report_action.pentaho_file)
+        proxy_url, proxy_argument = get_proxy_args(self, self.env.cr, self.env.uid, prpt_content, {
+                                                                                                   'ids': [],           # meaningless in this context, so pass nothing...
+                                                                                                   'uid': self.env.uid,
+                                                                                                   'context': self.env.context,
+                                                                                                   })
         proxy = xmlrpclib.ServerProxy(proxy_url)
         report_parameters = proxy.report.getParameterInfo(proxy_argument)
+        clean_proxy_args(self, self.env.cr, self.env.uid, prpt_content, proxy_argument)
+        return self._parse_report_parameters(report_parameters, context=self.env.context)
 
-        clean_proxy_args(self, cr, uid, prpt_content, proxy_argument)
-
-        return self._parse_report_parameters(report_parameters, context=context)
-
-    def report_defaults_dictionary(self, cr, uid, report_action_id, parameters, x2m_unique_id, context=None):
-        report_action = self.pool.get('ir.actions.report.xml').browse(cr, uid, report_action_id, context=context)
+    def report_defaults_dictionary(self, report_action, parameters, x2m_unique_id):
         result = {'output_type': report_action.pentaho_report_output_type or DEFAULT_OUTPUT_TYPE}
-
         for index in range(0, len(parameters)):
             if parameters[index].get('default'):
                 if parameter_can_2m(parameters, index):
-                    raise except_orm(_('Error'), _('Multi select default values not supported.'))
+                    raise ValidationError(_('Multi select default values not supported.'))
                 else:
                     result[parameter_resolve_column_name(parameters, index)] = parameters[index]['default'] # TODO: Needs to be validated for list values - especially for M2M!
-
-        mpwiz_obj = self.pool.get('ir.actions.report.multivalues.promptwizard')
         for index in range(0, len(parameters)):
             if parameter_can_2m(parameters, index):
-                mpwiz_obj.write(cr, uid, mpwiz_obj.search(cr, uid, [('x2m_unique_id', '=', x2m_unique_id), ('entry_num', '=', index)], context=context), {'selected': False}, context=context)
-
+                self.env['ir.actions.report.multivalues.promptwizard'].search([('x2m_unique_id', '=', x2m_unique_id), ('entry_num', '=', index)]).write({'selected': False})
         return result
 
-    def create_x2m_entries(self, cr, uid, parameters, context=None):
+    def create_x2m_entries(self, parameters):
         x2m_unique_id = False
-        mpwiz_obj = self.pool.get('ir.actions.report.multivalues.promptwizard')
+        mpwiz_obj = self.env['ir.actions.report.multivalues.promptwizard']
         for index in range(0, len(parameters)):
             if parameter_can_2m(parameters, index):
                 if not x2m_unique_id:
-                    mpwiz_ids = mpwiz_obj.search(cr, uid, [('x2m_unique_id', '>', 0)], order='x2m_unique_id desc', limit=1, context=context)
-                    if mpwiz_ids:
-                        x2m_unique_id = mpwiz_obj.browse(cr, uid, mpwiz_ids[0], context=context).x2m_unique_id + 1
-                    else:
-                        x2m_unique_id = 1
+                    mpwiz = mpwiz_obj.search([('x2m_unique_id', '>', 0)], order='x2m_unique_id desc', limit=1)
+                    x2m_unique_id = mpwiz.x2m_unique_id + 1
 
                 selection_options = type(parameters[index].get('selection_options')) in (list, tuple) and parameters[index]['selection_options'] or []
                 for item in selection_options:
-                    mpwiz_obj.create(cr, uid, {'x2m_unique_id': x2m_unique_id, 'entry_num': index, 'selected': False,
-                                               'sel_int': item[0] if parameters[index]['type'] == TYPE_INTEGER else False,
-                                               'sel_str': item[0] if parameters[index]['type'] == TYPE_STRING else False,
-                                               'sel_num': item[0] if parameters[index]['type'] == TYPE_NUMBER else False,
-                                               'name': item[1],
-                                               }, context=context)
+                    mpwiz_obj.create({'x2m_unique_id': x2m_unique_id,
+                                      'entry_num': index,
+                                      'selected': False,
+                                      'sel_int': item[0] if parameters[index]['type'] == TYPE_INTEGER else False,
+                                      'sel_str': item[0] if parameters[index]['type'] == TYPE_STRING else False,
+                                      'sel_num': item[0] if parameters[index]['type'] == TYPE_NUMBER else False,
+                                      'name': item[1],
+                                      })
         return x2m_unique_id
 
-    def default_get(self, cr, uid, fields, context=None):
-        if context is None:
-            context={}
-
-        report_action_id = self._find_report_id(cr, uid, context=context)
-        parameters = self._setup_parameters(cr, uid, report_action_id, context=context)
-
-        result = super(report_prompt_class, self).default_get(cr, uid, fields, context=context)
-        result.update({'report_action_id': report_action_id,
+    @api.model
+    def default_get(self, fields):
+        report_action = self._find_report_action_from_context()
+        parameters = self._setup_parameters(report_action)
+        result = super(report_prompt_class, self).default_get(fields)
+        result.update({'report_action_id': report_action.id,
                        'parameters_dictionary': json.dumps(parameters),
                        })
-
-        x2m_unique_id = self.create_x2m_entries(cr, uid, parameters, context=context)
+        x2m_unique_id = self.create_x2m_entries(parameters)
         if x2m_unique_id:
             result['x2m_unique_id'] = x2m_unique_id
-
-        result.update(self.report_defaults_dictionary(cr, uid, report_action_id, parameters, x2m_unique_id, context=context))
+        result.update(self.report_defaults_dictionary(report_action, parameters, x2m_unique_id))
         return result
 
-    def default_get_external(self, cr, uid, report_action_id, context=None):
-        parameters = self._setup_parameters(cr, uid, report_action_id, context=context)
-        result = {'report_action_id': report_action_id,
+    @api.multi
+    def default_get_external(self, report_action):
+        parameters = self._setup_parameters(report_action)
+        result = {'report_action_id': report_action.id,
                   'parameters_dictionary': json.dumps(parameters),
                   }
-
-        x2m_unique_id = self.create_x2m_entries(cr, uid, parameters, context=context)
+        x2m_unique_id = self.create_x2m_entries(parameters)
         if x2m_unique_id:
             result['x2m_unique_id'] = x2m_unique_id
-
-        result.update(self.report_defaults_dictionary(cr, uid, report_action_id, parameters, x2m_unique_id, context=context))
+        result.update(self.report_defaults_dictionary(report_action, parameters, x2m_unique_id))
         return result
 
-    def fvg_add_one_parameter(self, cr, uid, result, selection_groups, parameters, index, first_parameter, context=None):
+    @api.model
+    def fvg_add_one_parameter(self, result, selection_groups, parameters, index, first_parameter):
 
         def add_field(result, field_name, selection_options=False, required=False):
             result['fields'][field_name] = {'selectable': self._columns[field_name].selectable,
@@ -325,7 +287,7 @@ class report_prompt_class(models.TransientModel):
             if not first_parameter and not parameters[index].get('hidden', False):
                 add_subelement(sel_group,
                                'separator',
-                               colspan = sel_group.get('col', '4'),
+                               colspan = sel_group.get('col', '2'),
                                string = 'Selections',
                 )
 
@@ -347,38 +309,31 @@ class report_prompt_class(models.TransientModel):
                            domain = is_2m and ('[("x2m_unique_id", "=", x2m_unique_id), ("entry_num", "=", %d)]' % index) or None,
                            )
 
-    def fields_view_get(self, cr, uid, view_id=None, view_type='form', context=None, toolbar=False, submenu=False):
-        if context is None:
-            context = {}
-
-        result = super(report_prompt_class, self).fields_view_get(cr, uid, view_id=view_id, view_type=view_type, context=context, toolbar=toolbar, submenu=submenu)
+    @api.model
+    def fields_view_get(self, view_id=None, view_type=False, toolbar=False, submenu=False):
+        result = super(report_prompt_class, self).fields_view_get(view_id=view_id, view_type=view_type, toolbar=toolbar, submenu=submenu)
 
         # fields_view_get() is called during module installation, in which case there is no
         # service_name in the context.
-        if context.get('service_name', '').strip() == '':
+        if self.env.context.get('service_name', '').strip() == '':
             return result
 
         # reload parameters as selection pull down options can change
-        report_action_id = self._find_report_id(cr, uid, context=context)
-        parameters = self._setup_parameters(cr, uid, report_action_id, context=context)
+        report_action = self._find_report_action_from_context()
+        parameters = self._setup_parameters(report_action)
 
         doc = etree.fromstring(result['arch'])
-
         selection_groups = doc.findall('.//group[@string="Selections"]')
 
         first_parameter = {}
-
         for index in range(0, len(parameters)):
-            self.fvg_add_one_parameter(cr, uid, result, selection_groups, parameters, index, first_parameter, context=context)
-
+            self.fvg_add_one_parameter(result, selection_groups, parameters, index, first_parameter)
         for sel_group in selection_groups:
             sel_group.set('string', '')
-
         result['arch'] = etree.tostring(doc)
-
         return result
 
-    def decode_wizard_value(self, cr, uid, parameters, index, value, context=None):
+    def decode_wizard_value(self, parameters, index, value):
         if parameter_can_2m(parameters, index):
             #
             # if value comes from the wizard column, it will be a list of browse records
@@ -386,7 +341,7 @@ class report_prompt_class(models.TransientModel):
             #        [(6, 0, [ids])]
             #
             if value and type(value[0]) in (list, tuple):
-                value = self.pool.get('ir.actions.report.multivalues.promptwizard').browse(cr, uid, value[0][2], context=context)
+                value = self.env['ir.actions.report.multivalues.promptwizard'].browse(value[0][2])
             result = value and [(x.sel_int if parameters[index]['type'] == TYPE_INTEGER else \
                                  x.sel_str if parameters[index]['type'] == TYPE_STRING else \
                                  x.sel_num if parameters[index]['type'] == TYPE_NUMBER else \
@@ -398,8 +353,8 @@ class report_prompt_class(models.TransientModel):
             result = value or PARAM_VALUES[parameters[index]['type']]['if_false']
         return result
 
-    def encode_wizard_value(self, cr, uid, parameters, index, x2m_unique_id, value, context=None):
-        mpwiz_obj = self.pool.get('ir.actions.report.multivalues.promptwizard')
+    def encode_wizard_value(self, parameters, index, x2m_unique_id, value):
+        mpwiz_obj = self.env['ir.actions.report.multivalues.promptwizard']
 
         result = value
         if parameter_can_2m(parameters, index):
@@ -412,37 +367,35 @@ class report_prompt_class(models.TransientModel):
                            ('sel_num', '=', v) if parameters[index]['type'] == TYPE_NUMBER else \
                            False
                 if v_domain:
-                    ids = mpwiz_obj.search(cr, uid, [('x2m_unique_id', '=', x2m_unique_id), ('entry_num', '=', index), v_domain], context=context)
-                    if ids:
-                        sel_ids.append(ids[0])
+                    mpwiz = mpwiz_obj.search([('x2m_unique_id', '=', x2m_unique_id), ('entry_num', '=', index), v_domain])
+                    if mpwiz:
+                        sel_ids.append(mpwiz[0].id)
             result = [(6, 0, sel_ids)]
         return result
 
-    def _set_report_variables(self, cr, uid, wizard, context=None):
-        parameters = json.loads(wizard.parameters_dictionary)
+    def _set_report_variables(self):
+        self.ensure_one()
+        parameters = json.loads(self.parameters_dictionary)
         result = {}
         for index in range(0, len(parameters)):
-            result[parameters[index]['variable']] = self.decode_wizard_value(cr, uid, parameters, index, getattr(wizard, parameter_resolve_column_name(parameters, index)), context=context)
+            result[parameters[index]['variable']] = self.decode_wizard_value(parameters, index, getattr(self, parameter_resolve_column_name(parameters, index)))
         return result
 
-    def check_report(self, cr, uid, ids, context=None):
-        if context is None:
-            context = {}
-        wizard = self.browse(cr, uid, ids[0], context=context)
+    @api.multi
+    def check_report(self):
+        self.ensure_one()
         data = {
-                'ids': context.get('active_ids', []),
-                'model': context.get('active_model', 'ir.ui.menu'),
-                'output_type': wizard.output_type,
-                'variables': self._set_report_variables(cr, uid, wizard, context=context)
+                'ids': self.env.context.get('active_ids', []),
+                'model': self.env.context.get('active_model', 'ir.ui.menu'),
+                'output_type': self.output_type,
+                'variables': self._set_report_variables(),
                 }
-        return self._print_report(cr, uid, ids, data, context=context)
+        return self._print_report(data)
 
-    def _print_report(self, cr, uid, ids, data, context=None):
-        if context is None:
-            context = {}
+    def _print_report(self, data):
         return {
                 'type': 'ir.actions.report.xml',
-                'report_name': context.get('service_name', ''),
+                'report_name': self.env.context.get('service_name', ''),
                 'datas': data,
                 }
 

@@ -24,6 +24,6 @@ The desired selection set to be used needs to be chosen in the report schedule g
     'demo': [],
     'test': [],
     'installable': True,
-    'auto_install': False,
+    'auto_install': True,
     'application': False,
 }

@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from openerp import models, fields, api, _
 import datetime
 from openerp import netsvc
@@ -68,7 +70,6 @@ class ReportScheduler(models.Model):
                 self.env['mail.message'].create({'subject': self.name,
                                                  'type': "notification",
                                                  'partner_ids': [(6, 0, receiver_ids)],
-                                                 'notified_partner_ids': [(6, 0, receiver_ids)],
                                                  'attachment_ids': [(6, 0, attachments.ids)],
                                                  'body': report_summary,
                                                  })
@@ -85,7 +86,7 @@ class ReportScheduler(models.Model):
             promptwizard_obj = self.env['ir.actions.report.promptwizard']
 
             # default_get creates a dictionary of wizard default values
-            values = promptwizard_obj.default_get_external(line.report_id.id)
+            values = promptwizard_obj.default_get_external(line.report_id)
             # this hook is provided to allow for selection set values, which are not necessarily installed
             values.update(self._check_overriding_values(line, values))
 
