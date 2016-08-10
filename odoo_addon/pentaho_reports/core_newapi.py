@@ -82,7 +82,7 @@ class res_users(models.Model):
                         update_clause = 'NO KEY UPDATE' if cr._cnx.server_version >= 90300 else 'UPDATE'
                         cr.execute("SELECT id FROM res_users WHERE id=%%s FOR %s NOWAIT" % update_clause, (user_id,), log_exceptions=False)
                         cr.execute("INSERT INTO res_users_log (create_uid, create_date, write_date, write_uid) \
-                                    VALUES (%s, now(), now(), %s)", (user_id, user_id))
+                                    VALUES (%s, now() AT TIME ZONE 'UTC', now() AT TIME ZONE 'UTC', %s)", (user_id, user_id))
                         
                         self.invalidate_cache(cr, user_id, ['login_date'], [user_id])
                 except Exception:
