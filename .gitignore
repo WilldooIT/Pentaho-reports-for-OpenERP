@@ -10,3 +10,6 @@ build/
 dist/
 bin/
 lib/
+
+#Kde Environment
+*.directory
