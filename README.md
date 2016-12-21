@@ -1,3 +1,9 @@
+## Version 10
+
+Announcing First Cut v10 - Note that only SQL queries are supported at the moment - See the readme in the new repository for what state this is in.  The rest will have to wait until the new year, unfortunately.
+
+[https://github.com/WilldooIT/Pentaho-Odoo](https://github.com/WilldooIT/Pentaho-Odoo)
+
 ## A Summary of Recent Changes
 
 A more detailed description of changes can be found on the [Pentaho Report for OpenERP wiki](https://github.com/WillowIT/Pentaho-reports-for-OpenERP/wiki/Significant-Changes "Pentaho Reports for OpenERP Wiki")
