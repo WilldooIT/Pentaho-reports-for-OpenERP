@@ -65,7 +65,7 @@ The other component in this project is the OpenERP Module. This module allows Op
 
 Reports can be designed and created using the [Pentaho Report Designer](http://sourceforge.net/projects/pentaho/files/Report%20Designer/ "Pentaho Report Designer") (which is software that is separate from this project).
 
-The report server needs to be installed and running. The quickest and easiest way is to download and use a pre-built .war file from [here](http://cloud1.willowit.com.au/dist/pentaho-reports-for-openerp.war "Pentaho Report Server Packaged for Download"). This file will be rebuilt and updated on a semi-regular basis, but if the absolute latest version is required, you will have to build it yourself following the instructions [below.](#building-and-installing) 
+The report server needs to be installed and running. The quickest and easiest way is to download and use a pre-built .war file from [here](https://static.willdooit.net/pentaho-reports-for-openerp.war "Pentaho Report Server Packaged for Download"). This file will be rebuilt and updated on a semi-regular basis, but if the absolute latest version is required, you will have to build it yourself following the instructions [below.](#building-and-installing) 
 
 The report server needs an application container such as [Apache Tomcat](http://tomcat.apache.org/ "Apache Tomcat") for it to run in. Installation and deployment on Tomcat or any other application container is beyond the scope of this document, however the Tomcat website has very detailed documentation on how to do so. 
 
