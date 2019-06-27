@@ -1,3 +1,9 @@
+## Version 11 and Version 12
+
+Version 11 and Version 12 of the connector are available through the Odoo Apps Store.
+
+The java component and issue tracker will be maintained on: [https://github.com/WilldooIT/Pentaho-Odoo](https://github.com/WilldooIT/Pentaho-Odoo)
+
 ## Version 10
 
 Announcing First Cut v10 - Note that only SQL queries are supported at the moment - See the readme in the new repository for what state this is in.  The rest will have to wait until the new year, unfortunately.
